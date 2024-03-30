@@ -58,10 +58,13 @@ pub enum Token
     Local,
     Global,
     Char(u8),
-    String(String),
-    Int(i64),
-    Uint(u64),
-    Float(f64),
+    String(Vec<u8>),
+    Int(i32),
+    Uint(u32),
+    Float(f32),
+    Long(i64),
+    Ulong(u64),
+    Double(f64),
     ConstrIdent(String),
     VarIdent(String),
     Eof,
@@ -254,9 +257,21 @@ impl<'a> Lexer<'a>
                         };
                         self.read_number_string(&mut s, radix)?;
                         match self.next_char()? {
+                            (Some('I'), _) => {
+                                match i64::from_str_radix(s.as_str(), radix) {
+                                    Ok(n) => return Ok(Some((Token::Long(n), current_pos))),
+                                    Err(_) => return Err(FrontendError::Message(self.path.clone(), current_pos, String::from("invalid number"))),
+                                }
+                            },
                             (Some('u'), _) => {
-                                match u64::from_str_radix(s.as_str(), radix) {
+                                match u32::from_str_radix(s.as_str(), radix) {
                                     Ok(n) => return Ok(Some((Token::Uint(n), current_pos))),
+                                    Err(_) => return Err(FrontendError::Message(self.path.clone(), current_pos, String::from("invalid number"))),
+                                }
+                            },
+                            (Some('U'), _) => {
+                                match u64::from_str_radix(s.as_str(), radix) {
+                                    Ok(n) => return Ok(Some((Token::Ulong(n), current_pos))),
                                     Err(_) => return Err(FrontendError::Message(self.path.clone(), current_pos, String::from("invalid number"))),
                                 }
                             },
@@ -265,7 +280,7 @@ impl<'a> Lexer<'a>
                                     None | Some('i') => (), 
                                     Some(c3) => self.undo_char(c3, pos3),
                                 }
-                                match i64::from_str_radix(s.as_str(), radix) {
+                                match i32::from_str_radix(s.as_str(), radix) {
                                     Ok(n) => return Ok(Some((Token::Int(n), current_pos))),
                                     Err(_) => return Err(FrontendError::Message(self.path.clone(), current_pos, String::from("invalid number"))),
                                 }
@@ -327,24 +342,52 @@ impl<'a> Lexer<'a>
         }
         if is_dot_or_exp {
             match self.next_char()? {
-                (None | Some('f'), _) => (),
-                (Some(c), pos) => self.undo_char(c, pos),
-            }
-            match s.parse::<f64>() {
-                Ok(n) => Ok(Some((Token::Float(n), current_pos))),
-                Err(_) => Err(FrontendError::Message(self.path.clone(), current_pos, String::from("invalid number"))),
-            }
-        } else {
-            match self.next_char()? {
-                (Some('f'), _) => {
+                (Some('F'), _) => {
                     match s.parse::<f64>() {
+                        Ok(n) => Ok(Some((Token::Double(n), current_pos))),
+                        Err(_) => Err(FrontendError::Message(self.path.clone(), current_pos, String::from("invalid number"))),
+                    }
+                },
+                (opt_c @ (None | Some(_)), pos) => {
+                    match opt_c {
+                        None | Some('f') => (),
+                        Some(c) => self.undo_char(c, pos), 
+                    }
+                    match s.parse::<f32>() {
                         Ok(n) => Ok(Some((Token::Float(n), current_pos))),
                         Err(_) => Err(FrontendError::Message(self.path.clone(), current_pos, String::from("invalid number"))),
                     }
                 },
+            }
+        } else {
+            match self.next_char()? {
+                (Some('f'), _) => {
+                    match s.parse::<f32>() {
+                        Ok(n) => Ok(Some((Token::Float(n), current_pos))),
+                        Err(_) => Err(FrontendError::Message(self.path.clone(), current_pos, String::from("invalid number"))),
+                    }
+                },
+                (Some('F'), _) => {
+                    match s.parse::<f64>() {
+                        Ok(n) => Ok(Some((Token::Double(n), current_pos))),
+                        Err(_) => Err(FrontendError::Message(self.path.clone(), current_pos, String::from("invalid number"))),
+                    }
+                },
+                (Some('I'), _) => {
+                    match s.parse::<i64>() {
+                        Ok(n) => Ok(Some((Token::Long(n), current_pos))),
+                        Err(_) => Err(FrontendError::Message(self.path.clone(), current_pos, String::from("invalid number"))),
+                    }
+                },
                 (Some('u'), _) => {
-                    match s.parse::<u64>() {
+                    match s.parse::<u32>() {
                         Ok(n) => Ok(Some((Token::Uint(n), current_pos))),
+                        Err(_) => Err(FrontendError::Message(self.path.clone(), current_pos, String::from("invalid number"))),
+                    }
+                },
+                (Some('U'), _) => {
+                    match s.parse::<u64>() {
+                        Ok(n) => Ok(Some((Token::Ulong(n), current_pos))),
                         Err(_) => Err(FrontendError::Message(self.path.clone(), current_pos, String::from("invalid number"))),
                     }
                 },
@@ -353,7 +396,7 @@ impl<'a> Lexer<'a>
                         None | Some('i') => (),
                         Some(c) => self.undo_char(c, pos), 
                     }
-                    match s.parse::<i64>() {
+                    match s.parse::<i32>() {
                         Ok(n) => Ok(Some((Token::Int(n), current_pos))),
                         Err(_) => Err(FrontendError::Message(self.path.clone(), current_pos, String::from("invalid number"))),
                     }
