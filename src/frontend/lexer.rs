@@ -18,7 +18,6 @@ pub enum Token
     LBrace,
     RBrace,
     Ex,
-    Tylda,
     Star,
     Slash,
     Perc,
@@ -36,24 +35,28 @@ pub enum Token
     Caret,
     Bar,
     Eq,
+    Backslash,
     Dot,
     DotDot,
     DotDotEq,
+    LArrow,
     RArrow,
     EqGt,
     Comma,
     Colon,
     Semi,
     As,
-    Trait,
+    Builtin,
     Data,
     Else,
     For,
     If,
     In,
+    Inline,
     Impl,
     Let,
     Match,
+    Trait,
     Type,
     Uniq,
     Where,
@@ -433,7 +436,6 @@ impl<'a> Lexer<'a>
                             },
                         }
                     },
-                    (Some('~'), pos) => Ok((Token::Tylda, pos)),
                     (Some('*'), pos) => Ok((Token::Star, pos)),
                     (Some('/'), pos) => Ok((Token::Slash, pos)),
                     (Some('%'), pos) => Ok((Token::Perc, pos)),
@@ -441,7 +443,7 @@ impl<'a> Lexer<'a>
                     (Some('-'), pos) => {
                         match self.next_char()? {
                             (None, _) => Ok((Token::Minus, pos)),
-                            (Some('='), _) => Ok((Token::RArrow, pos)),
+                            (Some('>'), _) => Ok((Token::RArrow, pos)),
                             (Some(c2), pos2) => {
                                 self.undo_char(c2, pos2);
                                 Ok((Token::Minus, pos))
@@ -453,6 +455,7 @@ impl<'a> Lexer<'a>
                             (None, _) => Ok((Token::Lt, pos)),
                             (Some('<'), _) => Ok((Token::LtLt, pos)),
                             (Some('='), _) => Ok((Token::LtEq, pos)),
+                            (Some('-'), _) => Ok((Token::LArrow, pos)),
                             (Some(c2), pos2) => {
                                 self.undo_char(c2, pos2);
                                 Ok((Token::Lt, pos))
@@ -506,6 +509,7 @@ impl<'a> Lexer<'a>
                     (Some(','), pos) => Ok((Token::Comma, pos)),
                     (Some(':'), pos) => Ok((Token::Colon, pos)),
                     (Some(';'), pos) => Ok((Token::Semi, pos)),
+                    (Some('\\'), pos) => Ok((Token::Backslash, pos)),
                     (Some(c), pos) => {
                         self.undo_char(c, pos);
                         if let Some((token, pos)) = self.next_number_token()? {
