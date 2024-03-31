@@ -41,6 +41,7 @@ pub enum Token
     DotDotEq,
     LArrow,
     RArrow,
+    DArrow,
     EqGt,
     Comma,
     Colon,
@@ -49,6 +50,7 @@ pub enum Token
     Builtin,
     Data,
     Else,
+    False,
     For,
     If,
     In,
@@ -56,7 +58,9 @@ pub enum Token
     Impl,
     Let,
     Match,
+    Shared,
     Trait,
+    True,
     Type,
     Uniq,
     Where,
@@ -73,7 +77,7 @@ pub enum Token
     Long(i64),
     Ulong(u64),
     Double(f64),
-    ConstrIdent(String),
+    ConIdent(String),
     VarIdent(String),
     Eof,
 }
@@ -455,7 +459,16 @@ impl<'a> Lexer<'a>
                             (None, _) => Ok((Token::Lt, pos)),
                             (Some('<'), _) => Ok((Token::LtLt, pos)),
                             (Some('='), _) => Ok((Token::LtEq, pos)),
-                            (Some('-'), _) => Ok((Token::LArrow, pos)),
+                            (Some('-'), _) => {
+                                match self.next_char()? {
+                                    (None, _) => Ok((Token::LArrow, pos)),
+                                    (Some('>'), _) => Ok((Token::DArrow, pos)),
+                                    (Some(c3), pos3) => {
+                                        self.undo_char(c3, pos3);
+                                        Ok((Token::LArrow, pos))
+                                    },
+                                }
+                            },
                             (Some(c2), pos2) => {
                                 self.undo_char(c2, pos2);
                                 Ok((Token::Lt, pos))
