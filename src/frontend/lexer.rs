@@ -223,7 +223,7 @@ impl<'a> Lexer<'a>
         Ok(())
     }
     
-    fn read_number_string(&mut self, s: &mut String, radix: u32) -> FrontendResult<()>
+    fn read_digits(&mut self, s: &mut String, radix: u32) -> FrontendResult<()>
     {
         loop {
             match self.next_char()? {
@@ -237,6 +237,19 @@ impl<'a> Lexer<'a>
         }
         Ok(())
     }
+
+    fn read_one_or_more_digits(&mut self, s: &mut String, radix: u32, current_pos: Pos) -> FrontendResult<()>
+    {
+        match self.next_char()? {
+            (None, _) => return Err(FrontendError::Message(self.path.clone(), current_pos, String::from("invalid number"))),
+            (Some(c), _) if c.is_digit(radix) => {
+                s.push(c);
+                self.read_digits(s, radix)?;
+            },
+            (Some(c), pos) => self.undo_char(c, pos),
+        }
+        Ok(())
+    }    
     
     fn next_number_token(&mut self) -> FrontendResult<Option<(Token, Pos)>>
     {
@@ -255,7 +268,7 @@ impl<'a> Lexer<'a>
                             'O' | 'o' => 8,
                             _ => 16,
                         };
-                        self.read_number_string(&mut s, radix)?;
+                        self.read_one_or_more_digits(&mut s, radix, current_pos)?;
                         match self.next_char()? {
                             (Some('I'), _) => {
                                 match i64::from_str_radix(s.as_str(), radix) {
@@ -302,20 +315,13 @@ impl<'a> Lexer<'a>
                 return Ok(None);
             },
         }
-        self.read_number_string(&mut s, 10)?;
+        self.read_digits(&mut s, 10)?;
         match self.next_char()? {
             (None, _) => (),
             (Some('.'), _) => {
                 is_dot_or_exp = true;
                 s.push('.');
-                match self.next_char()? {
-                    (None, _) => return Err(FrontendError::Message(self.path.clone(), current_pos, String::from("invalid number"))),
-                    (Some(c2), _) if c2.is_digit(10) => {
-                        s.push(c2);
-                        self.read_number_string(&mut s, 10)?;
-                    },
-                    (Some(c2), pos2) => self.undo_char(c2, pos2),
-                }
+                self.read_one_or_more_digits(&mut s, 10, current_pos)?;
             },
             (Some(c), pos) => self.undo_char(c, pos),
         }
@@ -329,14 +335,7 @@ impl<'a> Lexer<'a>
                     (Some(c2 @ ('+' | '-')), _) => s.push(c2),
                     (Some(c2), pos2) => self.undo_char(c2, pos2),
                 }
-                match self.next_char()? {
-                    (None, _) => return Err(FrontendError::Message(self.path.clone(), current_pos, String::from("invalid number"))),
-                    (Some(c2), _) if c2.is_digit(10) => {
-                        s.push(c2);
-                        self.read_number_string(&mut s, 10)?;
-                    },
-                    (Some(c2), pos2) => self.undo_char(c2, pos2),
-                }
+                self.read_one_or_more_digits(&mut s, 10, current_pos)?;
             },
             (Some(c), pos) => self.undo_char(c, pos),
         }
