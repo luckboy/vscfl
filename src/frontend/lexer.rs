@@ -82,6 +82,13 @@ pub enum Token
     Eof,
 }
 
+#[derive(Copy, Clone, Debug)]
+enum TokenChar
+{
+    Byte(u8),
+    Char(char),
+}
+
 pub struct Lexer<'a>
 {
     path: String,
@@ -234,6 +241,114 @@ impl<'a> Lexer<'a>
         }
         Ok(())
     }
+
+    fn read_token_char(&mut self, is_char_token: bool, token_pos: Pos) -> FrontendResult<Option<TokenChar>>
+    {
+        match self.next_char()? {
+            (None, _) => {
+                if is_char_token {
+                    Err(FrontendError::Message(self.path.clone(), token_pos, String::from("unclosed character")))
+                } else {
+                    Err(FrontendError::Message(self.path.clone(), token_pos, String::from("unclosed string")))
+                }
+            },
+            (Some('\''), _) if is_char_token => Ok(None),
+            (Some('"'), _) if !is_char_token => Ok(None),
+            (Some('\\'), pos) => {
+                match self.next_char()? {
+                    (None, _) => {
+                        if is_char_token {
+                            Err(FrontendError::Message(self.path.clone(), token_pos, String::from("unclosed character")))
+                        } else {
+                            Err(FrontendError::Message(self.path.clone(), token_pos, String::from("unclosed string")))
+                        }
+                    },
+                    (Some('X' | 'x'), _) => {
+                        let mut s = String::new();
+                        for _ in 0..2 {
+                            match self.next_char()? {
+                                (None, _) => {
+                                    if is_char_token {
+                                        return Err(FrontendError::Message(self.path.clone(), token_pos, String::from("unclosed character")));
+                                    } else {
+                                        return Err(FrontendError::Message(self.path.clone(), token_pos, String::from("unclosed string")));
+                                    }
+                                },
+                                (Some(c3), _) if c3.is_digit(16) => s.push(c3),
+                                (Some(_), pos3) => return Err(FrontendError::Message(self.path.clone(), pos3, String::from("unexpected character"))),
+                            }
+                        }
+                        match u8::from_str_radix(s.as_str(), 16) {
+                            Ok(n) => Ok(Some(TokenChar::Byte(n))),
+                            Err(_) => Err(FrontendError::Message(self.path.clone(), pos, String::from("invalud escape")))
+                        }
+                    },
+                    (Some('0'), _) => Ok(Some(TokenChar::Byte(0))),
+                    (Some('n'), _) => Ok(Some(TokenChar::Char('\n'))),
+                    (Some('r'), _) => Ok(Some(TokenChar::Char('\r'))),
+                    (Some('t'), _) => Ok(Some(TokenChar::Char('\t'))),
+                    (Some(c2), _) => Ok(Some(TokenChar::Char(c2))),
+                }
+            },
+            (Some(c), _) => Ok(Some(TokenChar::Char(c))),
+        }
+    }
+    
+    fn next_char_token(&mut self) -> FrontendResult<Option<(Token, Pos)>>
+    {
+        match self.next_char()? {
+            (None, _) => Ok(None), 
+            (Some('\''), pos) => {
+                match self.read_token_char(true, pos)? {
+                    None => Err(FrontendError::Message(self.path.clone(), pos, String::from("empty character"))),
+                    Some(TokenChar::Byte(n)) => Ok(Some((Token::Char(n), pos))),
+                    Some(TokenChar::Char(c)) => {
+                        let mut s = String::new();
+                        s.push(c);
+                        let b = s.as_bytes();
+                        if b.len() == 1 {
+                            match s.as_bytes().first() {
+                                Some(n) => Ok(Some((Token::Char(*n), pos))),
+                                None => Err(FrontendError::Message(self.path.clone(), pos, String::from("invalid character")))
+                            }
+                        } else {
+                            Err(FrontendError::Message(self.path.clone(), pos, String::from("invalid character")))
+                        }
+                    },
+                }
+            },
+            (Some(c), pos) => {
+                self.undo_char(c, pos);
+                Ok(None)
+            },
+        }
+    }
+
+    fn next_string_token(&mut self) -> FrontendResult<Option<(Token, Pos)>>
+    {
+        match self.next_char()? {
+            (None, _) => Ok(None), 
+            (Some('"'), pos) => {
+                let mut bs = Vec::new();
+                loop {
+                    match self.read_token_char(false, pos)? {
+                        None => break,
+                        Some(TokenChar::Byte(n)) => bs.push(n), 
+                        Some(TokenChar::Char(c)) => {
+                            let mut s = String::new();
+                            s.push(c);
+                            bs.extend_from_slice(s.as_bytes());
+                        },
+                    }
+                }
+                Ok(Some((Token::String(bs), pos)))
+            },
+            (Some(c), pos) => {
+                self.undo_char(c, pos);
+                Ok(None)
+            },
+        }
+    }
     
     fn read_token_digits(&mut self, s: &mut String, radix: u32) -> FrontendResult<()>
     {
@@ -261,7 +376,7 @@ impl<'a> Lexer<'a>
             (Some(c), pos) => self.undo_char(c, pos),
         }
         Ok(())
-    }    
+    }
     
     fn next_number_token(&mut self) -> FrontendResult<Option<(Token, Pos)>>
     {
@@ -415,7 +530,7 @@ impl<'a> Lexer<'a>
             }
         }
     }
-    
+        
     pub fn next_token(&mut self) -> FrontendResult<(Token, Pos)>
     {
         match self.pushed_tokens.pop() {
@@ -525,7 +640,11 @@ impl<'a> Lexer<'a>
                     (Some('\\'), pos) => Ok((Token::Backslash, pos)),
                     (Some(c), pos) => {
                         self.undo_char(c, pos);
-                        if let Some((token, pos)) = self.next_number_token()? {
+                        if let Some((token, pos)) = self.next_char_token()? {
+                            Ok((token, pos))
+                        } else if let Some((token, pos)) = self.next_string_token()? {
+                            Ok((token, pos))
+                        } else if let Some((token, pos)) = self.next_number_token()? {
                             Ok((token, pos))
                         } else {
                             Err(FrontendError::Message(self.path.clone(), pos, String::from("unexpected character")))
