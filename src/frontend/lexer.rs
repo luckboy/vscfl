@@ -46,6 +46,7 @@ pub enum Token
     Comma,
     Colon,
     Semi,
+    Wildcard,
     As,
     Builtin,
     Data,
