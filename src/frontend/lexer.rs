@@ -93,7 +93,6 @@ enum TokenChar
 
 pub struct Lexer<'a>
 {
-    path: String,
     pos: Pos,
     reader: &'a mut dyn BufRead,
     pushed_chars: Vec<(char, Pos)>,
@@ -132,8 +131,7 @@ impl<'a> Lexer<'a>
         keywords.insert(String::from("global"), Token::Global);
         keywords.insert(String::from("constant"), Token::Constant);
         Lexer {
-            path,
-            pos: Pos::new(1, 1),
+            pos: Pos::new(path, 1, 1),
             reader,
             pushed_chars: Vec::new(),
             pushed_tokens: Vec::new(),
@@ -159,14 +157,14 @@ impl<'a> Lexer<'a>
                         break;
                     },
                     Err(err) if err.kind() == ErrorKind::Interrupted => (),
-                    Err(err) => return Err(FrontendError::Io(self.path.clone(), err)),
+                    Err(err) => return Err(FrontendError::Io(self.pos.path.clone(), err)),
                 }
             }
             if is_eof {
                 if i == 0 {
                     return Ok(None);
                 } else {
-                    return Err(FrontendError::Io(self.path.clone(), Error::new(ErrorKind::InvalidData, "stream did not contain valid UTF-8")))
+                    return Err(FrontendError::Io(self.pos.path.clone(), Error::new(ErrorKind::InvalidData, "stream did not contain valid UTF-8")))
                 }
             } else {
                 match String::from_utf8(c_buf.clone()) {
@@ -175,20 +173,20 @@ impl<'a> Lexer<'a>
                 }
             }
         }
-        Err(FrontendError::Io(self.path.clone(), Error::new(ErrorKind::InvalidData, "stream did not contain valid UTF-8")))
+        Err(FrontendError::Io(self.pos.path.clone(), Error::new(ErrorKind::InvalidData, "stream did not contain valid UTF-8")))
     }
     
     pub fn next_char(&mut self) -> FrontendResult<(Option<char>, Pos)>
     {
         let res = match self.pushed_chars.pop() {
             Some((c, pos)) => {
-                self.pos = pos;
+                self.pos = pos.clone();
                 Ok((Some(c), pos)) 
             },
             None => {
                 match self.read_char() {
-                    Ok(None) => Ok((None, self.pos)),
-                    Ok(Some(c)) => Ok((Some(c), self.pos)),
+                    Ok(None) => Ok((None, self.pos.clone())),
+                    Ok(Some(c)) => Ok((Some(c), self.pos.clone())),
                     Err(err) => Err(err),
                 }
             }
@@ -232,10 +230,10 @@ impl<'a> Lexer<'a>
                     (Some('*'), _) => {
                         loop {
                             match self.next_char()? {
-                                (None, pos3) => return Err(FrontendError::Message(self.path.clone(), pos3, String::from("unclosed comment"))),
+                                (None, pos3) => return Err(FrontendError::Message(pos3, String::from("unclosed comment"))),
                                 (Some('*'), _) => {
                                     match self.next_char()? {
-                                        (None, pos3) => return Err(FrontendError::Message(self.path.clone(), pos3, String::from("unclosed comment"))),
+                                        (None, pos3) => return Err(FrontendError::Message(pos3, String::from("unclosed comment"))),
                                         (Some('/'), _) => break,
                                         (Some(c3), pos3) => self.undo_char(c3, pos3),
                                     }
@@ -271,14 +269,14 @@ impl<'a> Lexer<'a>
         Ok(())
     }
 
-    fn read_token_char(&mut self, is_char_token: bool, token_pos: Pos) -> FrontendResult<Option<TokenChar>>
+    fn read_token_char(&mut self, is_char_token: bool, token_pos: &Pos) -> FrontendResult<Option<TokenChar>>
     {
         match self.next_char()? {
             (None, _) => {
                 if is_char_token {
-                    Err(FrontendError::Message(self.path.clone(), token_pos, String::from("unclosed character")))
+                    Err(FrontendError::Message(token_pos.clone(), String::from("unclosed character")))
                 } else {
-                    Err(FrontendError::Message(self.path.clone(), token_pos, String::from("unclosed string")))
+                    Err(FrontendError::Message(token_pos.clone(), String::from("unclosed string")))
                 }
             },
             (Some('\''), _) if is_char_token => Ok(None),
@@ -287,9 +285,9 @@ impl<'a> Lexer<'a>
                 match self.next_char()? {
                     (None, _) => {
                         if is_char_token {
-                            Err(FrontendError::Message(self.path.clone(), token_pos, String::from("unclosed character")))
+                            Err(FrontendError::Message(token_pos.clone(), String::from("unclosed character")))
                         } else {
-                            Err(FrontendError::Message(self.path.clone(), token_pos, String::from("unclosed string")))
+                            Err(FrontendError::Message(token_pos.clone(), String::from("unclosed string")))
                         }
                     },
                     (Some('X' | 'x'), _) => {
@@ -298,18 +296,18 @@ impl<'a> Lexer<'a>
                             match self.next_char()? {
                                 (None, _) => {
                                     if is_char_token {
-                                        return Err(FrontendError::Message(self.path.clone(), token_pos, String::from("unclosed character")));
+                                        return Err(FrontendError::Message(token_pos.clone(), String::from("unclosed character")));
                                     } else {
-                                        return Err(FrontendError::Message(self.path.clone(), token_pos, String::from("unclosed string")));
+                                        return Err(FrontendError::Message(token_pos.clone(), String::from("unclosed string")));
                                     }
                                 },
                                 (Some(c3), _) if c3.is_digit(16) => s.push(c3),
-                                (Some(_), pos3) => return Err(FrontendError::Message(self.path.clone(), pos3, String::from("unexpected character"))),
+                                (Some(_), pos3) => return Err(FrontendError::Message(pos3, String::from("unexpected character"))),
                             }
                         }
                         match u8::from_str_radix(s.as_str(), 16) {
                             Ok(n) => Ok(Some(TokenChar::Byte(n))),
-                            Err(_) => Err(FrontendError::Message(self.path.clone(), pos, String::from("invalud escape")))
+                            Err(_) => Err(FrontendError::Message(pos, String::from("invalud escape")))
                         }
                     },
                     (Some('0'), _) => Ok(Some(TokenChar::Byte(0))),
@@ -328,8 +326,8 @@ impl<'a> Lexer<'a>
         match self.next_char()? {
             (None, _) => Ok(None), 
             (Some('\''), pos) => {
-                match self.read_token_char(true, pos)? {
-                    None => Err(FrontendError::Message(self.path.clone(), pos, String::from("empty character"))),
+                match self.read_token_char(true, &pos)? {
+                    None => Err(FrontendError::Message(pos, String::from("empty character"))),
                     Some(TokenChar::Byte(n)) => Ok(Some((Token::Char(n), pos))),
                     Some(TokenChar::Char(c)) => {
                         let mut s = String::new();
@@ -338,10 +336,10 @@ impl<'a> Lexer<'a>
                         if b.len() == 1 {
                             match s.as_bytes().first() {
                                 Some(n) => Ok(Some((Token::Char(*n), pos))),
-                                None => Err(FrontendError::Message(self.path.clone(), pos, String::from("invalid character")))
+                                None => Err(FrontendError::Message(pos, String::from("invalid character")))
                             }
                         } else {
-                            Err(FrontendError::Message(self.path.clone(), pos, String::from("invalid character")))
+                            Err(FrontendError::Message(pos, String::from("invalid character")))
                         }
                     },
                 }
@@ -360,7 +358,7 @@ impl<'a> Lexer<'a>
             (Some('"'), pos) => {
                 let mut bs = Vec::new();
                 loop {
-                    match self.read_token_char(false, pos)? {
+                    match self.read_token_char(false, &pos)? {
                         None => break,
                         Some(TokenChar::Byte(n)) => bs.push(n), 
                         Some(TokenChar::Char(c)) => {
@@ -394,10 +392,10 @@ impl<'a> Lexer<'a>
         Ok(())
     }
 
-    fn read_one_or_more_token_digits(&mut self, s: &mut String, radix: u32, token_pos: Pos) -> FrontendResult<()>
+    fn read_one_or_more_token_digits(&mut self, s: &mut String, radix: u32, token_pos: &Pos) -> FrontendResult<()>
     {
         match self.next_char()? {
-            (None, _) => return Err(FrontendError::Message(self.path.clone(), token_pos, String::from("invalid number"))),
+            (None, _) => return Err(FrontendError::Message(token_pos.clone(), String::from("invalid number"))),
             (Some(c), _) if c.is_digit(radix) => {
                 s.push(c);
                 self.read_token_digits(s, radix)?;
@@ -424,24 +422,24 @@ impl<'a> Lexer<'a>
                             'O' | 'o' => 8,
                             _ => 16,
                         };
-                        self.read_one_or_more_token_digits(&mut s, radix, token_pos)?;
+                        self.read_one_or_more_token_digits(&mut s, radix, &token_pos)?;
                         match self.next_char()? {
                             (Some('I'), _) => {
                                 match i64::from_str_radix(s.as_str(), radix) {
                                     Ok(n) => return Ok(Some((Token::Long(n), token_pos))),
-                                    Err(_) => return Err(FrontendError::Message(self.path.clone(), token_pos, String::from("invalid number"))),
+                                    Err(_) => return Err(FrontendError::Message(token_pos, String::from("invalid number"))),
                                 }
                             },
                             (Some('u'), _) => {
                                 match u32::from_str_radix(s.as_str(), radix) {
                                     Ok(n) => return Ok(Some((Token::Uint(n), token_pos))),
-                                    Err(_) => return Err(FrontendError::Message(self.path.clone(), token_pos, String::from("invalid number"))),
+                                    Err(_) => return Err(FrontendError::Message(token_pos, String::from("invalid number"))),
                                 }
                             },
                             (Some('U'), _) => {
                                 match u64::from_str_radix(s.as_str(), radix) {
                                     Ok(n) => return Ok(Some((Token::Ulong(n), token_pos))),
-                                    Err(_) => return Err(FrontendError::Message(self.path.clone(), token_pos, String::from("invalid number"))),
+                                    Err(_) => return Err(FrontendError::Message(token_pos, String::from("invalid number"))),
                                 }
                             },
                             (opt_c3 @ (None | Some(_)), pos3) => {
@@ -451,7 +449,7 @@ impl<'a> Lexer<'a>
                                 }
                                 match i32::from_str_radix(s.as_str(), radix) {
                                     Ok(n) => return Ok(Some((Token::Int(n), token_pos))),
-                                    Err(_) => return Err(FrontendError::Message(self.path.clone(), token_pos, String::from("invalid number"))),
+                                    Err(_) => return Err(FrontendError::Message(token_pos, String::from("invalid number"))),
                                 }
                             },
                         }
@@ -477,7 +475,7 @@ impl<'a> Lexer<'a>
             (Some('.'), _) => {
                 is_dot_or_exp = true;
                 s.push('.');
-                self.read_one_or_more_token_digits(&mut s, 10, token_pos)?;
+                self.read_one_or_more_token_digits(&mut s, 10, &token_pos)?;
             },
             (Some(c), pos) => self.undo_char(c, pos),
         }
@@ -491,7 +489,7 @@ impl<'a> Lexer<'a>
                     (Some(c2 @ ('+' | '-')), _) => s.push(c2),
                     (Some(c2), pos2) => self.undo_char(c2, pos2),
                 }
-                self.read_one_or_more_token_digits(&mut s, 10, token_pos)?;
+                self.read_one_or_more_token_digits(&mut s, 10, &token_pos)?;
             },
             (Some(c), pos) => self.undo_char(c, pos),
         }
@@ -500,7 +498,7 @@ impl<'a> Lexer<'a>
                 (Some('F'), _) => {
                     match s.parse::<f64>() {
                         Ok(n) => Ok(Some((Token::Double(n), token_pos))),
-                        Err(_) => Err(FrontendError::Message(self.path.clone(), token_pos, String::from("invalid number"))),
+                        Err(_) => Err(FrontendError::Message(token_pos, String::from("invalid number"))),
                     }
                 },
                 (opt_c @ (None | Some(_)), pos) => {
@@ -510,7 +508,7 @@ impl<'a> Lexer<'a>
                     }
                     match s.parse::<f32>() {
                         Ok(n) => Ok(Some((Token::Float(n), token_pos))),
-                        Err(_) => Err(FrontendError::Message(self.path.clone(), token_pos, String::from("invalid number"))),
+                        Err(_) => Err(FrontendError::Message(token_pos, String::from("invalid number"))),
                     }
                 },
             }
@@ -519,31 +517,31 @@ impl<'a> Lexer<'a>
                 (Some('f'), _) => {
                     match s.parse::<f32>() {
                         Ok(n) => Ok(Some((Token::Float(n), token_pos))),
-                        Err(_) => Err(FrontendError::Message(self.path.clone(), token_pos, String::from("invalid number"))),
+                        Err(_) => Err(FrontendError::Message(token_pos, String::from("invalid number"))),
                     }
                 },
                 (Some('F'), _) => {
                     match s.parse::<f64>() {
                         Ok(n) => Ok(Some((Token::Double(n), token_pos))),
-                        Err(_) => Err(FrontendError::Message(self.path.clone(), token_pos, String::from("invalid number"))),
+                        Err(_) => Err(FrontendError::Message(token_pos, String::from("invalid number"))),
                     }
                 },
                 (Some('I'), _) => {
                     match s.parse::<i64>() {
                         Ok(n) => Ok(Some((Token::Long(n), token_pos))),
-                        Err(_) => Err(FrontendError::Message(self.path.clone(), token_pos, String::from("invalid number"))),
+                        Err(_) => Err(FrontendError::Message(token_pos, String::from("invalid number"))),
                     }
                 },
                 (Some('u'), _) => {
                     match s.parse::<u32>() {
                         Ok(n) => Ok(Some((Token::Uint(n), token_pos))),
-                        Err(_) => Err(FrontendError::Message(self.path.clone(), token_pos, String::from("invalid number"))),
+                        Err(_) => Err(FrontendError::Message(token_pos, String::from("invalid number"))),
                     }
                 },
                 (Some('U'), _) => {
                     match s.parse::<u64>() {
                         Ok(n) => Ok(Some((Token::Ulong(n), token_pos))),
-                        Err(_) => Err(FrontendError::Message(self.path.clone(), token_pos, String::from("invalid number"))),
+                        Err(_) => Err(FrontendError::Message(token_pos, String::from("invalid number"))),
                     }
                 },
                 (opt_c @ (None | Some(_)), pos) => {
@@ -553,7 +551,7 @@ impl<'a> Lexer<'a>
                     }
                     match s.parse::<i32>() {
                         Ok(n) => Ok(Some((Token::Int(n), token_pos))),
-                        Err(_) => Err(FrontendError::Message(self.path.clone(), token_pos, String::from("invalid number"))),
+                        Err(_) => Err(FrontendError::Message(token_pos, String::from("invalid number"))),
                     }
                 },
             }
@@ -720,7 +718,7 @@ impl<'a> Lexer<'a>
                     (Some(';'), pos) => Ok((Token::Semi, pos)),
                     (Some('\\'), pos) => Ok((Token::Backslash, pos)),
                     (Some(c), pos) => {
-                        self.undo_char(c, pos);
+                        self.undo_char(c, pos.clone());
                         if let Some((token, pos)) = self.next_char_token()? {
                             Ok((token, pos))
                         } else if let Some((token, pos)) = self.next_string_token()? {
@@ -732,7 +730,7 @@ impl<'a> Lexer<'a>
                         } else if let Some((token, pos)) = self.next_keyword_token_or_var_ident_token()? {
                             Ok((token, pos))
                         } else {
-                            Err(FrontendError::Message(self.path.clone(), pos, String::from("unexpected character")))
+                            Err(FrontendError::Message(pos, String::from("unexpected character")))
                         }
                     },
                 }

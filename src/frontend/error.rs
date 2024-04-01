@@ -10,24 +10,25 @@ use std::fmt;
 use std::io::*;
 use std::result;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct Pos
 {
+    pub path: String,
     pub line: u64,
     pub column: u64,
 }
 
 impl Pos
 {
-    pub fn new(line: u64, column: u64) -> Self
-    { Pos { line, column, } }
+    pub fn new(path: String, line: u64, column: u64) -> Self
+    { Pos { path, line, column, } }
 }
 
 #[derive(Debug)]
 pub enum FrontendError
 {
     Io(String, Error),
-    Message(String, Pos, String),
+    Message(Pos, String),
 }
 
 impl error::Error for FrontendError
@@ -39,7 +40,7 @@ impl fmt::Display for FrontendError
     {
         match self {
             FrontendError::Io(path, err) => write!(f, "{}: I/O: {}", path, err),
-            FrontendError::Message(path, pos, msg) => write!(f, "{}: {}.{}: {}", pos.line, pos.column, path, msg),
+            FrontendError::Message(pos, msg) => write!(f, "{}: {}.{}: {}", pos.path, pos.line, pos.column, msg),
         }
     }
 }
