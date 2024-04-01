@@ -5,6 +5,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 //
+use std::collections::HashMap;
 use std::io::*;
 use crate::frontend::error::*;
 
@@ -54,9 +55,9 @@ pub enum Token
     False,
     For,
     If,
+    Impl,
     In,
     Inline,
-    Impl,
     Let,
     Match,
     Shared,
@@ -98,12 +99,38 @@ pub struct Lexer<'a>
     pushed_chars: Vec<(char, Pos)>,
     pushed_tokens: Vec<(Token, Pos)>,
     has_single_greater: bool,
+    keywords: HashMap<String, Token>,
 }
 
 impl<'a> Lexer<'a>
 {
     pub fn new(path: String, reader: &'a mut dyn BufRead) -> Self
     {
+        let mut keywords: HashMap<String, Token> = HashMap::new();
+        keywords.insert(String::from("_"), Token::Wildcard);
+        keywords.insert(String::from("as"), Token::As);
+        keywords.insert(String::from("builtin"), Token::Builtin);
+        keywords.insert(String::from("data"), Token::Data);
+        keywords.insert(String::from("else"), Token::Else);
+        keywords.insert(String::from("false"), Token::False);
+        keywords.insert(String::from("for"), Token::For);
+        keywords.insert(String::from("if"), Token::If);
+        keywords.insert(String::from("impl"), Token::Impl);
+        keywords.insert(String::from("in"), Token::In);
+        keywords.insert(String::from("inline"), Token::Inline);
+        keywords.insert(String::from("let"), Token::Let);
+        keywords.insert(String::from("match"), Token::Match);
+        keywords.insert(String::from("shared"), Token::Shared);
+        keywords.insert(String::from("trait"), Token::Trait);
+        keywords.insert(String::from("true"), Token::True);
+        keywords.insert(String::from("type"), Token::Type);
+        keywords.insert(String::from("uniq"), Token::Uniq);
+        keywords.insert(String::from("where"), Token::Where);
+        keywords.insert(String::from("kernel"), Token::Kernel);
+        keywords.insert(String::from("private"), Token::Private);
+        keywords.insert(String::from("local"), Token::Local);
+        keywords.insert(String::from("global"), Token::Global);
+        keywords.insert(String::from("constant"), Token::Constant);
         Lexer {
             path,
             pos: Pos::new(1, 1),
@@ -111,6 +138,7 @@ impl<'a> Lexer<'a>
             pushed_chars: Vec::new(),
             pushed_tokens: Vec::new(),
             has_single_greater: false,
+            keywords,
         }
     }
     
@@ -531,7 +559,59 @@ impl<'a> Lexer<'a>
             }
         }
     }
-        
+
+    fn read_ident_chars(&mut self, s: &mut String) -> FrontendResult<()>
+    {
+        loop {
+            match self.next_char()? {
+                (None, _) => break,
+                (Some(c), _) if c.is_alphanumeric() || c == '_' => s.push(c),
+                (Some(c), pos) => {
+                    self.undo_char(c, pos);
+                    break;
+                },
+            }
+        }
+        Ok(())
+    }
+    
+    fn next_con_ident_token(&mut self) -> FrontendResult<Option<(Token, Pos)>>
+    {
+        match self.next_char()? {
+            (None, _) => Ok(None),
+            (Some(c), pos) if c.is_uppercase() => {
+                let mut s = String::new();
+                s.push(c);
+                self.read_ident_chars(&mut s)?;
+                Ok(Some((Token::ConIdent(s), pos)))
+            },
+            (Some(c), pos) => {
+                self.undo_char(c, pos);
+                Ok(None)
+            },
+        }
+    }    
+
+    fn next_keyword_token_or_var_ident_token(&mut self) -> FrontendResult<Option<(Token, Pos)>>
+    {
+        match self.next_char()? {
+            (None, _) => Ok(None),
+            (Some(c), pos) if c.is_uppercase() => {
+                let mut s = String::new();
+                s.push(c);
+                self.read_ident_chars(&mut s)?;
+                match self.keywords.get(&s) {
+                    Some(token) => Ok(Some((token.clone(), pos))),
+                    None => Ok(Some((Token::VarIdent(s), pos))),
+                }
+            },
+            (Some(c), pos) => {
+                self.undo_char(c, pos);
+                Ok(None)
+            },
+        }
+    }
+    
     pub fn next_token(&mut self) -> FrontendResult<(Token, Pos)>
     {
         match self.pushed_tokens.pop() {
@@ -646,6 +726,10 @@ impl<'a> Lexer<'a>
                         } else if let Some((token, pos)) = self.next_string_token()? {
                             Ok((token, pos))
                         } else if let Some((token, pos)) = self.next_number_token()? {
+                            Ok((token, pos))
+                        } else if let Some((token, pos)) = self.next_con_ident_token()? {
+                            Ok((token, pos))
+                        } else if let Some((token, pos)) = self.next_keyword_token_or_var_ident_token()? {
                             Ok((token, pos))
                         } else {
                             Err(FrontendError::Message(self.path.clone(), pos, String::from("unexpected character")))
