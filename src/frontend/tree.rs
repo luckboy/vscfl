@@ -64,7 +64,7 @@ pub enum Def
 pub enum TypeVar
 {
     Builtin,
-    Data(Vec<Box<TypeArg>>, Vec<Rc<RefCell<Con>>>),
+    Data(Vec<Box<TypeArg>>, Vec<Rc<RefCell<Con>>>, Option<SharedFlag>),
     Synonim(Vec<Box<TypeArg>>, Box<TypeExpr>),
 }
 
@@ -235,6 +235,13 @@ pub enum ImplFun
 
 #[derive(Clone, Debug)]
 pub struct ImplArg(pub String, pub Option<LocalType>, pub Pos);
+
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub enum SharedFlag
+{
+    None,
+    Shared,
+}
 
 #[derive(Clone, Debug)]
 pub struct Type;
