@@ -38,8 +38,6 @@ pub enum Token
     Eq,
     Backslash,
     Dot,
-    DotDot,
-    DotDotEq,
     LArrow,
     RArrow,
     DArrow,
@@ -694,25 +692,7 @@ impl<'a> Lexer<'a>
                             },
                         }
                     },
-                    (Some('.'), pos) => {
-                        match self.next_char()? {
-                            (None, _) => Ok((Token::Dot, pos)),
-                            (Some('.'), _) => {
-                                match self.next_char()? {
-                                    (None, _) => Ok((Token::DotDot, pos)),
-                                    (Some('='), _) => Ok((Token::DotDotEq, pos)),
-                                    (Some(c3), pos3) => {
-                                        self.undo_char(c3, pos3);
-                                        Ok((Token::DotDot, pos))
-                                    },
-                                }
-                            },
-                            (Some(c2), pos2) => {
-                                self.undo_char(c2, pos2);
-                                Ok((Token::Dot, pos))
-                            },
-                        }
-                    },
+                    (Some('.'), pos) => Ok((Token::Dot, pos)),
                     (Some(','), pos) => Ok((Token::Comma, pos)),
                     (Some(':'), pos) => Ok((Token::Colon, pos)),
                     (Some(';'), pos) => Ok((Token::Semi, pos)),
