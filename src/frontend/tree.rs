@@ -84,9 +84,9 @@ pub struct NamedFieldPair<T>(pub String, pub Box<T>, pub Pos);
 #[derive(Clone, Debug)]
 pub enum TypeExpr
 {
-    Tuple(Vec<Box<TypeExpr>>),
-    Fun(Vec<Box<TypeExpr>>, Box<TypeExpr>),
-    Array(Box<TypeExpr>, usize),
+    Tuple(Vec<Box<TypeExpr>>, Pos),
+    Fun(Vec<Box<TypeExpr>>, Box<TypeExpr>, Pos),
+    Array(Box<TypeExpr>, usize, Pos),
     Param(String, Pos),
     Var(String, Pos),
     App(String, Vec<Box<TypeExpr>>, Pos),
