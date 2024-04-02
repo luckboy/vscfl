@@ -130,6 +130,7 @@ pub enum Expr
     Var(String, Option<LocalType>, Pos),
     App(Box<Expr>, Vec<Box<Expr>>, Option<LocalType>, Pos),
     NamedFieldConApp(String, Vec<NamedFieldPair<Expr>>, Option<LocalType>, Pos),
+    PrintfApp(Vec<Box<Expr>>, Option<LocalType>, Pos),
     Uniq(Box<Expr>, Option<LocalType>, Pos),
     Shared(Box<Expr>, Option<LocalType>, Pos),
     Field(Box<Expr>, Vec<Field>, Option<LocalType>, Pos),

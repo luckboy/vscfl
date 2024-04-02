@@ -58,7 +58,9 @@ pub enum Token
     Inline,
     Let,
     Match,
+    Printf,
     Shared,
+    Then,
     Trait,
     True,
     Type,
@@ -117,7 +119,9 @@ impl<'a> Lexer<'a>
         keywords.insert(String::from("inline"), Token::Inline);
         keywords.insert(String::from("let"), Token::Let);
         keywords.insert(String::from("match"), Token::Match);
+        keywords.insert(String::from("printf"), Token::Printf);
         keywords.insert(String::from("shared"), Token::Shared);
+        keywords.insert(String::from("then"), Token::Then);
         keywords.insert(String::from("trait"), Token::Trait);
         keywords.insert(String::from("true"), Token::True);
         keywords.insert(String::from("type"), Token::Type);
