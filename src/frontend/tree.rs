@@ -9,7 +9,7 @@ use std::cell::*;
 use std::rc::*;
 use crate::frontend::error::Pos;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum VarModifier
 {
     None,
@@ -19,14 +19,14 @@ pub enum VarModifier
     Constant,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum FunModifier
 {
     None,
     Kernel,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum InlineModifier
 {
     None,
