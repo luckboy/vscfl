@@ -140,7 +140,7 @@ impl<'a> Lexer<'a>
     
     fn read_char(&mut self) -> FrontendResult<Option<char>>
     {
-        let mut c_buf: Vec<u8> = Vec::new();
+        let mut char_buf: Vec<u8> = Vec::new();
         for i in 0..6 {
             let mut buf: [u8; 1] = [0; 1];
             let mut is_eof = false;
@@ -151,23 +151,23 @@ impl<'a> Lexer<'a>
                         break;
                     },
                     Ok(_) => {
-                        c_buf.push(buf[0]);
+                        char_buf.push(buf[0]);
                         break;
                     },
                     Err(err) if err.kind() == ErrorKind::Interrupted => (),
                     Err(err) => return Err(FrontendError::Io((*self.pos.path).clone(), err)),
                 }
             }
-            if is_eof {
+            if !is_eof {
+                match String::from_utf8(char_buf.clone()) {
+                    Ok(s) => return Ok(Some(s.chars().next().unwrap())),
+                    Err(_) => (),
+                }
+            } else {
                 if i == 0 {
                     return Ok(None);
                 } else {
                     return Err(FrontendError::Io((*self.pos.path).clone(), Error::new(ErrorKind::InvalidData, "stream did not contain valid UTF-8")))
-                }
-            } else {
-                match String::from_utf8(c_buf.clone()) {
-                    Ok(s) => return Ok(Some(s.chars().next().unwrap())),
-                    Err(_) => (),
                 }
             }
         }
