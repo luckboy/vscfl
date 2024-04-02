@@ -9,8 +9,8 @@ use std::cell::*;
 use std::rc::*;
 use crate::frontend::error::Pos;
 
-#[derive(Clone, Debug)]
-pub enum VarQualifier
+#[derive(Copy, Clone, Debug)]
+pub enum VarModifier
 {
     None,
     Private,
@@ -19,18 +19,36 @@ pub enum VarQualifier
     Constant,
 }
 
-#[derive(Clone, Debug)]
-pub enum FunQualifier
+#[derive(Copy, Clone, Debug)]
+pub enum FunModifier
 {
     None,
     Kernel,
 }
 
-#[derive(Clone, Debug)]
-pub enum InlineQualifier
+#[derive(Copy, Clone, Debug)]
+pub enum InlineModifier
 {
     None,
     Inline,
+}
+
+#[derive(Clone, Debug)]
+pub struct Tree
+{
+    defs: Vec<Box<Def>>,
+}
+
+impl Tree
+{
+    pub fn new() -> Self
+    { Tree { defs: Vec::new(), } }
+    
+    pub fn defs(&self) -> &[Box<Def>]
+    { self.defs.as_slice() }
+    
+    pub fn add_def(&mut self, def: Def)
+    { self.defs.push(Box::new(def)); }
 }
 
 #[derive(Clone, Debug)]
@@ -38,8 +56,8 @@ pub enum Def
 {
     Type(String, Rc<RefCell<TypeVar>>, Pos),
     Var(String, Rc<RefCell<Var>>, Pos),
-    Trait(String, Rc<RefCell<Trait>>, Pos),
-    Impl(String, Rc<RefCell<Impl>>, Pos),
+    Trait(String, Rc<RefCell<TraitVar>>, Pos),
+    Impl(Rc<RefCell<Impl>>, Pos),
 }
 
 #[derive(Clone, Debug)]
@@ -51,61 +69,76 @@ pub enum TypeVar
 }
 
 #[derive(Clone, Debug)]
-pub struct TypeArg(String, Pos);
+pub struct TypeArg(pub String, pub Pos);
 
 #[derive(Clone, Debug)]
 pub enum Con
 {
-    UnnamedField(Vec<Box<TypeExpr>>),
-    NamedField(Vec<NamedFieldPair<TypeExpr>>),
+    UnnamedField(String, Vec<Box<TypeExpr>>, Pos),
+    NamedField(String, Vec<NamedFieldPair<TypeExpr>>, Pos),
 }
 
 #[derive(Clone, Debug)]
-pub struct NamedFieldPair<T>(String, Box<T>, Pos);
+pub struct NamedFieldPair<T>(pub String, pub Box<T>, pub Pos);
 
 #[derive(Clone, Debug)]
 pub enum TypeExpr
 {
     Tuple(Vec<Box<TypeExpr>>),
     Fun(Vec<Box<TypeExpr>>, Box<TypeExpr>),
-    Array(Box<TypeExpr>, i32),
+    Array(Box<TypeExpr>, usize),
+    Param(String, Pos),
     Var(String, Pos),
-    Uniq(Box<TypeExpr>, Pos),
     App(String, Vec<Box<TypeExpr>>, Pos),
+    Uniq(Box<TypeExpr>, Pos),
 }
 
 #[derive(Clone, Debug)]
 pub enum Var
 {
-    Var(VarQualifier, Box<TypeExpr>, Option<Box<Expr>>, Option<LocalTypes>, Option<Type>),
-    Fun(Fun, Option<Type>),
+    Var(VarModifier, Box<TypeExpr>, Vec<WherePair>, Option<Box<Expr>>, Option<Box<LocalTypes>>, Option<Box<Type>>),
+    Fun(Box<Fun>, Option<Box<Type>>),
 }
 
 #[derive(Clone, Debug)]
 pub enum Fun
 {
     Builtin,
-    Fun(FunQualifier, InlineQualifier, Vec<Arg>, Box<TypeExpr>, Option<Box<Expr>>, Option<LocalType>, Option<LocalTypes>),
+    Fun(FunModifier, InlineModifier, Vec<Arg>, Box<TypeExpr>, Vec<WherePair>, Option<Box<Expr>>, Option<LocalType>, Option<Box<LocalTypes>>),
     Con(Rc<RefCell<Con>>),
 }
 
 #[derive(Clone, Debug)]
-pub struct Arg(String, Box<TypeExpr>, Option<LocalType>, Pos);
+pub struct WherePair(pub String, pub Vec<Box<Trait>>, pub Pos);
+
+#[derive(Clone, Debug)]
+pub enum Trait
+{
+    Shared(Pos),
+    Fun(Vec<Box<TypeExpr>>, Box<TypeExpr>, Pos),
+    Trait(String, Vec<Box<TypeExpr>>, Pos),
+}
+
+#[derive(Clone, Debug)]
+pub struct Arg(pub String, pub Box<TypeExpr>, pub Option<LocalType>, Pos);
 
 #[derive(Clone, Debug)]
 pub enum Expr
 {
     Literal(Box<Literal<Expr>>, Option<LocalType>, Pos),
-    Typed(Box<Expr>, Box<TypeExpr>, Option<LocalType>, Pos),
     Lambda(Vec<LambdaArg>, Option<Box<TypeExpr>>, Box<Expr>, Option<LocalType>, Pos),
     Var(String, Option<LocalType>, Pos),
     App(Box<Expr>, Vec<Box<Expr>>, Option<LocalType>, Pos),
     NamedFieldConApp(String, Vec<NamedFieldPair<Expr>>, Option<LocalType>, Pos),
+    Uniq(Box<Expr>, Option<LocalType>, Pos),
+    Shared(Box<Expr>, Option<LocalType>, Pos),
     Field(Box<Expr>, Vec<Field>, Option<LocalType>, Pos),
     GetField(Box<Expr>, Vec<Field>, Option<LocalType>, Pos),
     SetField(Box<Expr>, Vec<Field>, Box<Expr>, Option<LocalType>, Pos),
     UpdateField(Box<Expr>, Vec<Field>, Box<Expr>, Option<LocalType>, Pos),
     UpdateGetField(Box<Expr>, Vec<Field>, Box<Expr>, Option<LocalType>, Pos),
+    Typed(Box<Expr>, Box<TypeExpr>, Option<LocalType>, Pos),
+    As(Box<Expr>, Box<TypeExpr>, Option<LocalType>, Pos),
     Let(Vec<Bind>, Box<Expr>, Option<LocalType>, Pos),
     If(Box<Expr>, Box<Expr>, Box<Expr>, Option<LocalType>, Pos),
     Match(Box<Expr>, Vec<Case>, Option<LocalType>, Pos),
@@ -114,33 +147,34 @@ pub enum Expr
 #[derive(Clone, Debug)]
 pub enum Field
 {
-    Unnamed(i32),
+    Unnamed(usize),
     Named(String),
 }
 
 #[derive(Clone, Debug)]
 pub enum Bind
 {
-    Var(VarQualifier, Option<String>, Box<Expr>, Option<LocalType>, Pos),
-    Tuple(Vec<BindPair>, Box<Expr>, Option<LocalType>, Pos),
+    Var(VarModifier, Option<String>, Box<Expr>, Option<LocalType>, Pos),
+    Tuple(Vec<BindPair>, Box<Expr>, Pos),
 }
 
 #[derive(Clone, Debug)]
-pub struct BindPair(VarQualifier, Option<String>);
+pub struct BindPair(pub VarModifier, pub Option<String>, pub Option<LocalType>);
 
 #[derive(Clone, Debug)]
-pub struct Case(Box<Pattern>, Box<Expr>);
+pub struct Case(pub Box<Pattern>, pub Box<Expr>);
 
 #[derive(Clone, Debug)]
 pub enum Pattern
 {
-    Literal(Literal<Pattern>, Pos),
-    Const(String, Pos),
-    UnnamedFieldCon(String, Vec<Box<Pattern>>, Pos),
-    NamedFieldCon(String, Vec<NamedFieldPair<Pattern>>, Pos),
+    Literal(Box<Literal<Pattern>>, Option<LocalType>, Pos),
+    As(Box<Literal<Pattern>>, Box<TypeExpr>, Option<LocalType>, Pos),
+    Const(String, Option<LocalType>, Pos),
+    UnnamedFieldCon(String, Vec<Box<Pattern>>, Option<LocalType>, Pos),
+    NamedFieldCon(String, Vec<NamedFieldPair<Pattern>>, Option<LocalType>, Pos),
     Var(Option<String>, Option<LocalType>, Pos),
     At(Option<String>, Box<Pattern>, Option<LocalType>, Pos),
-    Alt(Vec<Box<Pattern>>, Pos),
+    Alt(Vec<Box<Pattern>>, Option<LocalType>, Pos),
 }
 
 #[derive(Clone, Debug)]
@@ -159,22 +193,50 @@ pub enum Literal<T>
 }
 
 #[derive(Clone, Debug)]
-pub struct LambdaArg(String, Option<Box<TypeExpr>>, Option<LocalType>, Pos);
+pub struct LambdaArg(pub String, pub Option<Box<TypeExpr>>, pub Option<LocalType>, Pos);
 
 #[derive(Clone, Debug)]
-pub struct Trait;
+pub struct TraitVar(pub String, pub Vec<TypeArg>, pub Vec<Box<Def>>);
 
 #[derive(Clone, Debug)]
 pub enum Impl
 {
-    Builtin,
-    Impl,
+    Builtin(String, TypeName),
+    Impl(String, TypeName, Vec<Box<ImplDef>>),
 }
+
+#[derive(Clone, Debug)]
+pub enum TypeName
+{
+    Tuple(usize),
+    Array(Option<usize>),
+    Name(String),
+}
+
+#[derive(Clone, Debug)]
+pub struct ImplDef(pub String, pub Rc<RefCell<ImplVar>>, Pos);
+
+#[derive(Clone, Debug)]
+pub enum ImplVar
+{
+    Var(Box<Expr>, Option<Box<LocalTypes>>, Option<Box<Type>>),
+    Fun(Box<ImplFun>, Option<Box<Type>>),
+}
+
+#[derive(Clone, Debug)]
+pub enum ImplFun
+{
+    Builtin,
+    Fun(Vec<ImplArg>, Box<Expr>, Option<LocalType>, Option<Box<LocalTypes>>),
+}
+
+#[derive(Clone, Debug)]
+pub struct ImplArg(pub String, pub Option<LocalType>, pub Pos);
 
 #[derive(Clone, Debug)]
 pub struct Type;
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct LocalType;
 
 #[derive(Clone, Debug)]
