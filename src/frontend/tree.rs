@@ -56,7 +56,7 @@ pub enum Def
 {
     Type(String, Rc<RefCell<TypeVar>>, Pos),
     Var(String, Rc<RefCell<Var>>, Pos),
-    Trait(String, Rc<RefCell<TraitVar>>, Pos),
+    Trait(String, Rc<RefCell<Trait>>, Pos),
     Impl(Rc<RefCell<Impl>>, Pos),
 }
 
@@ -109,10 +109,10 @@ pub enum Fun
 }
 
 #[derive(Clone, Debug)]
-pub struct WherePair(pub String, pub Vec<Box<Trait>>, pub Pos);
+pub struct WherePair(pub String, pub Vec<Box<TraitExpr>>, pub Pos);
 
 #[derive(Clone, Debug)]
-pub enum Trait
+pub enum TraitExpr
 {
     Shared(Pos),
     Fun(Vec<Box<TypeExpr>>, Box<TypeExpr>, Pos),
@@ -191,19 +191,20 @@ pub enum Literal<T>
     String(Vec<u8>),
     Tuple(Vec<Box<T>>),
     Array(Vec<Box<T>>),
+    FilledArray(Box<T>, usize),
 }
 
 #[derive(Clone, Debug)]
 pub struct LambdaArg(pub String, pub Option<Box<TypeExpr>>, pub Option<LocalType>, Pos);
 
 #[derive(Clone, Debug)]
-pub struct TraitVar(pub String, pub Vec<TypeArg>, pub Vec<Box<Def>>);
+pub struct Trait(pub String, pub Vec<TypeArg>, pub Vec<Box<Def>>, Option<Box<TraitVars>>);
 
 #[derive(Clone, Debug)]
 pub enum Impl
 {
-    Builtin(String, TypeName),
-    Impl(String, TypeName, Vec<Box<ImplDef>>),
+    Builtin(String, TypeName, Option<Box<ImplVars>>),
+    Impl(String, TypeName, Vec<Box<ImplDef>>, Option<Box<ImplVars>>),
 }
 
 #[derive(Clone, Debug)]
@@ -242,3 +243,9 @@ pub struct LocalType;
 
 #[derive(Clone, Debug)]
 pub struct LocalTypes;
+
+#[derive(Clone, Debug)]
+pub struct TraitVars;
+
+#[derive(Clone, Debug)]
+pub struct ImplVars;
