@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::io::*;
 use crate::frontend::error::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, PartialEq, PartialOrd, Debug)]
 pub enum Token
 {
     LParen,
@@ -141,6 +141,12 @@ impl<'a> Lexer<'a>
             keywords,
         }
     }
+ 
+    pub fn has_single_greater(&self) -> bool
+    { self.has_single_greater }
+
+    pub fn set_single_greater(&mut self, is_single_greater: bool)
+    { self.has_single_greater = is_single_greater; }
     
     fn read_char(&mut self) -> FrontendResult<Option<char>>
     {
