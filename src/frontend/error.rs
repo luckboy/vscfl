@@ -8,12 +8,13 @@
 use std::error;
 use std::fmt;
 use std::io::*;
+use std::rc::*;
 use std::result;
 
 #[derive(Clone, Debug)]
 pub struct Pos
 {
-    pub path: String,
+    pub path: Rc<String>,
     pub line: u64,
     pub column: u64,
 }
@@ -21,7 +22,7 @@ pub struct Pos
 impl Pos
 {
     pub fn new(path: String, line: u64, column: u64) -> Self
-    { Pos { path, line, column, } }
+    { Pos { path: Rc::new(path), line, column, } }
 }
 
 #[derive(Debug)]

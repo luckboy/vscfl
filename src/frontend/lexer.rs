@@ -155,14 +155,14 @@ impl<'a> Lexer<'a>
                         break;
                     },
                     Err(err) if err.kind() == ErrorKind::Interrupted => (),
-                    Err(err) => return Err(FrontendError::Io(self.pos.path.clone(), err)),
+                    Err(err) => return Err(FrontendError::Io((*self.pos.path).clone(), err)),
                 }
             }
             if is_eof {
                 if i == 0 {
                     return Ok(None);
                 } else {
-                    return Err(FrontendError::Io(self.pos.path.clone(), Error::new(ErrorKind::InvalidData, "stream did not contain valid UTF-8")))
+                    return Err(FrontendError::Io((*self.pos.path).clone(), Error::new(ErrorKind::InvalidData, "stream did not contain valid UTF-8")))
                 }
             } else {
                 match String::from_utf8(c_buf.clone()) {
@@ -171,7 +171,7 @@ impl<'a> Lexer<'a>
                 }
             }
         }
-        Err(FrontendError::Io(self.pos.path.clone(), Error::new(ErrorKind::InvalidData, "stream did not contain valid UTF-8")))
+        Err(FrontendError::Io((*self.pos.path).clone(), Error::new(ErrorKind::InvalidData, "stream did not contain valid UTF-8")))
     }
     
     pub fn next_char(&mut self) -> FrontendResult<(Option<char>, Pos)>
