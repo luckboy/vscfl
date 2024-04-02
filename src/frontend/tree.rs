@@ -180,6 +180,7 @@ pub enum Pattern
 #[derive(Clone, Debug)]
 pub enum Literal<T>
 {
+    Bool(bool),
     Char(u8),
     Int(i32),
     Long(i64),
