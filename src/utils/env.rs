@@ -7,6 +7,7 @@
 //
 use std::collections::BTreeMap;
 
+#[derive(Clone)]
 pub struct Environment<T>
 {
     stack: Vec<BTreeMap<String, T>>, 
