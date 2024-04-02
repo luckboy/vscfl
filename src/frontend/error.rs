@@ -46,4 +46,37 @@ impl fmt::Display for FrontendError
     }
 }
 
+#[derive(Debug)]
+pub struct FrontendErrors
+{
+    errors: Vec<FrontendError>,
+}
+
+impl FrontendErrors
+{
+    pub fn new(errors: Vec<FrontendError>) -> Self
+    { FrontendErrors { errors, } }
+}
+
+impl error::Error for FrontendErrors
+{}
+
+impl fmt::Display for FrontendErrors
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+    {
+        let mut is_first = true;
+        for err in &self.errors {
+            if !is_first {
+                write!(f, "\n")?;
+            }
+            write!(f, "{}", err)?;
+            is_first = false;
+        }
+        Ok(())
+    }
+}
+
 pub type FrontendResult<T> = result::Result<T, FrontendError>;
+
+pub type FrontendResultWithErrors<T> = result::Result<T, FrontendErrors>;

@@ -213,6 +213,7 @@ pub enum TypeName
 {
     Tuple(usize),
     Array(Option<usize>),
+    Fun(usize),
     Name(String),
 }
 
