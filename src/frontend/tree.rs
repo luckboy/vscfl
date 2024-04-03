@@ -128,14 +128,14 @@ pub enum Expr
     Literal(Box<Literal<Expr>>, Option<LocalType>, Pos),
     Lambda(Vec<LambdaArg>, Option<Box<TypeExpr>>, Box<Expr>, Option<LocalType>, Pos),
     Var(String, Option<LocalType>, Pos),
-    Field(Box<Expr>, Vec<Field>, Option<LocalType>, Pos),
-    GetField(Box<Expr>, Vec<Field>, Option<LocalType>, Pos),
-    SetField(Box<Expr>, Vec<Field>, Box<Expr>, Option<LocalType>, Pos),
-    UpdateField(Box<Expr>, Vec<Field>, Box<Expr>, Option<LocalType>, Pos),
-    UpdateGetField(Box<Expr>, Vec<Field>, Box<Expr>, Option<LocalType>, Pos),
-    App(Box<Expr>, Vec<Box<Expr>>, Option<LocalType>, Pos),
     NamedFieldConApp(String, Vec<NamedFieldPair<Expr>>, Option<LocalType>, Pos),
     PrintfApp(Vec<Box<Expr>>, Option<LocalType>, Pos),
+    App(Box<Expr>, Vec<Box<Expr>>, Option<LocalType>, Pos),
+    GetField(Box<Expr>, Vec<Field>, Option<LocalType>, Pos),
+    Get2Field(Box<Expr>, Vec<Field>, Option<LocalType>, Pos),
+    SetField(Box<Expr>, Vec<Field>, Box<Expr>, Option<LocalType>, Pos),
+    UpdateField(Box<Expr>, Vec<Field>, Box<Expr>, Option<LocalType>, Pos),
+    UpdateGet2Field(Box<Expr>, Vec<Field>, Box<Expr>, Option<LocalType>, Pos),
     Uniq(Box<Expr>, Option<LocalType>, Pos),
     Shared(Box<Expr>, Option<LocalType>, Pos),
     Typed(Box<Expr>, Box<TypeExpr>, Option<LocalType>, Pos),
@@ -153,14 +153,7 @@ pub enum Field
 }
 
 #[derive(Clone, Debug)]
-pub enum Bind
-{
-    Var(VarModifier, Option<String>, Box<Expr>, Option<LocalType>, Pos),
-    Tuple(Vec<BindPair>, Box<Expr>, Pos),
-}
-
-#[derive(Clone, Debug)]
-pub struct BindPair(pub VarModifier, pub Option<String>, pub Option<LocalType>);
+pub struct Bind(pub Box<Pattern>, pub Box<Expr>, pub Option<LocalType>, pub Pos);
 
 #[derive(Clone, Debug)]
 pub struct Case(pub Box<Pattern>, pub Box<Expr>);
@@ -173,8 +166,8 @@ pub enum Pattern
     Const(String, Option<LocalType>, Pos),
     UnnamedFieldCon(String, Vec<Box<Pattern>>, Option<LocalType>, Pos),
     NamedFieldCon(String, Vec<NamedFieldPair<Pattern>>, Option<LocalType>, Pos),
-    Var(Option<String>, Option<LocalType>, Pos),
-    At(Option<String>, Box<Pattern>, Option<LocalType>, Pos),
+    Var(VarModifier, Option<String>, Option<LocalType>, Pos),
+    At(VarModifier, Option<String>, Box<Pattern>, Option<LocalType>, Pos),
     Alt(Vec<Box<Pattern>>, Option<LocalType>, Pos),
 }
 
@@ -182,11 +175,11 @@ pub enum Pattern
 pub enum Literal<T>
 {
     Bool(bool),
-    Char(u8),
+    Char(i8),
     Int(i32),
     Long(i64),
-    Uint(i32),
-    Ulong(i64),
+    Uint(u32),
+    Ulong(u64),
     Float(f32),
     Double(f64),
     String(Vec<u8>),

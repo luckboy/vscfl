@@ -36,7 +36,6 @@ pub enum Token
     Caret,
     Bar,
     Eq,
-    Backslash,
     Dot,
     LArrow,
     RArrow,
@@ -71,7 +70,7 @@ pub enum Token
     Local,
     Global,
     Constant,
-    Char(u8),
+    Char(i8),
     String(Vec<u8>),
     Int(i32),
     Uint(u32),
@@ -147,6 +146,9 @@ impl<'a> Lexer<'a>
 
     pub fn set_single_greater(&mut self, is_single_greater: bool)
     { self.has_single_greater = is_single_greater; }
+    
+    pub fn pos(&self) -> &Pos
+    { &self.pos }
     
     fn read_char(&mut self) -> FrontendResult<Option<char>>
     {
@@ -336,14 +338,14 @@ impl<'a> Lexer<'a>
             (Some('\''), pos) => {
                 match self.read_token_char(true, &pos)? {
                     None => Err(FrontendError::Message(pos, String::from("empty character"))),
-                    Some(TokenChar::Byte(n)) => Ok(Some((Token::Char(n), pos))),
+                    Some(TokenChar::Byte(n)) => Ok(Some((Token::Char(n as i8), pos))),
                     Some(TokenChar::Char(c)) => {
                         let mut s = String::new();
                         s.push(c);
                         let b = s.as_bytes();
                         if b.len() == 1 {
                             match s.as_bytes().first() {
-                                Some(n) => Ok(Some((Token::Char(*n), pos))),
+                                Some(n) => Ok(Some((Token::Char(*n as i8), pos))),
                                 None => Err(FrontendError::Message(pos, String::from("invalid character")))
                             }
                         } else {
@@ -706,7 +708,6 @@ impl<'a> Lexer<'a>
                     (Some(','), pos) => Ok((Token::Comma, pos)),
                     (Some(':'), pos) => Ok((Token::Colon, pos)),
                     (Some(';'), pos) => Ok((Token::Semi, pos)),
-                    (Some('\\'), pos) => Ok((Token::Backslash, pos)),
                     (Some(c), pos) => {
                         self.undo_char(c, pos.clone());
                         if let Some((token, pos)) = self.next_char_token()? {
