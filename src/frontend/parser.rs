@@ -692,7 +692,7 @@ impl<'a> Parser<'a>
                 }
             },
             (token, pos) => {
-                // expr2, { "match", "{", one_or_more_cases, "}" } 
+                // expr1, { "match", "{", one_or_more_cases, "}" } 
                 self.lexer.undo_token(token, pos.clone());
                 let mut expr1 = self.parse_expr2()?;
                 loop {
