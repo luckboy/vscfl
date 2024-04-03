@@ -744,6 +744,7 @@ impl<'a> Parser<'a>
     {
         match self.lexer.next_token()? {
             (Token::Minus, pos) if is_unary_op => {
+                // "-", simple_literal
                 match self.parse_simple_literal(is_unary_op)? {
                     SimpleLiteral::Char(n) => Ok(SimpleLiteral::Char(-n)),
                     SimpleLiteral::Int(n) => Ok(SimpleLiteral::Int(-n)),
@@ -754,6 +755,7 @@ impl<'a> Parser<'a>
                 }
             },
             (Token::Ex, pos) if is_unary_op => {
+                // "!", simple_literal
                 match self.parse_simple_literal(is_unary_op)? {
                     SimpleLiteral::Bool(b) => Ok(SimpleLiteral::Bool(!b)),
                     SimpleLiteral::Char(n) => Ok(SimpleLiteral::Char(!n)),
@@ -764,15 +766,42 @@ impl<'a> Parser<'a>
                     _ =>  Err(FrontendError::Message(pos, String::from("illegal unary operarotor for literal type"))),
                 }
             },
-            (Token::False, _) => Ok(SimpleLiteral::Bool(false)),
-            (Token::True, _) => Ok(SimpleLiteral::Bool(true)),
-            (Token::Char(n), _) => Ok(SimpleLiteral::Char(n)),
-            (Token::Int(n), _) => Ok(SimpleLiteral::Int(n)),
-            (Token::Long(n), _) => Ok(SimpleLiteral::Long(n)),
-            (Token::Uint(n), _) => Ok(SimpleLiteral::Uint(n)),
-            (Token::Ulong(n), _) => Ok(SimpleLiteral::Ulong(n)),
-            (Token::Float(n), _) => Ok(SimpleLiteral::Float(n)),
-            (Token::Double(n), _) => Ok(SimpleLiteral::Double(n)),
+            (Token::False, _) => {
+                // "false"
+                Ok(SimpleLiteral::Bool(false))
+            },
+            (Token::True, _) => {
+                // "true"
+                Ok(SimpleLiteral::Bool(true))
+            },
+            (Token::Char(n), _) => {
+                // char
+                Ok(SimpleLiteral::Char(n))
+            },
+            (Token::Int(n), _) => {
+                // int
+                Ok(SimpleLiteral::Int(n))
+            },
+            (Token::Long(n), _) => {
+                // long
+                Ok(SimpleLiteral::Long(n))
+            },
+            (Token::Uint(n), _) => {
+                // uint
+                Ok(SimpleLiteral::Uint(n))
+            },
+            (Token::Ulong(n), _) => {
+                // ulong
+                Ok(SimpleLiteral::Ulong(n))
+            },
+            (Token::Float(n), _) => {
+                // float
+                Ok(SimpleLiteral::Float(n))
+            },
+            (Token::Double(n), _) => {
+                // double
+                Ok(SimpleLiteral::Double(n))
+            },
             (_, pos) =>  Err(FrontendError::Message(pos, String::from("unexpected token"))),
         }
     }
@@ -781,7 +810,10 @@ impl<'a> Parser<'a>
         where F: FnMut(&mut Self) -> FrontendResult<Box<T>>
     {
         match self.lexer.next_token()? {
-            (Token::String(bs), _) => Ok(LiteralEither::Literal(Box::new(Literal::String(bs)))),
+            (Token::String(bs), _) => {
+                // string
+                Ok(LiteralEither::Literal(Box::new(Literal::String(bs))))
+            },
             (Token::LParen, _) => {
                 // "(", other, ")"
                 // "(", others, ")"
@@ -821,6 +853,7 @@ impl<'a> Parser<'a>
                 }
             },
             (token, pos) => {
+                // simple_literal
                 self.lexer.undo_token(token, pos);
                 match self.parse_simple_literal(is_unary_op)? {
                     SimpleLiteral::Bool(b) => Ok(LiteralEither::Literal(Box::new(Literal::Bool(b)))),
