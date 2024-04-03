@@ -604,7 +604,7 @@ impl<'a> Lexer<'a>
     {
         match self.next_char()? {
             (None, _) => Ok(None),
-            (Some(c), pos) if c.is_uppercase() => {
+            (Some(c), pos) if c.is_lowercase() || c == '_' => {
                 let mut s = String::new();
                 s.push(c);
                 self.read_ident_chars(&mut s)?;
