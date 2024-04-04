@@ -36,6 +36,7 @@ pub enum Token
     Caret,
     Bar,
     Eq,
+    At,
     Dot,
     LArrow,
     RArrow,
@@ -704,6 +705,7 @@ impl<'a> Lexer<'a>
                             },
                         }
                     },
+                    (Some('@'), pos) => Ok((Token::At, pos)),
                     (Some('.'), pos) => Ok((Token::Dot, pos)),
                     (Some(','), pos) => Ok((Token::Comma, pos)),
                     (Some(':'), pos) => Ok((Token::Colon, pos)),

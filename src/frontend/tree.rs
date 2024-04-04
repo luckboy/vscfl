@@ -74,8 +74,8 @@ pub struct TypeArg(pub String, pub Pos);
 #[derive(Clone, Debug)]
 pub enum Con
 {
-    UnnamedField(String, Vec<Box<TypeExpr>>, Pos),
-    NamedField(String, Vec<NamedFieldPair<TypeExpr>>, Pos),
+    UnnamedField(String, Vec<Box<TypeExpr>>, String, Pos),
+    NamedField(String, Vec<NamedFieldPair<TypeExpr>>, String, Pos),
 }
 
 #[derive(Clone, Debug)]
@@ -96,6 +96,7 @@ pub enum TypeExpr
 #[derive(Clone, Debug)]
 pub enum Var
 {
+    Builtin,
     Var(VarModifier, Box<TypeExpr>, Vec<WherePair>, Option<Box<Expr>>, Option<Box<LocalTypes>>, Option<Box<Type>>),
     Fun(Box<Fun>, Option<Box<Type>>),
 }
@@ -103,7 +104,6 @@ pub enum Var
 #[derive(Clone, Debug)]
 pub enum Fun
 {
-    Builtin,
     Fun(FunModifier, InlineModifier, Vec<Arg>, Box<TypeExpr>, Vec<WherePair>, Option<Box<Expr>>, Option<LocalType>, Option<Box<LocalTypes>>),
     Con(Rc<RefCell<Con>>),
 }
@@ -153,7 +153,7 @@ pub enum Field
 }
 
 #[derive(Clone, Debug)]
-pub struct Bind(pub Box<Pattern>, pub Box<Expr>, pub Option<LocalType>, pub Pos);
+pub struct Bind(pub Box<Pattern>, pub Box<Expr>);
 
 #[derive(Clone, Debug)]
 pub struct Case(pub Box<Pattern>, pub Box<Expr>);
@@ -166,8 +166,9 @@ pub enum Pattern
     Const(String, Option<LocalType>, Pos),
     UnnamedFieldCon(String, Vec<Box<Pattern>>, Option<LocalType>, Pos),
     NamedFieldCon(String, Vec<NamedFieldPair<Pattern>>, Option<LocalType>, Pos),
-    Var(VarModifier, Option<String>, Option<LocalType>, Pos),
-    At(VarModifier, Option<String>, Box<Pattern>, Option<LocalType>, Pos),
+    Var(VarModifier, String, Option<LocalType>, Pos),
+    At(VarModifier, String, Box<Pattern>, Option<LocalType>, Pos),
+    Wildcard(Option<LocalType>, Pos),
     Alt(Vec<Box<Pattern>>, Option<LocalType>, Pos),
 }
 
@@ -189,7 +190,7 @@ pub enum Literal<T>
 }
 
 #[derive(Clone, Debug)]
-pub struct LambdaArg(pub String, pub Option<Box<TypeExpr>>, pub Option<LocalType>, Pos);
+pub struct LambdaArg(pub String, pub Option<Box<TypeExpr>>, pub Option<LocalType>, pub Pos);
 
 #[derive(Clone, Debug)]
 pub struct Trait(pub String, pub Vec<TypeArg>, pub Vec<Box<Def>>, Option<Box<TraitVars>>);
@@ -216,16 +217,13 @@ pub struct ImplDef(pub String, pub Rc<RefCell<ImplVar>>, Pos);
 #[derive(Clone, Debug)]
 pub enum ImplVar
 {
+    Builtin,
     Var(Box<Expr>, Option<Box<LocalTypes>>, Option<Box<Type>>),
     Fun(Box<ImplFun>, Option<Box<Type>>),
 }
 
 #[derive(Clone, Debug)]
-pub enum ImplFun
-{
-    Builtin,
-    Fun(Vec<ImplArg>, Box<Expr>, Option<LocalType>, Option<Box<LocalTypes>>),
-}
+pub struct ImplFun(pub Vec<ImplArg>, pub Box<Expr>, pub Option<LocalType>, pub Option<Box<LocalTypes>>);
 
 #[derive(Clone, Debug)]
 pub struct ImplArg(pub String, pub Option<LocalType>, pub Pos);

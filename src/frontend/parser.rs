@@ -33,6 +33,20 @@ enum SimpleLiteral
 }
 
 #[derive(Clone)]
+struct Modifiers
+{
+    var_modifier_pair: Option<(VarModifier, Pos)>,
+    fun_modifier_pair: Option<(FunModifier, Pos)>,
+    inline_modifier_pair: Option<(InlineModifier, Pos)>,
+}
+
+impl Modifiers
+{
+    fn new() -> Self
+    { Modifiers { var_modifier_pair: None, fun_modifier_pair: None, inline_modifier_pair: None, } }
+}
+
+#[derive(Clone)]
 enum LiteralEither<T>
 {
     Literal(Box<Literal<T>>),
@@ -109,7 +123,6 @@ impl<'a> Parser<'a>
         Ok(xs)
     }
     
-    
     fn parse_usize(&mut self) -> FrontendResult<usize>
     {
         match self.lexer.next_token()? {
@@ -118,6 +131,62 @@ impl<'a> Parser<'a>
             (Token::Uint(n), _) => Ok(n as usize),
             (_, pos) => Err(FrontendError::Message(pos, String::from("unexpected token"))),
         }
+    }
+
+    fn parse_modifers(&mut self) -> FrontendResult<Modifiers>
+    {
+        let mut modifiers = Modifiers::new();
+        loop {
+            match self.lexer.next_token()? {
+                (Token::Private, pos) => {
+                    if modifiers.var_modifier_pair.is_none() {
+                        modifiers.var_modifier_pair = Some((VarModifier::Private, pos));
+                    } else {
+                        return Err(FrontendError::Message(pos, String::from("already used variable modifier")));
+                    }
+                },
+                (Token::Local, pos) => {
+                    if modifiers.var_modifier_pair.is_none() {
+                        modifiers.var_modifier_pair = Some((VarModifier::Local, pos));
+                    } else {
+                        return Err(FrontendError::Message(pos, String::from("already used variable modifier")));
+                    }
+                },
+                (Token::Global, pos) => {
+                    if modifiers.var_modifier_pair.is_none() {
+                        modifiers.var_modifier_pair = Some((VarModifier::Global, pos));
+                    } else {
+                        return Err(FrontendError::Message(pos, String::from("already used variable modifier")));
+                    }
+                },
+                (Token::Constant, pos) => {
+                    if modifiers.var_modifier_pair.is_none() {
+                        modifiers.var_modifier_pair = Some((VarModifier::Constant, pos));
+                    } else {
+                        return Err(FrontendError::Message(pos, String::from("already used variable modifier")));
+                    }
+                },
+                (Token::Kernel, pos) => {
+                    if modifiers.fun_modifier_pair.is_none() {
+                        modifiers.fun_modifier_pair = Some((FunModifier::Kernel, pos));
+                    } else {
+                        return Err(FrontendError::Message(pos, String::from("already used function modifier")));
+                    }
+                },
+                (Token::Inline, pos) => {
+                    if modifiers.inline_modifier_pair.is_none() {
+                        modifiers.inline_modifier_pair = Some((InlineModifier::Inline, pos));
+                    } else {
+                        return Err(FrontendError::Message(pos, String::from("already used inline modifier")));
+                    }
+                },
+                (token, pos) => {
+                    self.lexer.undo_token(token, pos);
+                    break;
+                },
+            }
+        }
+        Ok(modifiers)
     }
     
     fn parse_type_expr1(&mut self) -> FrontendResult<Box<TypeExpr>>
@@ -211,13 +280,31 @@ impl<'a> Parser<'a>
     fn parse_one_or_more_type_exprs(&mut self, end_tokens: &[Token]) -> FrontendResult<Vec<Box<TypeExpr>>>
     { self.parse_one_or_more(&Token::Comma, end_tokens, Self::parse_type_expr) }
 
-    fn parse_named_field_pairs<T, F>(&mut self, end_token: &[Token], mut f: F) -> FrontendResult<Vec<NamedFieldPair<T>>>
+    fn parse_named_field_pair<T, F>(&mut self, f: &mut F) -> FrontendResult<NamedFieldPair<T>>
         where F: FnMut(&mut Self) -> FrontendResult<Box<T>>
-    { Err(FrontendError::Message(self.lexer.pos().clone(), String::from("unexpected token"))) }
+    {
+        match self.lexer.next_token()? {
+            (Token::Eof, pos) => Err(FrontendError::Message(pos, String::from("unexpected end of file"))),
+            (Token::VarIdent(ident), pos) => {
+                // var_ident, ":", other
+                match self.lexer.next_token()? {
+                    (Token::Eof, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
+                    (Token::Colon, _) => Ok(NamedFieldPair(ident, f(self)?, pos)),
+                    (_, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected token"))),
+                }
+            },
+            (_, pos) => Err(FrontendError::Message(pos, String::from("unexpected token"))),
+        }
+    }
+    
+    fn parse_named_field_pairs<T, F>(&mut self, end_tokens: &[Token], mut f: F) -> FrontendResult<Vec<NamedFieldPair<T>>>
+        where F: FnMut(&mut Self) -> FrontendResult<Box<T>>
+    { self.parse_one_or_more(&Token::Comma, end_tokens, |parser| parser.parse_named_field_pair(&mut f)) }
     
     fn parse_expr13(&mut self) -> FrontendResult<Box<Expr>>
     {
         match self.lexer.next_token()? {
+            (Token::Eof, pos) => Err(FrontendError::Message(pos, String::from("unexpected end of file"))),
             (Token::Bar, pos) => {
                 // "|", lambda_args, "|", [ "->", type_expr ], expr1 
                 let args = self.parse_lambda_args(&[Token::Bar])?;
@@ -241,7 +328,7 @@ impl<'a> Parser<'a>
                 // con_ident
                 // con_ident, "{", expr_named_field_pairs, "}"
                 match self.lexer.next_token()? {
-                    (Token::LBrace, pos2) => {
+                    (Token::LBrace, _) => {
                         let expr_named_field_pairs = self.parse_named_field_pairs(&[Token::RBrace], Self::parse_expr)?;
                         match self.lexer.next_token()? {
                             (Token::Eof, pos3) => Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
@@ -261,14 +348,21 @@ impl<'a> Parser<'a>
             },
             (Token::Printf, pos) => {
                 // "printf", "(", exprs, ")"
-                let exprs = self.parse_exprs(&[Token::RParen])?;
                 match self.lexer.next_token()? {
                     (Token::Eof, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
-                    (Token::RParen, _) => Ok(Box::new(Expr::PrintfApp(exprs, None, pos))),
-                    (_, pos2) => Err(FrontendError::Message(pos2, String::from("unclosed parenthesis"))),
+                    (Token::LParen, _) => {
+                        let exprs = self.parse_exprs(&[Token::RParen])?;
+                        match self.lexer.next_token()? {
+                            (Token::Eof, pos3) => Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
+                            (Token::RParen, _) => Ok(Box::new(Expr::PrintfApp(exprs, None, pos))),
+                            (_, pos3) => Err(FrontendError::Message(pos3, String::from("unclosed parenthesis"))),
+                        }
+                    },
+                    (_, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected token"))),
                 }
             },
             (token, pos) => {
+                // expr_literal
                 self.lexer.undo_token(token, pos.clone());
                 match self.parse_literal_either(false, Self::parse_expr)? {
                     LiteralEither::Literal(literal) => Ok(Box::new(Expr::Literal(literal, None, pos))),
@@ -311,7 +405,7 @@ impl<'a> Parser<'a>
                             is_access_fun = false;
                             let exprs = self.parse_exprs(&[Token::RParen])?;
                             match self.lexer.next_token()? {
-                                (Token::Eof, pos2) => return Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
+                                (Token::Eof, pos3) => return Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
                                 (Token::RParen, _) => expr1 = Box::new(Expr::App(expr1, exprs, None, first_pos.clone())),
                                 (_, pos2) => return Err(FrontendError::Message(pos2, String::from("unclosed parenthesis"))),
                             }
@@ -328,7 +422,7 @@ impl<'a> Parser<'a>
                             fields = None;
                             is_access_fun = true;
                             match self.lexer.next_token()? {
-                                (Token::Eof, pos2) => return Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
+                                (Token::Eof, pos3) => return Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
                                 (Token::RParen, _) => (),
                                 (_, pos3) => return Err(FrontendError::Message(pos3, String::from("unclosed bracket"))),
                             }
@@ -345,7 +439,7 @@ impl<'a> Parser<'a>
                             fields = Some(self.parse_one_or_more_fields()?);
                             is_access_fun = true;
                             match self.lexer.next_token()? {
-                                (Token::Eof, pos2) => return Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
+                                (Token::Eof, pos3) => return Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
                                 (Token::RParen, _) => (),
                                 (_, pos3) => return Err(FrontendError::Message(pos3, String::from("unclosed bracket"))),
                             }
@@ -366,13 +460,13 @@ impl<'a> Parser<'a>
                         AccessFun::Get2
                     },
                     (Token::LArrow, _) => {
-                        // expr12, "<-", expr13
-                        AccessFun::Set(self.parse_expr13()?)
+                        // expr12, "<-", expr12
+                        AccessFun::Set(self.parse_expr12(true)?)
                     },
                     (Token::DArrow, _) => {
-                        // expr12, "<->", expr13
-                        // expr12, "<->", expr13, "<-"
-                        let expr2 = self.parse_expr13()?;
+                        // expr12, "<->", expr12
+                        // expr12, "<->", expr12, "<-"
+                        let expr2 = self.parse_expr12(true)?;
                         match self.lexer.next_token()? {
                             (Token::RArrow, _) => AccessFun::UpdateGet2(expr2),
                             (token2, pos2) => {
@@ -735,23 +829,208 @@ impl<'a> Parser<'a>
     { self.parse_expr1() }
 
     fn parse_exprs(&mut self, end_tokens: &[Token]) -> FrontendResult<Vec<Box<Expr>>>
-    { self.parse_zero_or_more(&Token::Comma, end_tokens, Self::parse_expr) }    
+    { self.parse_zero_or_more(&Token::Comma, end_tokens, Self::parse_expr) }
+    
+    fn parse_field(&mut self) -> FrontendResult<Field>
+    {
+        match self.lexer.next_token()? {
+            (Token::Eof, pos) => Err(FrontendError::Message(pos, String::from("unexpected end of file"))),
+            (Token::VarIdent(ident), _) => {
+                // var_ident
+                Ok(Field::Named(ident))
+            },
+            (token, pos) => {
+                // usize
+                self.lexer.undo_token(token, pos);
+                Ok(Field::Unnamed(self.parse_usize()?))
+            },
+        }
+    }
     
     fn parse_one_or_more_fields(&mut self) -> FrontendResult<Vec<Field>>
-    { Err(FrontendError::Message(self.lexer.pos().clone(), String::from("unexpected token"))) }
+    { self.parse_one_or_more_without_end_sep(&Token::Dot, Self::parse_field) }
     
-    fn parse_one_or_more_binds(&mut self, end_token: &[Token]) -> FrontendResult<Vec<Bind>>
-    { Err(FrontendError::Message(self.lexer.pos().clone(), String::from("unexpected token"))) }
+    fn parse_bind(&mut self) -> FrontendResult<Bind>
+    {
+        let pattern = self.parse_pattern()?;
+        match self.lexer.next_token()? {
+            (Token::Eof, pos) => Err(FrontendError::Message(pos, String::from("unexpected end of file"))),
+            (Token::Eq, _) => {
+                // pattern, "=", expr
+                let expr = self.parse_expr()?;
+                Ok(Bind(pattern, expr))
+            },
+            (_, pos) => Err(FrontendError::Message(pos, String::from("unexpected token"))),
+        }
+    }
+    
+    fn parse_one_or_more_binds(&mut self, end_tokens: &[Token]) -> FrontendResult<Vec<Bind>>
+    { self.parse_one_or_more(&Token::Semi, end_tokens, Self::parse_bind) }
 
-    fn parse_one_or_more_cases(&mut self, end_token: &[Token]) -> FrontendResult<Vec<Case>>
-    { Err(FrontendError::Message(self.lexer.pos().clone(), String::from("unexpected token"))) }
+    fn parse_case(&mut self) -> FrontendResult<Case>
+    {
+        let pattern = self.parse_pattern()?;
+        match self.lexer.next_token()? {
+            (Token::Eof, pos) => Err(FrontendError::Message(pos, String::from("unexpected end of file"))),
+            (Token::EqGt, _) => {
+                // pattern, "=>", expr
+                let expr = self.parse_expr()?;
+                Ok(Case(pattern, expr))
+            },
+            (_, pos) => Err(FrontendError::Message(pos, String::from("unexpected token"))),
+        }
+    }
+    
+    fn parse_one_or_more_cases(&mut self, end_tokens: &[Token]) -> FrontendResult<Vec<Case>>
+    { self.parse_one_or_more(&Token::Semi, end_tokens, Self::parse_case) }
 
-    fn parse_lambda_args(&mut self, end_token: &[Token]) -> FrontendResult<Vec<LambdaArg>>
-    { Err(FrontendError::Message(self.lexer.pos().clone(), String::from("unexpected token"))) }
+    fn parse_var_pattern2(&mut self, var_modifier: VarModifier) -> FrontendResult<Box<Pattern>>
+    {
+        match self.lexer.next_token()? {
+            (Token::Eof, pos) => Err(FrontendError::Message(pos, String::from("unexpected end of file"))),
+            (Token::VarIdent(ident), pos) => {
+                // var_ident
+                // var_ident, "@", pattern2
+                match self.lexer.next_token()? {
+                    (Token::At, _) => Ok(Box::new(Pattern::At(var_modifier, ident, self.parse_pattern2()?, None, pos))),
+                    (token2, pos2) => {
+                        self.lexer.undo_token(token2, pos2);
+                        Ok(Box::new(Pattern::Var(var_modifier, ident, None, pos)))
+                    },
+                }
+            },
+            (_, pos) => Err(FrontendError::Message(pos, String::from("unexpected token"))),
+        }
+    }
+    
+    fn parse_pattern2(&mut self) -> FrontendResult<Box<Pattern>>
+    {
+        match self.lexer.next_token()? {
+            (Token::Eof, pos) => Err(FrontendError::Message(pos, String::from("unexpected end of file"))),
+            (Token::ConIdent(ident), pos) => {
+                // con_ident
+                // con_ident, "(", patterns, ")"
+                // con_ident, "{", pattern_named_field_pairs, "}"
+                match self.lexer.next_token()? {
+                    (Token::LParen, _) => {
+                        let patterns = self.parse_patterns(&[Token::RParen])?;
+                        match self.lexer.next_token()? {
+                            (Token::Eof, pos3) => Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
+                            (Token::RParen, _) => Ok(Box::new(Pattern::UnnamedFieldCon(ident, patterns, None, pos))),
+                            (_, pos3) => Err(FrontendError::Message(pos3, String::from("unclosed parenthesis"))),
+                        }
+                    },
+                    (Token::LBrace, _) => {
+                        let pattern_named_field_pairs = self.parse_named_field_pairs(&[Token::RBrace], Self::parse_pattern)?;
+                        match self.lexer.next_token()? {
+                            (Token::Eof, pos3) => Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
+                            (Token::RBrace, _) => Ok(Box::new(Pattern::NamedFieldCon(ident, pattern_named_field_pairs, None, pos))),
+                            (_, pos3) => Err(FrontendError::Message(pos3, String::from("unclosed brace"))),
+                        }
+                    },
+                    (token2, pos2) => {
+                        self.lexer.undo_token(token2, pos2);
+                        Ok(Box::new(Pattern::Const(ident, None, pos)))
+                    },
+                }
+            },
+            (Token::Private, _) => {
+                // "private", var_pattern2
+                self.parse_var_pattern2(VarModifier::Private)
+            },
+            (Token::Local, _) => {
+                // "local", var_pattern2
+                self.parse_var_pattern2(VarModifier::Local)
+            },
+            (Token::Global, _) => {
+                // "global", var_pattern2
+                self.parse_var_pattern2(VarModifier::Global)
+            },
+            (Token::Constant, _) => {
+                // "constant", var_pattern2
+                self.parse_var_pattern2(VarModifier::Constant)
+            },
+            (token @ Token::VarIdent(_), pos) => {
+                // var_pattern2
+                self.lexer.undo_token(token, pos);
+                self.parse_var_pattern2(VarModifier::None)
+            },
+            (Token::Wildcard, pos) => {
+                // "_"
+                Ok(Box::new(Pattern::Wildcard(None, pos)))
+            },
+            (token, pos) => {
+                // pattern_literal
+                // pattern_literal, "as", type_expr
+                self.lexer.undo_token(token, pos.clone());
+                match self.parse_literal_either(false, Self::parse_pattern)? {
+                    LiteralEither::Literal(literal) => {
+                        match self.lexer.next_token()? {
+                            (Token::As, _) => Ok(Box::new(Pattern::As(literal, self.parse_type_expr()?, None, pos))),
+                            (token2, pos2) => {
+                                self.lexer.undo_token(token2, pos2);
+                                Ok(Box::new(Pattern::Literal(literal, None, pos)))
+                            }
+                        }
+                    },
+                    LiteralEither::Other(pattern) => Ok(pattern),
+                }
+            },
+        }
+    }
+    
+    fn parse_pattern1(&mut self) -> FrontendResult<Box<Pattern>>
+    {
+        let first_pos = self.lexer.pos().clone();
+        let mut patterns: Vec<Box<Pattern>> = Vec::new();
+        patterns.push(self.parse_pattern2()?);
+        loop {
+            match self.lexer.next_token()? {
+                (Token::Bar, _) => {
+                    // pattern1, "|", pattern2
+                    patterns.push(self.parse_pattern2()?);
+                },
+                (token, pos) => {
+                    self.lexer.undo_token(token, pos);
+                    break;
+                },
+            }
+        }
+        Ok(Box::new(Pattern::Alt(patterns, None, first_pos)))
+    }
+    
+    fn parse_pattern(&mut self) -> FrontendResult<Box<Pattern>>
+    { self.parse_pattern1() }
+
+    fn parse_patterns(&mut self, end_tokens: &[Token]) -> FrontendResult<Vec<Box<Pattern>>>
+    { self.parse_zero_or_more(&Token::Comma, end_tokens, Self::parse_pattern) }    
+
+    fn parse_lambda_arg(&mut self) -> FrontendResult<LambdaArg>
+    {
+        match self.lexer.next_token()? {
+            (Token::Eof, pos) => Err(FrontendError::Message(pos, String::from("unexpected end of file"))),
+            (Token::VarIdent(ident), pos) => {
+                // var_ident, [ ":", type_expr ]
+                match self.lexer.next_token()? {
+                    (Token::Eof, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
+                    (Token::Colon, _) => Ok(LambdaArg(ident, Some(self.parse_type_expr()?), None, pos)),
+                    (token2, pos2) => {
+                        self.lexer.undo_token(token2, pos2);
+                        Ok(LambdaArg(ident, None, None, pos))
+                    },
+                }
+            },
+            (_, pos) => Err(FrontendError::Message(pos, String::from("unexpected token"))),
+        }
+    }
+    
+    fn parse_lambda_args(&mut self, end_tokens: &[Token]) -> FrontendResult<Vec<LambdaArg>>
+    { self.parse_zero_or_more(&Token::Comma, end_tokens, Self::parse_lambda_arg) }
 
     fn parse_simple_literal(&mut self, is_unary_op: bool) -> FrontendResult<SimpleLiteral>
     {
         match self.lexer.next_token()? {
+            (Token::Eof, pos) => Err(FrontendError::Message(pos, String::from("unexpected end of file"))),
             (Token::Minus, pos) if is_unary_op => {
                 // "-", simple_literal
                 match self.parse_simple_literal(is_unary_op)? {
@@ -819,6 +1098,7 @@ impl<'a> Parser<'a>
         where F: FnMut(&mut Self) -> FrontendResult<Box<T>>
     {
         match self.lexer.next_token()? {
+            (Token::Eof, pos) => Err(FrontendError::Message(pos, String::from("unexpected end of file"))),
             (Token::String(bs), _) => {
                 // string
                 Ok(LiteralEither::Literal(Box::new(Literal::String(bs))))
