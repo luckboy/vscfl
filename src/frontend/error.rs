@@ -30,6 +30,7 @@ pub enum FrontendError
 {
     Io(String, Error),
     Message(Pos, String),
+    Interal(String),
 }
 
 impl error::Error for FrontendError
@@ -42,6 +43,7 @@ impl fmt::Display for FrontendError
         match self {
             FrontendError::Io(path, err) => write!(f, "{}: I/O: {}", path, err),
             FrontendError::Message(pos, msg) => write!(f, "{}: {}.{}: {}", pos.path, pos.line, pos.column, msg),
+            FrontendError::Interal(msg) => write!(f, "interal error: {}", msg),
         }
     }
 }

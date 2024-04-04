@@ -49,6 +49,9 @@ impl Tree
     
     pub fn add_def(&mut self, def: Def)
     { self.defs.push(Box::new(def)); }
+
+    pub fn append_defs(&mut self, defs: &mut Vec<Box<Def>>)
+    { self.defs.append(defs); }
 }
 
 #[derive(Clone, Debug)]
@@ -64,8 +67,8 @@ pub enum Def
 pub enum TypeVar
 {
     Builtin,
-    Data(Vec<Box<TypeArg>>, Vec<Rc<RefCell<Con>>>, Option<SharedFlag>),
-    Synonim(Vec<Box<TypeArg>>, Box<TypeExpr>),
+    Data(Vec<TypeArg>, Vec<Rc<RefCell<Con>>>, Option<SharedFlag>),
+    Synonym(Vec<TypeArg>, Box<TypeExpr>),
 }
 
 #[derive(Clone, Debug)]
@@ -96,7 +99,7 @@ pub enum TypeExpr
 #[derive(Clone, Debug)]
 pub enum Var
 {
-    Builtin,
+    Builtin(Option<Box<Type>>),
     Var(VarModifier, Box<TypeExpr>, Vec<WherePair>, Option<Box<Expr>>, Option<Box<LocalTypes>>, Option<Box<Type>>),
     Fun(Box<Fun>, Option<Box<Type>>),
 }
@@ -109,6 +112,9 @@ pub enum Fun
 }
 
 #[derive(Clone, Debug)]
+pub struct Arg(pub String, pub Box<TypeExpr>, pub Option<LocalType>, pub Pos);
+
+#[derive(Clone, Debug)]
 pub struct WherePair(pub String, pub Vec<Box<TraitExpr>>, pub Pos);
 
 #[derive(Clone, Debug)]
@@ -118,9 +124,6 @@ pub enum TraitExpr
     Fun(Vec<Box<TypeExpr>>, Box<TypeExpr>, Pos),
     Trait(String, Vec<Box<TypeExpr>>, Pos),
 }
-
-#[derive(Clone, Debug)]
-pub struct Arg(pub String, pub Box<TypeExpr>, pub Option<LocalType>, Pos);
 
 #[derive(Clone, Debug)]
 pub enum Expr
@@ -193,7 +196,10 @@ pub enum Literal<T>
 pub struct LambdaArg(pub String, pub Option<Box<TypeExpr>>, pub Option<LocalType>, pub Pos);
 
 #[derive(Clone, Debug)]
-pub struct Trait(pub String, pub Vec<TypeArg>, pub Vec<Box<Def>>, Option<Box<TraitVars>>);
+pub struct Trait(pub Vec<TypeArg>, pub Vec<Box<TraitDef>>, pub Option<Box<TraitVars>>);
+
+#[derive(Clone, Debug)]
+pub struct TraitDef(pub String, pub Rc<RefCell<Var>>, pub Pos);
 
 #[derive(Clone, Debug)]
 pub enum Impl
@@ -212,7 +218,7 @@ pub enum TypeName
 }
 
 #[derive(Clone, Debug)]
-pub struct ImplDef(pub String, pub Rc<RefCell<ImplVar>>, Pos);
+pub struct ImplDef(pub String, pub Rc<RefCell<ImplVar>>, pub Pos);
 
 #[derive(Clone, Debug)]
 pub enum ImplVar
