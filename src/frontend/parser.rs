@@ -291,6 +291,7 @@ impl<'a> Parser<'a>
             (Token::Builtin, _) => {
                 // "builtin", "type", con_ident
                 // "builtin", ( con_ident | var_ident )
+                // "builtin", "impl", con_ident, "for", type_name
                 match self.lexer.next_token()? {
                     (Token::Eof, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
                     (Token::Type, _) => {
@@ -333,6 +334,34 @@ impl<'a> Parser<'a>
                             None => (),
                         }
                         Ok(Box::new(Def::Var(ident, Rc::new(RefCell::new(Var::Builtin(None))), first_pos)))
+                    },
+                    (Token::Impl, _) => {
+                        match self.lexer.next_token()? {
+                            (Token::Eof, pos3) => Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
+                            (Token::ConIdent(ident), _) => {
+                                match modifiers.var_modifier_pair {
+                                    Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("trait variable mustn't have variable modifier"))),
+                                    None => (),
+                                }
+                                match modifiers.fun_modifier_pair {
+                                    Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("trait mustn't have function modifier"))),
+                                    None => (),
+                                }
+                                match modifiers.inline_modifier_pair {
+                                    Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("trait mustn't have inline modifier"))),
+                                    None => (),
+                                }
+                                match self.lexer.next_token()? {
+                                    (Token::Eof, pos4) => Err(FrontendError::Message(pos4, String::from("unexpected end of file"))),
+                                    (Token::For, _) => {
+                                        let type_name = self.parse_type_name()?;
+                                        Ok(Box::new(Def::Impl(Rc::new(RefCell::new(Impl::Builtin(ident, type_name, None))), first_pos)))
+                                    },
+                                    (_, pos4) => Err(FrontendError::Message(pos4, String::from("unexpected token"))),
+                                }
+                            },
+                            (_, pos3) => Err(FrontendError::Message(pos3, String::from("unexpected token"))),
+                        }
                     },
                     (_, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected token"))),
                 }
@@ -483,6 +512,46 @@ impl<'a> Parser<'a>
                                 }
                             },
                             (_, pos3) => return Err(FrontendError::Message(pos3, String::from("unexpected token"))),
+                        }
+                    },
+                    (_, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected token"))),
+                }
+            },
+            (Token::Impl, _) => {
+                // "impl", con_ident, "for", type_name, "{", impl_defs, "}"
+                match self.lexer.next_token()? {
+                    (Token::Eof, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
+                    (Token::ConIdent(ident), _) => {
+                        match modifiers.var_modifier_pair {
+                            Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("trait variable mustn't have variable modifier"))),
+                            None => (),
+                        }
+                        match modifiers.fun_modifier_pair {
+                            Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("trait mustn't have function modifier"))),
+                            None => (),
+                        }
+                        match modifiers.inline_modifier_pair {
+                            Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("trait mustn't have inline modifier"))),
+                            None => (),
+                        }
+                        match self.lexer.next_token()? {
+                            (Token::Eof, pos3) => Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
+                            (Token::For, _) => {
+                                let type_name = self.parse_type_name()?;
+                                match self.lexer.next_token()? {
+                                    (Token::Eof, pos4) => Err(FrontendError::Message(pos4, String::from("unexpected end of file"))),
+                                    (Token::LBrace, _) => {
+                                        let impl_defs = self.parse_impl_defs(&[Token::RBrace])?;
+                                        match self.lexer.next_token()? {
+                                            (Token::Eof, pos5) => Err(FrontendError::Message(pos5, String::from("unexpected end of file"))),
+                                            (Token::RBrace, _) => Ok(Box::new(Def::Impl(Rc::new(RefCell::new(Impl::Impl(ident, type_name, impl_defs, None))), first_pos))),
+                                            (_, pos5) => Err(FrontendError::Message(pos5, String::from("unclosed brace"))),
+                                        }
+                                    },
+                                    (_, pos4) => Err(FrontendError::Message(pos4, String::from("unexpected token"))),
+                                }
+                            },
+                            (_, pos3) => Err(FrontendError::Message(pos3, String::from("unexpected token"))),
                         }
                     },
                     (_, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected token"))),
@@ -1653,4 +1722,142 @@ impl<'a> Parser<'a>
         }
         Ok(count)
     }
+    
+    fn parse_type_name(&mut self) -> FrontendResult<TypeName>
+    {
+        match self.lexer.next_token()? {
+            (Token::Eof, pos) => Err(FrontendError::Message(pos, String::from("unexpected end of file"))),
+            (Token::LParen, _) => {
+                // "(", wildcards, ")"
+                // "(", wildcards, ")", "->", "_"
+                let count = self.parse_wildcards(&[Token::RParen])?;
+                match self.lexer.next_token()? {
+                    (Token::Eof, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
+                    (Token::RParen, _) => {
+                        match self.lexer.next_token()? {
+                            (Token::RArrow, _) => {
+                                match self.lexer.next_token()? {
+                                    (Token::Eof, pos4) => Err(FrontendError::Message(pos4, String::from("unexpected end of file"))),
+                                    (Token::Wildcard, _) => Ok(TypeName::Fun(count)),
+                                    (_, pos4) => Err(FrontendError::Message(pos4, String::from("unexpected token"))),
+                                }
+                            },
+                            (token3, pos3) => {
+                                self.lexer.undo_token(token3, pos3);
+                                Ok(TypeName::Tuple(count))
+                            },
+                        }
+                    }
+                    (_, pos2) => Err(FrontendError::Message(pos2, String::from("unclosed parenthesis"))),
+                }
+            },
+            (Token::LBracket, _) => {
+                // "[", "_", ";", ( usize | "_" ), "]" 
+                match self.lexer.next_token()? {
+                    (Token::Eof, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
+                    (Token::Wildcard, _) => {
+                        match self.lexer.next_token()? {
+                            (Token::Eof, pos3) => Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
+                            (Token::Semi, _) => {
+                                let len = match self.lexer.next_token()? {
+                                    (Token::Wildcard, _) => None,
+                                    (token4, pos4) => {
+                                        self.lexer.undo_token(token4, pos4);
+                                        Some(self.parse_usize()?)
+                                    },
+                                };
+                                match self.lexer.next_token()? {
+                                    (Token::Eof, pos4) => Err(FrontendError::Message(pos4, String::from("unexpected end of file"))),
+                                    (Token::RBracket, _) => Ok(TypeName::Array(len)),
+                                    (_, pos4) => Err(FrontendError::Message(pos4, String::from("unclosed bracket"))),
+                                }
+                            },
+                            (_, pos3) => Err(FrontendError::Message(pos3, String::from("unexpected token"))),
+                        }
+                    },
+                    (_, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected token"))),
+                }
+            },
+            (Token::ConIdent(ident), _) => {
+                // con_ident
+                Ok(TypeName::Name(ident))
+            },
+            (_, pos) => Err(FrontendError::Message(pos, String::from("unexpected token"))),
+        }
+    }
+    
+    fn parse_impl_def(&mut self) -> FrontendResult<Box<ImplDef>>
+    {
+        match self.lexer.next_token()? {
+            (Token::Eof, pos) => Err(FrontendError::Message(pos, String::from("unexpected end of file"))),
+            (Token::Builtin, pos) => {
+                // "builtin", ( con_ident | var_ident )
+                match self.lexer.next_token()? {
+                    (Token::Eof, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
+                    (token @ (Token::ConIdent(_) | Token::VarIdent(_)), _) => {
+                        let ident = match token {
+                            Token::ConIdent(tmp_ident) => tmp_ident,
+                            Token::VarIdent(tmp_ident) => tmp_ident,
+                            _ => return Err(FrontendError::Interal(String::from("no identifier"))),
+                        };
+                        Ok(Box::new(ImplDef(ident, Rc::new(RefCell::new(ImplVar::Builtin(None))), pos)))
+                    },
+                    (_, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected token"))),
+                }
+            }
+            (token @ (Token::ConIdent(_) | Token::VarIdent(_)), pos) => {
+                // ( con_ident | var_ident ), "=", expr
+                // ( con_ident | var_ident ), "(", impl_args, ")", "=", expr
+                let ident = match token {
+                    Token::ConIdent(tmp_ident) => tmp_ident,
+                    Token::VarIdent(tmp_ident) => tmp_ident,
+                    _ => return Err(FrontendError::Interal(String::from("no identifier"))),
+                };
+                match self.lexer.next_token()? {
+                    (Token::Eof, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
+                    (Token::LParen, _) => {
+                        let impl_args = self.parse_impl_args(&[Token::RParen])?;
+                        match self.lexer.next_token()? {
+                            (Token::Eof, pos3) => Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
+                            (Token::RParen, _) => {
+                                match self.lexer.next_token()? {
+                                    (Token::Eof, pos4) => Err(FrontendError::Message(pos4, String::from("unexpected end of file"))),
+                                    (Token::Eq, _) => {
+                                        let expr = self.parse_expr()?;
+                                        Ok(Box::new(ImplDef(ident, Rc::new(RefCell::new(ImplVar::Fun(Box::new(ImplFun(impl_args, expr, None, None)), None))), pos)))
+                                    },
+                                    (_, pos4) => Err(FrontendError::Message(pos4, String::from("unexpected token"))),
+                                }
+                            },
+                            (_, pos3) => Err(FrontendError::Message(pos3, String::from("unclosed parenthesis"))),
+                        }
+                    },
+                    (Token::Eq, _) => {
+                        let expr = self.parse_expr()?;
+                        Ok(Box::new(ImplDef(ident, Rc::new(RefCell::new(ImplVar::Var(expr, None, None))), pos)))
+                    },
+                    (_, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected token"))),
+                }
+            },
+            (_, pos) => Err(FrontendError::Message(pos, String::from("unexpected token"))),
+        }
+    }
+
+    fn parse_impl_defs(&mut self, end_tokens: &[Token]) -> FrontendResult<Vec<Box<ImplDef>>>
+    { self.parse_zero_or_more(&Token::Semi, end_tokens, Self::parse_impl_def) }
+
+    fn parse_impl_arg(&mut self) -> FrontendResult<ImplArg>
+    {
+        match self.lexer.next_token()? {
+            (Token::Eof, pos) => Err(FrontendError::Message(pos, String::from("unexpected end of file"))),
+            (Token::VarIdent(ident), pos) => {
+                // var_ident
+                Ok(ImplArg(ident, None, pos))
+            },
+            (_, pos) => Err(FrontendError::Message(pos, String::from("unexpected token"))),
+        }
+    }
+
+    fn parse_impl_args(&mut self, end_tokens: &[Token]) -> FrontendResult<Vec<ImplArg>>
+    { self.parse_zero_or_more(&Token::Comma, end_tokens, Self::parse_impl_arg) }
 }

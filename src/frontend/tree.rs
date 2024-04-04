@@ -208,7 +208,7 @@ pub enum Impl
     Impl(String, TypeName, Vec<Box<ImplDef>>, Option<Box<ImplVars>>),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum TypeName
 {
     Tuple(usize),
@@ -223,7 +223,7 @@ pub struct ImplDef(pub String, pub Rc<RefCell<ImplVar>>, pub Pos);
 #[derive(Clone, Debug)]
 pub enum ImplVar
 {
-    Builtin,
+    Builtin(Option<Box<Type>>),
     Var(Box<Expr>, Option<Box<LocalTypes>>, Option<Box<Type>>),
     Fun(Box<ImplFun>, Option<Box<Type>>),
 }
