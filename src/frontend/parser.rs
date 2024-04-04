@@ -278,7 +278,7 @@ impl<'a> Parser<'a>
         }
     }
 
-    fn parse_expr12(&mut self) -> FrontendResult<Box<Expr>>
+    fn parse_expr12(&mut self, is_getter: bool) -> FrontendResult<Box<Expr>>
     {
         let first_pos = self.lexer.pos().clone();
         let mut expr1: Box<Expr>;
@@ -288,7 +288,7 @@ impl<'a> Parser<'a>
         match self.lexer.next_token()? {
             (Token::Star, _) => {
                 // "*", expr12
-                expr1 = self.parse_expr12()?;
+                expr1 = self.parse_expr12(true)?;
                 is_access_fun = true;
             },
             (token, pos) => {
@@ -359,60 +359,69 @@ impl<'a> Parser<'a>
             },
         }
         if is_access_fun {
-            let access_fun = match self.lexer.next_token()? {
-                (Token::RArrow, _) => {
-                    // expr12, "->"
-                    AccessFun::Get2
-                },
-                (Token::LArrow, _) => {
-                    // expr12, "<-" expr13
-                    AccessFun::Set(self.parse_expr13()?)
-                },
-                (Token::DArrow, _) => {
-                    // expr12, "<-> expr13
-                    let expr2 = self.parse_expr13()?;
-                    match self.lexer.next_token()? {
-                        (Token::RArrow, _) => AccessFun::UpdateGet2(expr2),
-                        (token2, pos2) => {
-                            self.lexer.undo_token(token2, pos2);
-                            AccessFun::Update(expr2)
-                        },
-                    }
-                },
-                (token, pos) => {
-                    // expr13
-                    self.lexer.undo_token(token, pos);
-                    AccessFun::Get
-                },
-            };
-            match (fields, idx_expr) {
-                (Some(fields), _) => {
-                    match access_fun {
-                        AccessFun::Get => Ok(Box::new(Expr::GetField(expr1, fields, None, first_pos))),
-                        AccessFun::Get2 => Ok(Box::new(Expr::Get2Field(expr1, fields, None, first_pos))),
-                        AccessFun::Set(expr2) => Ok(Box::new(Expr::SetField(expr1, fields, expr2, None, first_pos))),
-                        AccessFun::Update(expr2) => Ok(Box::new(Expr::UpdateField(expr1, fields, expr2, None, first_pos))),
-                        AccessFun::UpdateGet2(expr2) => Ok(Box::new(Expr::UpdateGet2Field(expr1, fields, expr2, None, first_pos))),
-                    }
-                },
-                (_, Some(idx_expr)) => {
-                    match access_fun {
-                        AccessFun::Get => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_get_nth"), None, first_pos.clone())), vec![expr1, idx_expr], None, first_pos))),
-                        AccessFun::Get2 => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("opt_get2_nth"), None, first_pos.clone())), vec![expr1, idx_expr], None, first_pos))),
-                        AccessFun::Set(expr2) => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_set_nth"), None, first_pos.clone())), vec![expr1, idx_expr, expr2], None, first_pos))),
-                        AccessFun::Update(expr2) => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_update_nth"), None, first_pos.clone())), vec![expr1, idx_expr, expr2], None, first_pos))),
-                        AccessFun::UpdateGet2(expr2) => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_update_get2_nth"), None, first_pos.clone())), vec![expr1, idx_expr, expr2], None, first_pos))),
-                    }
-                },
-                (_, _) => {
-                    match access_fun {
-                        AccessFun::Get => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_get"), None, first_pos.clone())), vec![expr1], None, first_pos))),
-                        AccessFun::Get2 => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_get2"), None, first_pos.clone())), vec![expr1], None, first_pos))),
-                        AccessFun::Set(expr2) => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_set"), None, first_pos.clone())), vec![expr1, expr2], None, first_pos))),
-                        AccessFun::Update(expr2) => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_update"), None, first_pos.clone())), vec![expr1, expr2], None, first_pos))),
-                        AccessFun::UpdateGet2(expr2) => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_update_get2"), None, first_pos.clone())), vec![expr1, expr2], None, first_pos))),
-                    }
-                },
+            if !is_getter {
+                let access_fun = match self.lexer.next_token()? {
+                    (Token::RArrow, _) => {
+                        // expr12, "->"
+                        AccessFun::Get2
+                    },
+                    (Token::LArrow, _) => {
+                        // expr12, "<-", expr13
+                        AccessFun::Set(self.parse_expr13()?)
+                    },
+                    (Token::DArrow, _) => {
+                        // expr12, "<->", expr13
+                        // expr12, "<->", expr13, "<-"
+                        let expr2 = self.parse_expr13()?;
+                        match self.lexer.next_token()? {
+                            (Token::RArrow, _) => AccessFun::UpdateGet2(expr2),
+                            (token2, pos2) => {
+                                self.lexer.undo_token(token2, pos2);
+                                AccessFun::Update(expr2)
+                            },
+                        }
+                    },
+                    (token, pos) => {
+                        // expr13
+                        self.lexer.undo_token(token, pos);
+                        AccessFun::Get
+                    },
+                };
+                match (fields, idx_expr) {
+                    (Some(fields), _) => {
+                        match access_fun {
+                            AccessFun::Get => Ok(Box::new(Expr::GetField(expr1, fields, None, first_pos))),
+                            AccessFun::Get2 => Ok(Box::new(Expr::Get2Field(expr1, fields, None, first_pos))),
+                            AccessFun::Set(expr2) => Ok(Box::new(Expr::SetField(expr1, fields, expr2, None, first_pos))),
+                            AccessFun::Update(expr2) => Ok(Box::new(Expr::UpdateField(expr1, fields, expr2, None, first_pos))),
+                            AccessFun::UpdateGet2(expr2) => Ok(Box::new(Expr::UpdateGet2Field(expr1, fields, expr2, None, first_pos))),
+                        }
+                    },
+                    (_, Some(idx_expr)) => {
+                        match access_fun {
+                            AccessFun::Get => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_get_nth"), None, first_pos.clone())), vec![expr1, idx_expr], None, first_pos))),
+                            AccessFun::Get2 => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("opt_get2_nth"), None, first_pos.clone())), vec![expr1, idx_expr], None, first_pos))),
+                            AccessFun::Set(expr2) => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_set_nth"), None, first_pos.clone())), vec![expr1, idx_expr, expr2], None, first_pos))),
+                            AccessFun::Update(expr2) => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_update_nth"), None, first_pos.clone())), vec![expr1, idx_expr, expr2], None, first_pos))),
+                            AccessFun::UpdateGet2(expr2) => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_update_get2_nth"), None, first_pos.clone())), vec![expr1, idx_expr, expr2], None, first_pos))),
+                        }
+                    },
+                    (_, _) => {
+                        match access_fun {
+                            AccessFun::Get => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_get"), None, first_pos.clone())), vec![expr1], None, first_pos))),
+                            AccessFun::Get2 => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_get2"), None, first_pos.clone())), vec![expr1], None, first_pos))),
+                            AccessFun::Set(expr2) => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_set"), None, first_pos.clone())), vec![expr1, expr2], None, first_pos))),
+                            AccessFun::Update(expr2) => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_update"), None, first_pos.clone())), vec![expr1, expr2], None, first_pos))),
+                            AccessFun::UpdateGet2(expr2) => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_update_get2"), None, first_pos.clone())), vec![expr1, expr2], None, first_pos))),
+                        }
+                    },
+                }
+            } else {
+                match (fields, idx_expr) {
+                    (Some(fields), _) => Ok(Box::new(Expr::GetField(expr1, fields, None, first_pos.clone()))),
+                    (_, Some(idx_expr)) => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_get_nth"), None, first_pos.clone())), vec![expr1, idx_expr], None, first_pos.clone()))),
+                    (_, _) => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_get"), None, first_pos.clone())), vec![expr1], None, first_pos.clone()))),
+                }
             }
         } else {
             Ok(expr1)
@@ -433,7 +442,7 @@ impl<'a> Parser<'a>
             (token, pos) => {
                 // expr12
                 self.lexer.undo_token(token, pos);
-                self.parse_expr11()
+                self.parse_expr12(false)
             },
         }
     }
@@ -746,9 +755,9 @@ impl<'a> Parser<'a>
             (Token::Minus, pos) if is_unary_op => {
                 // "-", simple_literal
                 match self.parse_simple_literal(is_unary_op)? {
-                    SimpleLiteral::Char(n) => Ok(SimpleLiteral::Char(-n)),
-                    SimpleLiteral::Int(n) => Ok(SimpleLiteral::Int(-n)),
-                    SimpleLiteral::Long(n) => Ok(SimpleLiteral::Long(-n)),
+                    SimpleLiteral::Char(n) => Ok(SimpleLiteral::Char(n.overflowing_neg().0)),
+                    SimpleLiteral::Int(n) => Ok(SimpleLiteral::Int(n.overflowing_neg().0)),
+                    SimpleLiteral::Long(n) => Ok(SimpleLiteral::Long(n.overflowing_neg().0)),
                     SimpleLiteral::Float(n) => Ok(SimpleLiteral::Float(-n)),
                     SimpleLiteral::Double(n) => Ok(SimpleLiteral::Double(-n)),
                     _ =>  Err(FrontendError::Message(pos, String::from("illegal unary operarotor for literal type"))),
