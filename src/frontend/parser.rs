@@ -68,8 +68,13 @@ impl<'a> Parser<'a>
     pub fn parse(&mut self, tree: &mut Tree) -> FrontendResult<()>
     {
         let mut defs = self.parse_defs(&[Token::Eof])?;
-        tree.append_defs(&mut defs);
-        Ok(())
+        match self.lexer.next_token()? {
+            (Token::Eof, _) => {
+                tree.append_defs(&mut defs);
+                Ok(())
+            },
+            (_, pos) => Err(FrontendError::Message(pos, String::from("unexpected token"))),
+        }
     }
     
     pub fn parse_type_args(&mut self) -> FrontendResult<Vec<TypeArg>>
