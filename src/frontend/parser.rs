@@ -90,7 +90,7 @@ impl<'a> Parser<'a>
     {
         let type_expr = self.parse_type_expr()?;
         match self.lexer.next_token()? {
-            (Token::Eof, _) => Ok((*type_expr).clone()),
+            (Token::Eof, _) => Ok(*type_expr),
             (_, pos) => Err(FrontendError::Message(pos, String::from("unexpected token"))),
         }
     }
