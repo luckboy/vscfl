@@ -66,7 +66,7 @@ pub enum Def
 #[derive(Clone, Debug)]
 pub enum TypeVar
 {
-    Builtin,
+    Builtin(Option<TypeArgs>, Option<SharedFlag>),
     Data(Vec<TypeArg>, Vec<Rc<RefCell<Con>>>, Option<SharedFlag>),
     Synonym(Vec<TypeArg>, Box<TypeExpr>),
 }
@@ -240,6 +240,9 @@ pub enum SharedFlag
     None,
     Shared,
 }
+
+#[derive(Clone, Debug)]
+pub struct TypeArgs;
 
 #[derive(Clone, Debug)]
 pub struct Type;

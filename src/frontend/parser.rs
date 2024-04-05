@@ -342,7 +342,7 @@ impl<'a> Parser<'a>
                                     Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("built-in type mustn't have inline modifier"))),
                                     None => (),
                                 }
-                                Ok(Box::new(Def::Type(ident, Rc::new(RefCell::new(TypeVar::Builtin)), first_pos)))
+                                Ok(Box::new(Def::Type(ident, Rc::new(RefCell::new(TypeVar::Builtin(None, None))), first_pos)))
                             },
                             (_, pos3) => Err(FrontendError::Message(pos3, String::from("unexpected token"))),
                         }
