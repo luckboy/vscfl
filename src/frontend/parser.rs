@@ -72,6 +72,33 @@ impl<'a> Parser<'a>
         Ok(())
     }
     
+    pub fn parse_type_args(&mut self) -> FrontendResult<Vec<TypeArg>>
+    {
+        let type_args = self.parse_zero_or_more(&Token::Comma, &[Token::Eof], Self::parse_type_arg)?;
+        match self.lexer.next_token()? {
+            (Token::Eof, _) => Ok(type_args),
+            (_, pos) => Err(FrontendError::Message(pos, String::from("unexpected token"))),
+        }
+    }
+
+    pub fn parse_type(&mut self) -> FrontendResult<TypeExpr>
+    {
+        let type_expr = self.parse_type_expr()?;
+        match self.lexer.next_token()? {
+            (Token::Eof, _) => Ok((*type_expr).clone()),
+            (_, pos) => Err(FrontendError::Message(pos, String::from("unexpected token"))),
+        }
+    }
+
+    pub fn parse_where(&mut self) -> FrontendResult<Vec<WherePair>>
+    {
+        let where_pairs = self.parse_one_or_more_where_pairs(&[Token::Eof])?;
+        match self.lexer.next_token()? {
+            (Token::Eof, _) => Ok(where_pairs),
+            (_, pos) => Err(FrontendError::Message(pos, String::from("unexpected token"))),
+        }
+    }
+    
     fn parse_zero_or_more_with_fn_ref<T, F>(&mut self, xs: &mut Vec<T>, sep_token: &Token, end_tokens: &[Token], f: &mut F) -> FrontendResult<()>
         where F: FnMut(&mut Self) -> FrontendResult<T>
     {
@@ -711,7 +738,7 @@ impl<'a> Parser<'a>
         }
     }
     
-    pub fn parse_type_expr(&mut self) -> FrontendResult<Box<TypeExpr>>
+    fn parse_type_expr(&mut self) -> FrontendResult<Box<TypeExpr>>
     {
         let saved_single_greater_flag = self.lexer.has_single_greater();
         self.lexer.set_single_greater(true);
