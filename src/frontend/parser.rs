@@ -698,12 +698,18 @@ impl<'a> Parser<'a>
                 }
             },
             (Token::LBracket, pos) => {
-                // "[", type_expr, ";", usize, "]"
+                // "[", type_expr, ";", ( usize | "_" ) , "]"
                 let type_expr = self.parse_type_expr1()?;
                 match self.lexer.next_token()? {
                     (Token::Eof, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
                     (Token::Semi, _) => {
-                        let len = self.parse_usize()?;
+                        let len = match self.lexer.next_token()? {
+                            (Token::Wildcard, _) => None,
+                            (token3, pos3) => {
+                                self.lexer.undo_token(token3, pos3);
+                                Some(self.parse_usize()?)
+                            },
+                        };
                         match self.lexer.next_token()? {
                             (Token::Eof, pos3) => Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
                             (Token::RBracket, _) => Ok(Box::new(TypeExpr::Array(type_expr, len, pos))),
