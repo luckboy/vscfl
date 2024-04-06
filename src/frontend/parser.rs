@@ -31,7 +31,7 @@ enum SimpleLiteral
     Uint(u32),
     Ulong(u64),
     Float(f32),
-    Double(f64),    
+    Double(f64),
 }
 
 #[derive(Clone)]
@@ -316,7 +316,8 @@ impl<'a> Parser<'a>
     
     fn parse_def(&mut self) -> FrontendResult<Box<Def>>
     {
-        let first_pos = self.lexer.pos().clone();
+        let (tmp_token, first_pos) = self.lexer.next_token()?;
+        self.lexer.undo_token(tmp_token, first_pos.clone());
         let modifiers = self.parse_modifiers()?;
         match self.lexer.next_token()? {
             (Token::Eof, pos) => Err(FrontendError::Message(pos, String::from("unexpected end of file"))),
@@ -933,20 +934,22 @@ impl<'a> Parser<'a>
 
     fn parse_expr12(&mut self, is_getter: bool) -> FrontendResult<Box<Expr>>
     {
-        let first_pos = self.lexer.pos().clone();
+        let first_pos;
         let mut expr1: Box<Expr>;
         let mut idx_expr: Option<Box<Expr>> = None;
         let mut fields: Option<Vec<Field>> = None;
         let mut is_access_fun = false;
         match self.lexer.next_token()? {
-            (Token::Star, _) => {
+            (Token::Star, pos) => {
                 // "*", expr12
+                first_pos = pos.clone();
                 expr1 = self.parse_expr12(true)?;
                 is_access_fun = true;
             },
             (token, pos) => {
                 // expr12, "(", exprs, ")"
                 // expr12, "[", expr1, "]"
+                first_pos = pos.clone();
                 self.lexer.undo_token(token, pos);
                 expr1 = self.parse_expr13()?;
                 loop {
@@ -1540,7 +1543,8 @@ impl<'a> Parser<'a>
     
     fn parse_pattern1(&mut self) -> FrontendResult<Box<Pattern>>
     {
-        let first_pos = self.lexer.pos().clone();
+        let (tmp_token, first_pos) = self.lexer.next_token()?;
+        self.lexer.undo_token(tmp_token, first_pos.clone());
         let mut patterns: Vec<Box<Pattern>> = Vec::new();
         patterns.push(self.parse_pattern2()?);
         loop {
@@ -1718,7 +1722,8 @@ impl<'a> Parser<'a>
 
     fn parse_trait_def(&mut self) -> FrontendResult<Box<TraitDef>>
     {
-        let first_pos = self.lexer.pos().clone();
+        let (tmp_token, first_pos) = self.lexer.next_token()?;
+        self.lexer.undo_token(tmp_token, first_pos.clone());
         let modifiers = self.parse_modifiers()?;
         match self.lexer.next_token()? {
             (Token::Eof, pos) => Err(FrontendError::Message(pos, String::from("unexpected end of file"))),
