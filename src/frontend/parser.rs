@@ -55,6 +55,23 @@ enum LiteralEither<T>
     Other(Box<T>),
 }
 
+fn check_modifiers_for_builtin_var(modifiers: &Modifiers) -> FrontendResult<Rc<RefCell<Var>>>
+{
+    match &modifiers.var_modifier_pair {
+        Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos.clone(), String::from("built-in variable mustn't have variable modifier"))),
+        None => (),
+    }
+    match &modifiers.fun_modifier_pair {
+        Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos.clone(), String::from("built-in variable mustn't have function modifier"))),
+        None => (),
+    }
+    match &modifiers.inline_modifier_pair {
+        Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos.clone(), String::from("built-in variable mustn't have inline modifier"))),
+        None => (),
+    }
+    Ok(Rc::new(RefCell::new(Var::Builtin(None))))
+}
+
 pub struct Parser<'a>
 {
     lexer: Lexer<'a>,
@@ -354,19 +371,7 @@ impl<'a> Parser<'a>
                             Token::VarIdent(tmp_ident) => tmp_ident,
                             _ => return Err(FrontendError::Interal(String::from("no identifier"))),
                         };
-                        match modifiers.var_modifier_pair {
-                            Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("built-in variable mustn't have variable modifier"))),
-                            None => (),
-                        }
-                        match modifiers.fun_modifier_pair {
-                            Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("built-in variable mustn't have function modifier"))),
-                            None => (),
-                        }
-                        match modifiers.inline_modifier_pair {
-                            Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("built-in variable mustn't have inline modifier"))),
-                            None => (),
-                        }
-                        Ok(Box::new(Def::Var(ident, Rc::new(RefCell::new(Var::Builtin(None))), first_pos)))
+                        Ok(Box::new(Def::Var(ident, check_modifiers_for_builtin_var(&modifiers)?, first_pos)))
                     },
                     (Token::Impl, _) => {
                         match self.lexer.next_token()? {
@@ -400,7 +405,7 @@ impl<'a> Parser<'a>
                 }
             },
             (Token::Data, _) => {
-                // "data", con_ident, [ "<", one_or_more_type_args, ">" ], "=", cons
+                // "data", con_ident, [ "<", one_or_more_type_args, ">" ], [ "=", cons ]
                 match self.lexer.next_token()? {
                     (Token::Eof, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
                     (Token::ConIdent(ident), _) => { 
@@ -434,12 +439,14 @@ impl<'a> Parser<'a>
                         };
                         self.lexer.set_single_greater(saved_single_greater_flag);
                         match self.lexer.next_token()? {
-                            (Token::Eof, pos2) => return Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
                             (Token::Eq, _) => {
                                 let cons = self.parse_one_or_more_cons(ident.as_str())?;
                                 Ok(Box::new(Def::Type(ident, Rc::new(RefCell::new(TypeVar::Data(type_args, cons, None))), first_pos)))
                             },
-                            (_, pos2) => return Err(FrontendError::Message(pos2, String::from("unexpected token"))),
+                            (token2, pos2) => {
+                                self.lexer.undo_token(token2, pos2);
+                                Ok(Box::new(Def::Type(ident, Rc::new(RefCell::new(TypeVar::Data(type_args, Vec::new(), None))), first_pos)))
+                            },
                         }
                     },
                     (_, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected token"))),
@@ -1731,6 +1738,20 @@ impl<'a> Parser<'a>
         let modifiers = self.parse_modifiers()?;
         match self.lexer.next_token()? {
             (Token::Eof, pos) => Err(FrontendError::Message(pos, String::from("unexpected end of file"))),
+            (Token::Builtin, _) => {
+                match self.lexer.next_token()? {
+                    (Token::Eof, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
+                    (token2 @ (Token::ConIdent(_) | Token::VarIdent(_)), _) => {
+                        let ident = match token2 {
+                            Token::ConIdent(tmp_ident) => tmp_ident,
+                            Token::VarIdent(tmp_ident) => tmp_ident,
+                            _ => return Err(FrontendError::Interal(String::from("no identifier"))),
+                        };
+                        Ok(Box::new(TraitDef(ident, check_modifiers_for_builtin_var(&modifiers)?, first_pos)))
+                    },
+                    (_, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected token"))),
+                }
+            },
             (token @ (Token::ConIdent(_) | Token::VarIdent(_)), _) => {
                 // ( con_ident | var_ident ), var
                 let ident = match token {
