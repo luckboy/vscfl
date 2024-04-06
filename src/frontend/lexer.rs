@@ -339,18 +339,30 @@ impl<'a> Lexer<'a>
             (Some('\''), pos) => {
                 match self.read_token_char(true, &pos)? {
                     None => Err(FrontendError::Message(pos, String::from("empty character"))),
-                    Some(TokenChar::Byte(n)) => Ok(Some((Token::Char(n as i8), pos))),
+                    Some(TokenChar::Byte(n)) => {
+                        match self.next_char()? {
+                            (None, pos2) => Err(FrontendError::Message(pos2, String::from("unclosed character"))),
+                            (Some('\''), _) => Ok(Some((Token::Char(n as i8), pos))),
+                            (Some(_), pos2) => Err(FrontendError::Message(pos2, String::from("unexpected character"))),
+                        }
+                    },
                     Some(TokenChar::Char(c)) => {
-                        let mut s = String::new();
-                        s.push(c);
-                        let b = s.as_bytes();
-                        if b.len() == 1 {
-                            match s.as_bytes().first() {
-                                Some(n) => Ok(Some((Token::Char(*n as i8), pos))),
-                                None => Err(FrontendError::Message(pos, String::from("invalid character")))
-                            }
-                        } else {
-                            Err(FrontendError::Message(pos, String::from("invalid character")))
+                        match self.next_char()? {
+                            (None, pos2) => Err(FrontendError::Message(pos2, String::from("unclosed character"))),
+                            (Some('\''), _) => {
+                                let mut s = String::new();
+                                s.push(c);
+                                let b = s.as_bytes();
+                                if b.len() == 1 {
+                                    match s.as_bytes().first() {
+                                        Some(n) => Ok(Some((Token::Char(*n as i8), pos))),
+                                        None => Err(FrontendError::Message(pos, String::from("invalid character")))
+                                    }
+                                } else {
+                                    Err(FrontendError::Message(pos, String::from("invalid character")))
+                                }
+                            },
+                            (Some(_), pos2) => Err(FrontendError::Message(pos2, String::from("unexpected character"))),
                         }
                     },
                 }
@@ -734,3 +746,6 @@ impl<'a> Lexer<'a>
     pub fn undo_token(&mut self, token: Token, pos: Pos)
     { self.pushed_tokens.push((token, pos)); }
 }
+
+#[cfg(test)]
+mod tests;
