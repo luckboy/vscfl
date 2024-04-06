@@ -368,6 +368,50 @@ fn test_lexer_next_token_returns_inpunctuation_tokens()
 }
 
 #[test]
+fn test_lexer_next_token_returns_three_greater_tokens_and_greater_equal_token_for_single_greater()
+{
+    let s = ">>>>=";
+    let mut cursor = Cursor::new(s.as_bytes());
+    let mut lexer = Lexer::new(String::from("test.vscfl"), &mut cursor);
+    lexer.set_single_greater(true);
+    match lexer.next_token() {
+        Ok((Token::Gt, pos)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+        },
+        _ => assert!(false),
+    }
+    match lexer.next_token() {
+        Ok((Token::Gt, pos)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(2, pos.column);
+        },
+        _ => assert!(false),
+    }
+    match lexer.next_token() {
+        Ok((Token::Gt, pos)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(3, pos.column);
+        },
+        _ => assert!(false),
+    }
+    match lexer.next_token() {
+        Ok((Token::GtEq, pos)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(4, pos.column);
+        },
+        _ => assert!(false),
+    }
+    match lexer.next_token() {
+        Ok((Token::Eof, pos)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(6, pos.column);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
 fn test_lexer_next_token_returns_keyword_tokens()
 {
     let s = "
