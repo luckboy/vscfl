@@ -1559,7 +1559,11 @@ impl<'a> Parser<'a>
                 },
             }
         }
-        Ok(Box::new(Pattern::Alt(patterns, None, first_pos)))
+        if patterns.len() == 1 {
+            Ok(patterns.remove(0))
+        } else {
+            Ok(Box::new(Pattern::Alt(patterns, None, first_pos)))
+        }
     }
     
     fn parse_pattern(&mut self) -> FrontendResult<Box<Pattern>>
