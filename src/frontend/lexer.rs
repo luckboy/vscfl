@@ -313,7 +313,7 @@ impl<'a> Lexer<'a>
                                     }
                                 },
                                 (Some(c3), _) if c3.is_digit(16) => s.push(c3),
-                                (Some(_), pos3) => return Err(FrontendError::Message(pos3, String::from("unexpected character"))),
+                                (Some(_), pos3) => return Err(FrontendError::Message(pos3, String::from("invalid escape"))),
                             }
                         }
                         match u8::from_str_radix(s.as_str(), 16) {
@@ -341,14 +341,14 @@ impl<'a> Lexer<'a>
                     None => Err(FrontendError::Message(pos, String::from("empty character"))),
                     Some(TokenChar::Byte(n)) => {
                         match self.next_char()? {
-                            (None, pos2) => Err(FrontendError::Message(pos2, String::from("unclosed character"))),
+                            (None, _) => Err(FrontendError::Message(pos, String::from("unclosed character"))),
                             (Some('\''), _) => Ok(Some((Token::Char(n as i8), pos))),
                             (Some(_), pos2) => Err(FrontendError::Message(pos2, String::from("unexpected character"))),
                         }
                     },
                     Some(TokenChar::Char(c)) => {
                         match self.next_char()? {
-                            (None, pos2) => Err(FrontendError::Message(pos2, String::from("unclosed character"))),
+                            (None, _) => Err(FrontendError::Message(pos, String::from("unclosed character"))),
                             (Some('\''), _) => {
                                 let mut s = String::new();
                                 s.push(c);

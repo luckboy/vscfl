@@ -1120,3 +1120,257 @@ fn test_lexer_next_token_returns_double_floating_point_number_tokens()
         _ => assert!(false),
     }
 }
+
+#[test]
+fn test_lexer_next_token_returns_constructor_identifier_tokens()
+{
+    let s = "AbcDef GHI_12";
+    let mut cursor = Cursor::new(s.as_bytes());
+    let mut lexer = Lexer::new(String::from("test.vscfl"), &mut cursor);
+    match lexer.next_token() {
+        Ok((Token::ConIdent(ident), pos)) => {
+            assert_eq!(ident, String::from("AbcDef"));
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+        },
+        _ => assert!(false),
+    }
+    match lexer.next_token() {
+        Ok((Token::ConIdent(ident), pos)) => {
+            assert_eq!(ident, String::from("GHI_12"));
+            assert_eq!(1, pos.line);
+            assert_eq!(8, pos.column);
+        },
+        _ => assert!(false),
+    }
+    match lexer.next_token() {
+        Ok((Token::Eof, pos)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(14, pos.column);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_lexer_next_token_returns_variable_identifier_tokens()
+{
+    let s = "abcDef ghi_12";
+    let mut cursor = Cursor::new(s.as_bytes());
+    let mut lexer = Lexer::new(String::from("test.vscfl"), &mut cursor);
+    match lexer.next_token() {
+        Ok((Token::VarIdent(ident), pos)) => {
+            assert_eq!(ident, String::from("abcDef"));
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+        },
+        _ => assert!(false),
+    }
+    match lexer.next_token() {
+        Ok((Token::VarIdent(ident), pos)) => {
+            assert_eq!(ident, String::from("ghi_12"));
+            assert_eq!(1, pos.line);
+            assert_eq!(8, pos.column);
+        },
+        _ => assert!(false),
+    }
+    match lexer.next_token() {
+        Ok((Token::Eof, pos)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(14, pos.column);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_lexer_next_token_complains_on_unexpected_character()
+{
+    let s = "~";
+    let mut cursor = Cursor::new(s.as_bytes());
+    let mut lexer = Lexer::new(String::from("test.vscfl"), &mut cursor);
+    match lexer.next_token() {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("unexpected character"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_lexer_next_token_complains_on_unexpected_character_for_character()
+{
+    let s = "'xx";
+    let mut cursor = Cursor::new(s.as_bytes());
+    let mut lexer = Lexer::new(String::from("test.vscfl"), &mut cursor);
+    match lexer.next_token() {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(3, pos.column);
+            assert_eq!(String::from("unexpected character"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_lexer_next_token_complains_on_unexpected_character_for_character_escape()
+{
+    let s = "'\\x12x";
+    let mut cursor = Cursor::new(s.as_bytes());
+    let mut lexer = Lexer::new(String::from("test.vscfl"), &mut cursor);
+    match lexer.next_token() {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(6, pos.column);
+            assert_eq!(String::from("unexpected character"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_lexer_next_token_complains_on_unclosed_character()
+{
+    let s = "'x";
+    let mut cursor = Cursor::new(s.as_bytes());
+    let mut lexer = Lexer::new(String::from("test.vscfl"), &mut cursor);
+    match lexer.next_token() {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("unclosed character"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_lexer_next_token_complains_on_unclosed_character_for_character_escape()
+{
+    let s = "'\\x12";
+    let mut cursor = Cursor::new(s.as_bytes());
+    let mut lexer = Lexer::new(String::from("test.vscfl"), &mut cursor);
+    match lexer.next_token() {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("unclosed character"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_lexer_next_token_complains_on_invalid_escape_for_character()
+{
+    let s = "'\\xgg";
+    let mut cursor = Cursor::new(s.as_bytes());
+    let mut lexer = Lexer::new(String::from("test.vscfl"), &mut cursor);
+    match lexer.next_token() {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(4, pos.column);
+            assert_eq!(String::from("invalid escape"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_lexer_next_token_complains_on_unclosed_string()
+{
+    let s = "\"abc";
+    let mut cursor = Cursor::new(s.as_bytes());
+    let mut lexer = Lexer::new(String::from("test.vscfl"), &mut cursor);
+    match lexer.next_token() {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("unclosed string"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_lexer_next_token_complains_on_invalid_escape_for_string()
+{
+    let s = "\"\\xgg";
+    let mut cursor = Cursor::new(s.as_bytes());
+    let mut lexer = Lexer::new(String::from("test.vscfl"), &mut cursor);
+    match lexer.next_token() {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(4, pos.column);
+            assert_eq!(String::from("invalid escape"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_lexer_next_token_complains_on_invalid_number_for_integer_number()
+{
+    let s = "1111111111111111111111111";
+    let mut cursor = Cursor::new(s.as_bytes());
+    let mut lexer = Lexer::new(String::from("test.vscfl"), &mut cursor);
+    match lexer.next_token() {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("invalid number"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_lexer_next_token_complains_on_invalid_number_for_long_integer_number()
+{
+    let s = "1111111111111111111111111I";
+    let mut cursor = Cursor::new(s.as_bytes());
+    let mut lexer = Lexer::new(String::from("test.vscfl"), &mut cursor);
+    match lexer.next_token() {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("invalid number"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_lexer_next_token_complains_on_invalid_number_for_unsigned_integer_number()
+{
+    let s = "1111111111111111111111111u";
+    let mut cursor = Cursor::new(s.as_bytes());
+    let mut lexer = Lexer::new(String::from("test.vscfl"), &mut cursor);
+    match lexer.next_token() {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("invalid number"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_lexer_next_token_complains_on_invalid_number_for_unsigned_long_integer_number()
+{
+    let s = "1111111111111111111111111U";
+    let mut cursor = Cursor::new(s.as_bytes());
+    let mut lexer = Lexer::new(String::from("test.vscfl"), &mut cursor);
+    match lexer.next_token() {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("invalid number"), msg);
+        },
+        _ => assert!(false),
+    }
+}
