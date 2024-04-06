@@ -122,7 +122,7 @@ fn test_lexer_undo_token_undoes_two_tokens()
 }
 
 #[test]
-fn test_lexer_undo_token_returns_inpunctuation_tokens()
+fn test_lexer_next_token_returns_inpunctuation_tokens()
 {
     let s = "()[]{}!*/%+-<<>><>=><===!=&^|=@.<--><->=>,:;";
     let mut cursor = Cursor::new(s.as_bytes());
@@ -368,7 +368,7 @@ fn test_lexer_undo_token_returns_inpunctuation_tokens()
 }
 
 #[test]
-fn test_lexer_undo_token_returns_keyword_tokens()
+fn test_lexer_next_token_returns_keyword_tokens()
 {
     let s = "
 _
@@ -593,7 +593,7 @@ constant
 }
 
 #[test]
-fn test_lexer_undo_token_returns_character_tokens()
+fn test_lexer_next_token_returns_character_tokens()
 {
     let s = "
 'a'
@@ -710,7 +710,7 @@ fn test_lexer_undo_token_returns_character_tokens()
 }
 
 #[test]
-fn test_lexer_undo_token_returns_string_token()
+fn test_lexer_next_token_returns_string_token()
 {
     let s = "\"abc\\'\\\"'\0\\n\\r\\t\\x2a\\X3B\n\" \"\"";
     let mut cursor = Cursor::new(s.as_bytes());
@@ -741,7 +741,7 @@ fn test_lexer_undo_token_returns_string_token()
 }
 
 #[test]
-fn test_lexer_undo_token_returns_integer_tokens()
+fn test_lexer_next_token_returns_integer_tokens()
 {
     let s = "
 1234
@@ -812,7 +812,7 @@ fn test_lexer_undo_token_returns_integer_tokens()
 }
 
 #[test]
-fn test_lexer_undo_token_returns_long_integer_tokens()
+fn test_lexer_next_token_returns_long_integer_tokens()
 {
     let s = "
 1234I
@@ -874,7 +874,7 @@ fn test_lexer_undo_token_returns_long_integer_tokens()
 }
 
 #[test]
-fn test_lexer_undo_token_returns_unsigned_integer_tokens()
+fn test_lexer_next_token_returns_unsigned_integer_tokens()
 {
     let s = "
 1234u
@@ -936,7 +936,7 @@ fn test_lexer_undo_token_returns_unsigned_integer_tokens()
 }
 
 #[test]
-fn test_lexer_undo_token_returns_unsigned_long_integer_tokens()
+fn test_lexer_next_token_returns_unsigned_long_integer_tokens()
 {
     let s = "
 1234U
@@ -998,7 +998,7 @@ fn test_lexer_undo_token_returns_unsigned_long_integer_tokens()
 }
 
 #[test]
-fn test_lexer_undo_token_returns_floating_point_number_tokens()
+fn test_lexer_next_token_returns_floating_point_number_tokens()
 {
     let s = "
 12.34
@@ -1060,7 +1060,7 @@ fn test_lexer_undo_token_returns_floating_point_number_tokens()
 }
 
 #[test]
-fn test_lexer_undo_token_returns_double_floating_point_number_tokens()
+fn test_lexer_next_token_returns_double_floating_point_number_tokens()
 {
     let s = "
 12.34F
