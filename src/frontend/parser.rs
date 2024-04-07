@@ -621,7 +621,7 @@ impl<'a> Parser<'a>
 
     fn parse_con(&mut self, data_ident: String) -> FrontendResult<Rc<RefCell<Con>>>
     {
-        match self.lexer.next_token()?{
+        match self.lexer.next_token()? {
             (Token::Eof, pos) => Err(FrontendError::Message(pos, String::from("unexpected end of file"))),
             (Token::ConIdent(ident), pos) => {
                 // con_ident, "(", type_exprs, ")"
