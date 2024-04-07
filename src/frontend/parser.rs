@@ -112,11 +112,11 @@ impl<'a> Parser<'a>
         }
     }
 
-    pub fn parse_where(&mut self) -> FrontendResult<Vec<WherePair>>
+    pub fn parse_where(&mut self) -> FrontendResult<Vec<WhereTuple>>
     {
-        let where_pairs = self.parse_one_or_more_where_pairs(&[Token::Eof])?;
+        let where_tuples = self.parse_one_or_more_where_tuples(&[Token::Eof])?;
         match self.lexer.next_token()? {
-            (Token::Eof, _) => Ok(where_pairs),
+            (Token::Eof, _) => Ok(where_tuples),
             (_, pos) => Err(FrontendError::Message(pos, String::from("unexpected token"))),
         }
     }
@@ -273,8 +273,8 @@ impl<'a> Parser<'a>
                             (Token::RArrow, _) => self.parse_type_expr()?,
                             (_, pos3) => return Err(FrontendError::Message(pos3, String::from("unexpected token"))),
                         };
-                        let where_pairs = match self.lexer.next_token()? {
-                            (Token::Where, _) => self.parse_one_or_more_where_pairs(&[Token::RBrace, Token::Semi, Token::Eq])?,
+                        let where_tuples = match self.lexer.next_token()? {
+                            (Token::Where, _) => self.parse_one_or_more_where_tuples(&[Token::RBrace, Token::Semi, Token::Eq])?,
                             (token3, pos3) => {
                                 self.lexer.undo_token(token3, pos3);
                                 Vec::new()
@@ -289,7 +289,7 @@ impl<'a> Parser<'a>
                                 None
                             },
                         };
-                        Ok(Rc::new(RefCell::new(Var::Fun(Box::new(Fun::Fun(fun_modifier, inline_modifier, args, ret_type_expr, where_pairs, body, None, None)), None))))
+                        Ok(Rc::new(RefCell::new(Var::Fun(Box::new(Fun::Fun(fun_modifier, inline_modifier, args, ret_type_expr, where_tuples, body, None, None)), None))))
                     },
                     (_, pos2) => Err(FrontendError::Message(pos2, String::from("unclosed parenthesis"))),
                 }
@@ -309,8 +309,8 @@ impl<'a> Parser<'a>
                     None => (),
                 }
                 let type_expr = self.parse_type_expr()?;
-                let where_pairs = match self.lexer.next_token()? {
-                    (Token::Where, _) => self.parse_one_or_more_where_pairs(&[Token::RBrace, Token::Semi, Token::Eq])?,
+                let where_tuples = match self.lexer.next_token()? {
+                    (Token::Where, _) => self.parse_one_or_more_where_tuples(&[Token::RBrace, Token::Semi, Token::Eq])?,
                     (token2, pos2) => {
                         self.lexer.undo_token(token2, pos2);
                         Vec::new()
@@ -325,7 +325,7 @@ impl<'a> Parser<'a>
                         None
                     },
                 };
-                Ok(Rc::new(RefCell::new(Var::Var(var_modifier, type_expr, where_pairs, expr, None, None))))
+                Ok(Rc::new(RefCell::new(Var::Var(var_modifier, type_expr, where_tuples, expr, None, None))))
             },
             (_, pos) => Err(FrontendError::Message(pos, String::from("unexpected token"))),
         }
@@ -791,15 +791,35 @@ impl<'a> Parser<'a>
     fn parse_args(&mut self, end_tokens: &[Token]) -> FrontendResult<Vec<Arg>>
     { self.parse_one_or_more(&Token::Comma, end_tokens, Self::parse_arg) }
 
-    fn parse_where_pair(&mut self) -> FrontendResult<WherePair>
+    fn parse_where_tuple(&mut self) -> FrontendResult<WhereTuple>
     {
         match self.lexer.next_token()? {
             (Token::Eof, pos) => Err(FrontendError::Message(pos, String::from("unexpected end of file"))),
             (Token::VarIdent(ident), pos) => {
-                // var_ident, ":", trait_expr
+                // var_ident, ":", trait_names, [ "<", type_exprs, ">" ]
                 match self.lexer.next_token()? {
                     (Token::Eof, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
-                    (Token::Colon, _) => Ok(WherePair(ident, self.parse_one_or_more_trait_exprs()?, pos)),
+                    (Token::Colon, _) => {
+                        let trait_names = self.parse_one_or_more_trait_names()?;
+                        let saved_single_greater_flag = self.lexer.has_single_greater();
+                        self.lexer.set_single_greater(true);
+                        let type_exprs = match self.lexer.next_token()? {
+                            (Token::Lt, _) => {
+                                let tmp_type_exprs = self.parse_one_or_more_type_exprs(&[Token::Gt])?;
+                                match self.lexer.next_token()? {
+                                    (Token::Eof, pos4) => return Err(FrontendError::Message(pos4, String::from("unexpected end of file"))),
+                                    (Token::Gt, _) => tmp_type_exprs,
+                                    (_, pos4) => return Err(FrontendError::Message(pos4, String::from("unclosed angle bracket"))),
+                                }
+                            },
+                            (token3, pos3) => {
+                                self.lexer.undo_token(token3, pos3);
+                                Vec::new()
+                            },
+                        };
+                        self.lexer.set_single_greater(saved_single_greater_flag);
+                        Ok(WhereTuple(ident, trait_names, type_exprs, pos))
+                    },
                     (_, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected token"))),
                 }
             },
@@ -807,66 +827,30 @@ impl<'a> Parser<'a>
         }
     }
     
-    fn parse_one_or_more_where_pairs(&mut self, end_tokens: &[Token]) -> FrontendResult<Vec<WherePair>>
-    { self.parse_one_or_more(&Token::Comma, end_tokens, Self::parse_where_pair) }
+    fn parse_one_or_more_where_tuples(&mut self, end_tokens: &[Token]) -> FrontendResult<Vec<WhereTuple>>
+    { self.parse_one_or_more(&Token::Comma, end_tokens, Self::parse_where_tuple) }
 
-    fn parse_trait_expr1(&mut self) -> FrontendResult<Box<TraitExpr>>
+    fn parse_trait_name(&mut self) -> FrontendResult<TraitName>
     {
         match self.lexer.next_token()? {
-            (Token::Shared, pos) => {
+            (Token::Shared, _) => {
                 // "shared"
-                Ok(Box::new(TraitExpr::Shared(pos)))
+                Ok(TraitName::Shared)
             },
-            (Token::LParen, pos) => {
-                // "(", type_exprs, ")", "->", type_expr
-                let type_exprs = self.parse_type_exprs(&[Token::RParen])?;
-                match self.lexer.next_token()? {
-                    (Token::Eof, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
-                    (Token::RParen, _) => {
-                        match self.lexer.next_token()? {
-                            (Token::Eof, pos3) => Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
-                            (Token::RArrow, _) => {
-                                let ret_type_expr = self.parse_type_expr()?;
-                                Ok(Box::new(TraitExpr::Fun(type_exprs, ret_type_expr, pos)))
-                            },
-                            (_, pos3) => Err(FrontendError::Message(pos3, String::from("unexpected token"))),
-                        }
-                    },
-                    (_, pos2) => Err(FrontendError::Message(pos2, String::from("unclosed parenthesis"))),
-                }
+            (Token::RArrow, _) => {
+                // "->"
+                Ok(TraitName::Fun)
             },
-            (Token::ConIdent(ident), pos) => {
-                // con_ident, [ "<", one_or_more_type_expr, ">" ]
-                match self.lexer.next_token()? {
-                    (Token::Lt, _) => {
-                        let type_exprs = self.parse_one_or_more_type_exprs(&[Token::Gt])?;
-                        match self.lexer.next_token()? {
-                            (Token::Eof, pos3) => Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
-                            (Token::Gt, _) => Ok(Box::new(TraitExpr::Trait(ident, type_exprs, pos))),
-                            (_, pos3) => Err(FrontendError::Message(pos3, String::from("unclosed angle bracket"))),
-                        }
-                    },
-                    (token2, pos2) => {
-                        self.lexer.undo_token(token2, pos2);
-                        Ok(Box::new(TraitExpr::Trait(ident, Vec::new(), pos)))
-                    },
-                }
+            (Token::ConIdent(ident), _) => {
+                // con_ident
+                Ok(TraitName::Name(ident))
             },
             (_, pos) => Err(FrontendError::Message(pos, String::from("unexpected token"))),
         }
     }
 
-    fn parse_trait_expr(&mut self) -> FrontendResult<Box<TraitExpr>>
-    {
-        let saved_single_greater_flag = self.lexer.has_single_greater();
-        self.lexer.set_single_greater(true);
-        let res = self.parse_trait_expr1();
-        self.lexer.set_single_greater(saved_single_greater_flag);
-        res
-    }
-    
-    fn parse_one_or_more_trait_exprs(&mut self) -> FrontendResult<Vec<Box<TraitExpr>>>
-    { self.parse_one_or_more_without_end_sep(&Token::Plus, Self::parse_trait_expr) }
+    fn parse_one_or_more_trait_names(&mut self) -> FrontendResult<Vec<TraitName>>
+    { self.parse_one_or_more_without_end_sep(&Token::Plus, Self::parse_trait_name) }
     
     fn parse_expr13(&mut self) -> FrontendResult<Box<Expr>>
     {

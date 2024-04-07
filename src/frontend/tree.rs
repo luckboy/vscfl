@@ -100,14 +100,14 @@ pub enum TypeExpr
 pub enum Var
 {
     Builtin(Option<Box<Type>>),
-    Var(VarModifier, Box<TypeExpr>, Vec<WherePair>, Option<Box<Expr>>, Option<Box<LocalTypes>>, Option<Box<Type>>),
+    Var(VarModifier, Box<TypeExpr>, Vec<WhereTuple>, Option<Box<Expr>>, Option<Box<LocalTypes>>, Option<Box<Type>>),
     Fun(Box<Fun>, Option<Box<Type>>),
 }
 
 #[derive(Clone, Debug)]
 pub enum Fun
 {
-    Fun(FunModifier, InlineModifier, Vec<Arg>, Box<TypeExpr>, Vec<WherePair>, Option<Box<Expr>>, Option<LocalType>, Option<Box<LocalTypes>>),
+    Fun(FunModifier, InlineModifier, Vec<Arg>, Box<TypeExpr>, Vec<WhereTuple>, Option<Box<Expr>>, Option<LocalType>, Option<Box<LocalTypes>>),
     Con(Rc<RefCell<Con>>),
 }
 
@@ -115,14 +115,14 @@ pub enum Fun
 pub struct Arg(pub String, pub Box<TypeExpr>, pub Option<LocalType>, pub Pos);
 
 #[derive(Clone, Debug)]
-pub struct WherePair(pub String, pub Vec<Box<TraitExpr>>, pub Pos);
+pub struct WhereTuple(pub String, pub Vec<TraitName>, pub Vec<Box<TypeExpr>>, pub Pos);
 
-#[derive(Clone, Debug)]
-pub enum TraitExpr
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub enum TraitName
 {
-    Shared(Pos),
-    Fun(Vec<Box<TypeExpr>>, Box<TypeExpr>, Pos),
-    Trait(String, Vec<Box<TypeExpr>>, Pos),
+    Shared,
+    Fun,
+    Name(String),
 }
 
 #[derive(Clone, Debug)]
@@ -208,7 +208,7 @@ pub enum Impl
     Impl(String, TypeName, Vec<Box<ImplDef>>, Option<Box<ImplVars>>),
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum TypeName
 {
     Tuple(usize),
