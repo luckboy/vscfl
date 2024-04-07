@@ -789,6 +789,7 @@ fn test_lexer_next_token_returns_integer_tokens()
 {
     let s = "
 1234
+0b1010
 0o1234
 0x12af
 0XABcd
@@ -808,7 +809,7 @@ fn test_lexer_next_token_returns_integer_tokens()
     }
     match lexer.next_token() {
         Ok((Token::Int(n), pos)) => {
-            assert_eq!(0o1234, n);
+            assert_eq!(0b1010, n);
             assert_eq!(2, pos.line);
             assert_eq!(1, pos.column);
         },
@@ -816,7 +817,7 @@ fn test_lexer_next_token_returns_integer_tokens()
     }
     match lexer.next_token() {
         Ok((Token::Int(n), pos)) => {
-            assert_eq!(0x12af, n);
+            assert_eq!(0o1234, n);
             assert_eq!(3, pos.line);
             assert_eq!(1, pos.column);
         },
@@ -824,7 +825,7 @@ fn test_lexer_next_token_returns_integer_tokens()
     }
     match lexer.next_token() {
         Ok((Token::Int(n), pos)) => {
-            assert_eq!(0xabcd, n);
+            assert_eq!(0x12af, n);
             assert_eq!(4, pos.line);
             assert_eq!(1, pos.column);
         },
@@ -832,7 +833,7 @@ fn test_lexer_next_token_returns_integer_tokens()
     }
     match lexer.next_token() {
         Ok((Token::Int(n), pos)) => {
-            assert_eq!(2345, n);
+            assert_eq!(0xabcd, n);
             assert_eq!(5, pos.line);
             assert_eq!(1, pos.column);
         },
@@ -840,15 +841,23 @@ fn test_lexer_next_token_returns_integer_tokens()
     }
     match lexer.next_token() {
         Ok((Token::Int(n), pos)) => {
-            assert_eq!(3456, n);
+            assert_eq!(2345, n);
             assert_eq!(6, pos.line);
             assert_eq!(1, pos.column);
         },
         _ => assert!(false),
     }
     match lexer.next_token() {
-        Ok((Token::Eof, pos)) => {
+        Ok((Token::Int(n), pos)) => {
+            assert_eq!(3456, n);
             assert_eq!(7, pos.line);
+            assert_eq!(1, pos.column);
+        },
+        _ => assert!(false),
+    }
+    match lexer.next_token() {
+        Ok((Token::Eof, pos)) => {
+            assert_eq!(8, pos.line);
             assert_eq!(1, pos.column);
         },
         _ => assert!(false),
@@ -860,6 +869,7 @@ fn test_lexer_next_token_returns_long_integer_tokens()
 {
     let s = "
 1234I
+0b1010I
 0o1234I
 0x12afI
 0XABcdI
@@ -878,7 +888,7 @@ fn test_lexer_next_token_returns_long_integer_tokens()
     }
     match lexer.next_token() {
         Ok((Token::Long(n), pos)) => {
-            assert_eq!(0o1234, n);
+            assert_eq!(0b1010, n);
             assert_eq!(2, pos.line);
             assert_eq!(1, pos.column);
         },
@@ -886,7 +896,7 @@ fn test_lexer_next_token_returns_long_integer_tokens()
     }
     match lexer.next_token() {
         Ok((Token::Long(n), pos)) => {
-            assert_eq!(0x12af, n);
+            assert_eq!(0o1234, n);
             assert_eq!(3, pos.line);
             assert_eq!(1, pos.column);
         },
@@ -894,7 +904,7 @@ fn test_lexer_next_token_returns_long_integer_tokens()
     }
     match lexer.next_token() {
         Ok((Token::Long(n), pos)) => {
-            assert_eq!(0xabcd, n);
+            assert_eq!(0x12af, n);
             assert_eq!(4, pos.line);
             assert_eq!(1, pos.column);
         },
@@ -902,15 +912,23 @@ fn test_lexer_next_token_returns_long_integer_tokens()
     }
     match lexer.next_token() {
         Ok((Token::Long(n), pos)) => {
-            assert_eq!(2345, n);
+            assert_eq!(0xabcd, n);
             assert_eq!(5, pos.line);
             assert_eq!(1, pos.column);
         },
         _ => assert!(false),
     }
     match lexer.next_token() {
-        Ok((Token::Eof, pos)) => {
+        Ok((Token::Long(n), pos)) => {
+            assert_eq!(2345, n);
             assert_eq!(6, pos.line);
+            assert_eq!(1, pos.column);
+        },
+        _ => assert!(false),
+    }
+    match lexer.next_token() {
+        Ok((Token::Eof, pos)) => {
+            assert_eq!(7, pos.line);
             assert_eq!(1, pos.column);
         },
         _ => assert!(false),
@@ -922,6 +940,7 @@ fn test_lexer_next_token_returns_unsigned_integer_tokens()
 {
     let s = "
 1234u
+0b1010u
 0o1234u
 0x12afu
 0XABcdu
@@ -940,7 +959,7 @@ fn test_lexer_next_token_returns_unsigned_integer_tokens()
     }
     match lexer.next_token() {
         Ok((Token::Uint(n), pos)) => {
-            assert_eq!(0o1234, n);
+            assert_eq!(0b1010, n);
             assert_eq!(2, pos.line);
             assert_eq!(1, pos.column);
         },
@@ -948,7 +967,7 @@ fn test_lexer_next_token_returns_unsigned_integer_tokens()
     }
     match lexer.next_token() {
         Ok((Token::Uint(n), pos)) => {
-            assert_eq!(0x12af, n);
+            assert_eq!(0o1234, n);
             assert_eq!(3, pos.line);
             assert_eq!(1, pos.column);
         },
@@ -956,7 +975,7 @@ fn test_lexer_next_token_returns_unsigned_integer_tokens()
     }
     match lexer.next_token() {
         Ok((Token::Uint(n), pos)) => {
-            assert_eq!(0xabcd, n);
+            assert_eq!(0x12af, n);
             assert_eq!(4, pos.line);
             assert_eq!(1, pos.column);
         },
@@ -964,15 +983,23 @@ fn test_lexer_next_token_returns_unsigned_integer_tokens()
     }
     match lexer.next_token() {
         Ok((Token::Uint(n), pos)) => {
-            assert_eq!(2345, n);
+            assert_eq!(0xabcd, n);
             assert_eq!(5, pos.line);
             assert_eq!(1, pos.column);
         },
         _ => assert!(false),
     }
     match lexer.next_token() {
-        Ok((Token::Eof, pos)) => {
+        Ok((Token::Uint(n), pos)) => {
+            assert_eq!(2345, n);
             assert_eq!(6, pos.line);
+            assert_eq!(1, pos.column);
+        },
+        _ => assert!(false),
+    }
+    match lexer.next_token() {
+        Ok((Token::Eof, pos)) => {
+            assert_eq!(7, pos.line);
             assert_eq!(1, pos.column);
         },
         _ => assert!(false),
@@ -984,6 +1011,7 @@ fn test_lexer_next_token_returns_unsigned_long_integer_tokens()
 {
     let s = "
 1234U
+0b1010U
 0o1234U
 0x12afU
 0XABcdU
@@ -1000,17 +1028,17 @@ fn test_lexer_next_token_returns_unsigned_long_integer_tokens()
         },
         _ => assert!(false),
     }
-    match lexer.next_token() {
+     match lexer.next_token() {
         Ok((Token::Ulong(n), pos)) => {
-            assert_eq!(0o1234, n);
+            assert_eq!(0b1010, n);
             assert_eq!(2, pos.line);
             assert_eq!(1, pos.column);
         },
         _ => assert!(false),
     }
-    match lexer.next_token() {
+   match lexer.next_token() {
         Ok((Token::Ulong(n), pos)) => {
-            assert_eq!(0x12af, n);
+            assert_eq!(0o1234, n);
             assert_eq!(3, pos.line);
             assert_eq!(1, pos.column);
         },
@@ -1018,7 +1046,7 @@ fn test_lexer_next_token_returns_unsigned_long_integer_tokens()
     }
     match lexer.next_token() {
         Ok((Token::Ulong(n), pos)) => {
-            assert_eq!(0xabcd, n);
+            assert_eq!(0x12af, n);
             assert_eq!(4, pos.line);
             assert_eq!(1, pos.column);
         },
@@ -1026,15 +1054,23 @@ fn test_lexer_next_token_returns_unsigned_long_integer_tokens()
     }
     match lexer.next_token() {
         Ok((Token::Ulong(n), pos)) => {
-            assert_eq!(2345, n);
+            assert_eq!(0xabcd, n);
             assert_eq!(5, pos.line);
             assert_eq!(1, pos.column);
         },
         _ => assert!(false),
     }
     match lexer.next_token() {
-        Ok((Token::Eof, pos)) => {
+        Ok((Token::Ulong(n), pos)) => {
+            assert_eq!(2345, n);
             assert_eq!(6, pos.line);
+            assert_eq!(1, pos.column);
+        },
+        _ => assert!(false),
+    }
+    match lexer.next_token() {
+        Ok((Token::Eof, pos)) => {
+            assert_eq!(7, pos.line);
             assert_eq!(1, pos.column);
         },
         _ => assert!(false),
