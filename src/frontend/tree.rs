@@ -100,7 +100,7 @@ pub enum TypeExpr
 pub enum Var
 {
     Builtin(Option<Box<Type>>),
-    Var(VarModifier, Box<TypeExpr>, Vec<WhereTuple>, Option<Box<Expr>>, Option<Box<LocalTypes>>, Option<Box<Type>>),
+    Var(VarModifier, Box<TypeExpr>, Vec<WhereTuple>, Option<Box<Expr>>, Option<Box<LocalTypes>>, Option<Box<Type>>, Option<Value>),
     Fun(Box<Fun>, Option<Box<Type>>),
 }
 
@@ -252,6 +252,9 @@ pub struct LocalType;
 
 #[derive(Clone, Debug)]
 pub struct LocalTypes;
+
+#[derive(Clone, Debug)]
+pub struct Value;
 
 #[derive(Clone, Debug)]
 pub struct TraitVars;
