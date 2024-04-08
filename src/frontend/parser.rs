@@ -126,7 +126,10 @@ impl<'a> Parser<'a>
     {
         loop {
             match self.lexer.next_token()? {
-                (token, _) if end_tokens.iter().any(|t| t == &token) => break,
+                (token, pos) if end_tokens.iter().any(|t| t == &token) => {
+                    self.lexer.undo_token(token, pos);
+                    break;
+                },
                 (Token::Eof, pos) => return Err(FrontendError::Message(pos, String::from("unexpected end of file"))),
                 (token, pos) => {
                     self.lexer.undo_token(token, pos);
@@ -1913,3 +1916,6 @@ impl<'a> Parser<'a>
     fn parse_impl_args(&mut self, end_tokens: &[Token]) -> FrontendResult<Vec<ImplArg>>
     { self.parse_zero_or_more(&Token::Comma, end_tokens, Self::parse_impl_arg) }
 }
+
+#[cfg(test)]
+mod tests;
