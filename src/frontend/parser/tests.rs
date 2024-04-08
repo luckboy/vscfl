@@ -201,7 +201,7 @@ data V<t1, t2> = D() | E(t1, t2);
                                     assert_eq!(3, pos.line);
                                     assert_eq!(26, pos.column);
                                     assert_eq!(String::from("t1"), *type_param_ident);
-                                }
+                                },
                                 _ => assert!(false),
                             }
                             match &*type_exprs[1] {
@@ -296,7 +296,7 @@ type U<t1, t2> = (t1, t2);
                                     assert_eq!(2, pos.line);
                                     assert_eq!(19, pos.column);
                                     assert_eq!(String::from("t1"), *type_param_ident);
-                                }
+                                },
                                 _ => assert!(false),
                             }
                             match &*type_exprs[1] {
@@ -1090,6 +1090,518 @@ impl T for U {};
                     assert_eq!(String::from("T"), *trait_ident);
                     assert_eq!(TypeName::Name(String::from("U")), *type_name);
                     assert_eq!(true, impl_defs.is_empty());
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_parses_constructors()
+{
+    let s = "
+data T = C()
+       | D(Float, Int)
+       | E {}
+       | F { x: Int, y: Float, };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(err) => {
+            println!("{}", err);
+            assert!(false)
+        },
+    }
+    assert_eq!(1, tree.defs().len());
+    match &*tree.defs()[0] {
+        Def::Type(ident, type_var, pos) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("T"), *ident);
+            let type_var_r = type_var.borrow();
+            match &*type_var_r {
+                TypeVar::Data(type_args, cons, None) => {
+                    assert_eq!(true, type_args.is_empty());
+                    assert_eq!(4, cons.len());
+                    let con1_r = cons[0].borrow();
+                    match &*con1_r {
+                        Con::UnnamedField(con_ident, type_exprs, data_ident, pos) => {
+                            assert_eq!(1, pos.line);
+                            assert_eq!(10, pos.column);
+                            assert_eq!(String::from("C"), *con_ident);
+                            assert_eq!(true, type_exprs.is_empty());
+                            assert_eq!(String::from("T"), *data_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                    let con2_r = cons[1].borrow();
+                    match &*con2_r {
+                        Con::UnnamedField(con_ident, type_exprs, data_ident, pos) => {
+                            assert_eq!(2, pos.line);
+                            assert_eq!(10, pos.column);
+                            assert_eq!(String::from("D"), *con_ident);
+                            assert_eq!(2, type_exprs.len());
+                            match &*type_exprs[0] {
+                                TypeExpr::Var(type_var_ident, pos) => {
+                                    assert_eq!(2, pos.line);
+                                    assert_eq!(12, pos.column);
+                                    assert_eq!(String::from("Float"), *type_var_ident);
+                                },
+                                _ => assert!(false),
+                            }
+                            match &*type_exprs[1] {
+                                TypeExpr::Var(type_var_ident, pos) => {
+                                    assert_eq!(2, pos.line);
+                                    assert_eq!(19, pos.column);
+                                    assert_eq!(String::from("Int"), *type_var_ident);
+                                },
+                                _ => assert!(false),
+                            }
+                            assert_eq!(String::from("T"), *data_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                    let con3_r = cons[2].borrow();
+                    match &*con3_r {
+                        Con::NamedField(con_ident, type_expr_named_field_pairs, data_ident, pos) => {
+                            assert_eq!(3, pos.line);
+                            assert_eq!(10, pos.column);
+                            assert_eq!(String::from("E"), *con_ident);
+                            assert_eq!(true, type_expr_named_field_pairs.is_empty());
+                            assert_eq!(String::from("T"), *data_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                    let con4_r = cons[3].borrow();
+                    match &*con4_r {
+                        Con::NamedField(con_ident, type_expr_named_field_pairs, data_ident, pos) => {
+                            assert_eq!(4, pos.line);
+                            assert_eq!(10, pos.column);
+                            assert_eq!(String::from("F"), *con_ident);
+                            assert_eq!(2, type_expr_named_field_pairs.len());
+                            match &type_expr_named_field_pairs[0] {
+                                NamedFieldPair(field_ident, type_expr, pos) => {
+                                    assert_eq!(4, pos.line);
+                                    assert_eq!(14, pos.column);
+                                    assert_eq!(String::from("x"), *field_ident);
+                                    match &**type_expr {
+                                        TypeExpr::Var(type_var_ident, pos) => {
+                                            assert_eq!(4, pos.line);
+                                            assert_eq!(17, pos.column);
+                                            assert_eq!(String::from("Int"), *type_var_ident);
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                            }
+                            match &type_expr_named_field_pairs[1] {
+                                NamedFieldPair(field_ident, type_expr, pos) => {
+                                    assert_eq!(4, pos.line);
+                                    assert_eq!(22, pos.column);
+                                    assert_eq!(String::from("y"), *field_ident);
+                                    match &**type_expr {
+                                        TypeExpr::Var(type_var_ident, pos) => {
+                                            assert_eq!(4, pos.line);
+                                            assert_eq!(25, pos.column);
+                                            assert_eq!(String::from("Float"), *type_var_ident);
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                            }
+                            assert_eq!(String::from("T"), *data_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_parses_type_expressions()
+{
+    let s = "
+type T = ();
+type U = (Int, Char);
+type V = () -> Int;
+type W = (Float, Int) -> Char;
+type X = [Int; _];
+type Y = [Float; 12];
+type Z<t1> = t1;
+type A = Int;
+type B = S<Int, Float>;
+type C = uniq Array;
+type D = uniq (Int);
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(err) => {
+            println!("{}", err);
+            assert!(false)
+        },
+    }
+    assert_eq!(11, tree.defs().len());
+    match &*tree.defs()[0] {
+        Def::Type(ident, type_var, pos) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("T"), *ident);
+            let type_var_r = type_var.borrow();
+            match &*type_var_r {
+                TypeVar::Synonym(type_args, type_expr) => {
+                    assert_eq!(true, type_args.is_empty());
+                    match &**type_expr {
+                        TypeExpr::Tuple(type_exprs, pos) => {
+                            assert_eq!(1, pos.line);
+                            assert_eq!(10, pos.column);
+                            assert_eq!(true, type_exprs.is_empty());
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[1] {
+        Def::Type(ident, type_var, pos) => {
+            assert_eq!(2, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("U"), *ident);
+            let type_var_r = type_var.borrow();
+            match &*type_var_r {
+                TypeVar::Synonym(type_args, type_expr) => {
+                    assert_eq!(true, type_args.is_empty());
+                    match &**type_expr {
+                        TypeExpr::Tuple(type_exprs, pos) => {
+                            assert_eq!(2, pos.line);
+                            assert_eq!(10, pos.column);
+                            assert_eq!(2, type_exprs.len());
+                            match &*type_exprs[0] {
+                                TypeExpr::Var(type_var_ident, pos) => {
+                                    assert_eq!(2, pos.line);
+                                    assert_eq!(11, pos.column);
+                                    assert_eq!(String::from("Int"), *type_var_ident);
+                                },
+                                _ => assert!(false),
+                            }
+                            match &*type_exprs[1] {
+                                TypeExpr::Var(type_var_ident, pos) => {
+                                    assert_eq!(2, pos.line);
+                                    assert_eq!(16, pos.column);
+                                    assert_eq!(String::from("Char"), *type_var_ident);
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[2] {
+        Def::Type(ident, type_var, pos) => {
+            assert_eq!(3, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("V"), *ident);
+            let type_var_r = type_var.borrow();
+            match &*type_var_r {
+                TypeVar::Synonym(type_args, type_expr) => {
+                    assert_eq!(true, type_args.is_empty());
+                    match &**type_expr {
+                        TypeExpr::Fun(arg_type_exprs, ret_type_expr, pos) => {
+                            assert_eq!(3, pos.line);
+                            assert_eq!(10, pos.column);
+                            assert_eq!(true, arg_type_exprs.is_empty());
+                            match &**ret_type_expr {
+                                TypeExpr::Var(type_var_ident, pos) => {
+                                    assert_eq!(3, pos.line);
+                                    assert_eq!(16, pos.column);
+                                    assert_eq!(String::from("Int"), *type_var_ident);
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[3] {
+        Def::Type(ident, type_var, pos) => {
+            assert_eq!(4, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("W"), *ident);
+            let type_var_r = type_var.borrow();
+            match &*type_var_r {
+                TypeVar::Synonym(type_args, type_expr) => {
+                    assert_eq!(true, type_args.is_empty());
+                    match &**type_expr {
+                        TypeExpr::Fun(arg_type_exprs, ret_type_expr, pos) => {
+                            assert_eq!(4, pos.line);
+                            assert_eq!(10, pos.column);
+                            assert_eq!(2, arg_type_exprs.len());
+                            match &*arg_type_exprs[0] {
+                                TypeExpr::Var(type_var_ident, pos) => {
+                                    assert_eq!(4, pos.line);
+                                    assert_eq!(11, pos.column);
+                                    assert_eq!(String::from("Float"), *type_var_ident);
+                                },
+                                _ => assert!(false),
+                            }
+                            match &*arg_type_exprs[1] {
+                                TypeExpr::Var(type_var_ident, pos) => {
+                                    assert_eq!(4, pos.line);
+                                    assert_eq!(18, pos.column);
+                                    assert_eq!(String::from("Int"), *type_var_ident);
+                                },
+                                _ => assert!(false),
+                            }
+                            match &**ret_type_expr {
+                                TypeExpr::Var(type_var_ident, pos) => {
+                                    assert_eq!(4, pos.line);
+                                    assert_eq!(26, pos.column);
+                                    assert_eq!(String::from("Char"), *type_var_ident);
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[4] {
+        Def::Type(ident, type_var, pos) => {
+            assert_eq!(5, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("X"), *ident);
+            let type_var_r = type_var.borrow();
+            match &*type_var_r {
+                TypeVar::Synonym(type_args, type_expr) => {
+                    assert_eq!(true, type_args.is_empty());
+                    match &**type_expr {
+                        TypeExpr::Array(type_expr, None, pos) => {
+                            assert_eq!(5, pos.line);
+                            assert_eq!(10, pos.column);
+                            match &**type_expr {
+                                TypeExpr::Var(type_var_ident, pos) => {
+                                    assert_eq!(5, pos.line);
+                                    assert_eq!(11, pos.column);
+                                    assert_eq!(String::from("Int"), *type_var_ident);
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[5] {
+        Def::Type(ident, type_var, pos) => {
+            assert_eq!(6, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("Y"), *ident);
+            let type_var_r = type_var.borrow();
+            match &*type_var_r {
+                TypeVar::Synonym(type_args, type_expr) => {
+                    assert_eq!(true, type_args.is_empty());
+                    match &**type_expr {
+                        TypeExpr::Array(type_expr, Some(len), pos) => {
+                            assert_eq!(6, pos.line);
+                            assert_eq!(10, pos.column);
+                            match &**type_expr {
+                                TypeExpr::Var(type_var_ident, pos) => {
+                                    assert_eq!(6, pos.line);
+                                    assert_eq!(11, pos.column);
+                                    assert_eq!(String::from("Float"), *type_var_ident);
+                                },
+                                _ => assert!(false),
+                            }
+                            assert_eq!(12, *len);
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[6] {
+        Def::Type(ident, type_var, pos) => {
+            assert_eq!(7, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("Z"), *ident);
+            let type_var_r = type_var.borrow();
+            match &*type_var_r {
+                TypeVar::Synonym(type_args, type_expr) => {
+                    assert_eq!(1, type_args.len());
+                    match &type_args[0] {
+                        TypeArg(type_arg_ident, pos) => {
+                            assert_eq!(7, pos.line);
+                            assert_eq!(8, pos.column);
+                            assert_eq!(String::from("t1"), *type_arg_ident);
+                        },
+                    }
+                    match &**type_expr {
+                        TypeExpr::Param(type_param_ident, pos) => {
+                            assert_eq!(7, pos.line);
+                            assert_eq!(14, pos.column);
+                            assert_eq!(String::from("t1"), *type_param_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[7] {
+        Def::Type(ident, type_var, pos) => {
+            assert_eq!(8, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("A"), *ident);
+            let type_var_r = type_var.borrow();
+            match &*type_var_r {
+                TypeVar::Synonym(type_args, type_expr) => {
+                    assert_eq!(true, type_args.is_empty());
+                    match &**type_expr {
+                        TypeExpr::Var(type_var_ident, pos) => {
+                            assert_eq!(8, pos.line);
+                            assert_eq!(10, pos.column);
+                            assert_eq!(String::from("Int"), *type_var_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[8] {
+        Def::Type(ident, type_var, pos) => {
+            assert_eq!(9, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("B"), *ident);
+            let type_var_r = type_var.borrow();
+            match &*type_var_r {
+                TypeVar::Synonym(type_args, type_expr) => {
+                    assert_eq!(true, type_args.is_empty());
+                    match &**type_expr {
+                        TypeExpr::App(type_var_ident, type_exprs, pos) => {
+                            assert_eq!(9, pos.line);
+                            assert_eq!(10, pos.column);
+                            assert_eq!(String::from("S"), *type_var_ident);
+                            match &*type_exprs[0] {
+                                TypeExpr::Var(type_var_ident, pos) => {
+                                    assert_eq!(9, pos.line);
+                                    assert_eq!(12, pos.column);
+                                    assert_eq!(String::from("Int"), *type_var_ident);
+                                },
+                                _ => assert!(false),
+                            }
+                            match &*type_exprs[1] {
+                                TypeExpr::Var(type_var_ident, pos) => {
+                                    assert_eq!(9, pos.line);
+                                    assert_eq!(17, pos.column);
+                                    assert_eq!(String::from("Float"), *type_var_ident);
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[9] {
+        Def::Type(ident, type_var, pos) => {
+            assert_eq!(10, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("C"), *ident);
+            let type_var_r = type_var.borrow();
+            match &*type_var_r {
+                TypeVar::Synonym(type_args, type_expr) => {
+                    assert_eq!(true, type_args.is_empty());
+                    match &**type_expr {
+                        TypeExpr::Uniq(type_expr, pos) => {
+                            assert_eq!(10, pos.line);
+                            assert_eq!(10, pos.column);
+                            match &**type_expr {
+                                TypeExpr::Var(type_var_ident, pos) => {
+                                    assert_eq!(10, pos.line);
+                                    assert_eq!(15, pos.column);
+                                    assert_eq!(String::from("Array"), *type_var_ident);
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[10] {
+        Def::Type(ident, type_var, pos) => {
+            assert_eq!(11, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("D"), *ident);
+            let type_var_r = type_var.borrow();
+            match &*type_var_r {
+                TypeVar::Synonym(type_args, type_expr) => {
+                    assert_eq!(true, type_args.is_empty());
+                    match &**type_expr {
+                        TypeExpr::Uniq(type_expr, pos) => {
+                            assert_eq!(11, pos.line);
+                            assert_eq!(10, pos.column);
+                            match &**type_expr {
+                                TypeExpr::Var(type_var_ident, pos) => {
+                                    assert_eq!(11, pos.line);
+                                    assert_eq!(16, pos.column);
+                                    assert_eq!(String::from("Int"), *type_var_ident);
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
                 },
                 _ => assert!(false),
             }

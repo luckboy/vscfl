@@ -676,7 +676,7 @@ impl<'a> Parser<'a>
     
     fn parse_named_field_pairs<T, F>(&mut self, end_tokens: &[Token], mut f: F) -> FrontendResult<Vec<NamedFieldPair<T>>>
         where F: FnMut(&mut Self) -> FrontendResult<Box<T>>
-    { self.parse_one_or_more(&Token::Comma, end_tokens, |parser| parser.parse_named_field_pair_with_fun_ref(&mut f)) }
+    { self.parse_zero_or_more(&Token::Comma, end_tokens, |parser| parser.parse_named_field_pair_with_fun_ref(&mut f)) }
     
     fn parse_type_expr1(&mut self) -> FrontendResult<Box<TypeExpr>>
     {
