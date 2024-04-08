@@ -792,7 +792,7 @@ impl<'a> Parser<'a>
     }
     
     fn parse_args(&mut self, end_tokens: &[Token]) -> FrontendResult<Vec<Arg>>
-    { self.parse_one_or_more(&Token::Comma, end_tokens, Self::parse_arg) }
+    { self.parse_zero_or_more(&Token::Comma, end_tokens, Self::parse_arg) }
 
     fn parse_where_tuple(&mut self) -> FrontendResult<WhereTuple>
     {
