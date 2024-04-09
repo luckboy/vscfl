@@ -1239,7 +1239,7 @@ type X = [Int; _];
 type Y = [Float; 12];
 type Z<t1> = t1;
 type A = Int;
-type B = S<Int, Float>;
+type B = S<Int, S2<Float>>;
 type C = uniq Array;
 type D = uniq (Int);
 ";
@@ -1249,10 +1249,7 @@ type D = uniq (Int);
     let mut tree = Tree::new();
     match parser.parse(&mut tree) {
         Ok(()) => assert!(true),
-        Err(err) => {
-            println!("{}", err);
-            assert!(false)
-        },
+        Err(_) => assert!(false),
     }
     assert_eq!(11, tree.defs().len());
     match &*tree.defs()[0] {
@@ -1523,6 +1520,7 @@ type D = uniq (Int);
                             assert_eq!(9, pos.line);
                             assert_eq!(10, pos.column);
                             assert_eq!(String::from("S"), *type_var_ident);
+                            assert_eq!(2, type_exprs.len());
                             match &*type_exprs[0] {
                                 TypeExpr::Var(type_var_ident, pos) => {
                                     assert_eq!(9, pos.line);
@@ -1532,10 +1530,19 @@ type D = uniq (Int);
                                 _ => assert!(false),
                             }
                             match &*type_exprs[1] {
-                                TypeExpr::Var(type_var_ident, pos) => {
+                               TypeExpr::App(type_var_ident, type_exprs, pos) => {
                                     assert_eq!(9, pos.line);
                                     assert_eq!(17, pos.column);
-                                    assert_eq!(String::from("Float"), *type_var_ident);
+                                    assert_eq!(String::from("S2"), *type_var_ident);
+                                    assert_eq!(1, type_exprs.len());
+                                    match &*type_exprs[0] {
+                                       TypeExpr::Var(type_var_ident, pos) => {
+                                           assert_eq!(9, pos.line);
+                                           assert_eq!(20, pos.column);
+                                           assert_eq!(String::from("Float"), *type_var_ident);
+                                       },
+                                       _ => assert!(false),
+                                    }
                                 },
                                 _ => assert!(false),
                             }
