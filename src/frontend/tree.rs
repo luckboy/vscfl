@@ -148,7 +148,7 @@ pub enum Expr
     Match(Box<Expr>, Vec<Case>, Option<LocalType>, Pos),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum Field
 {
     Unnamed(usize),

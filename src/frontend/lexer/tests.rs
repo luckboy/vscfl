@@ -1233,6 +1233,45 @@ fn test_lexer_next_token_returns_constructor_identifier_tokens()
 }
 
 #[test]
+fn test_lexer_next_token_returns_integer_tokens_for_field_dot()
+{
+    let s = "12.34";
+    let mut cursor = Cursor::new(s.as_bytes());
+    let mut lexer = Lexer::new(String::from("test.vscfl"), &mut cursor);
+    lexer.set_field_dot(true);
+    match lexer.next_token() {
+        Ok((Token::Int(n), pos)) => {
+            assert_eq!(12, n);
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+        },
+        _ => assert!(false),
+    }
+    match lexer.next_token() {
+        Ok((Token::Dot, pos)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(3, pos.column);
+        },
+        _ => assert!(false),
+    }
+    match lexer.next_token() {
+        Ok((Token::Int(n), pos)) => {
+            assert_eq!(34, n);
+            assert_eq!(1, pos.line);
+            assert_eq!(4, pos.column);
+        },
+        _ => assert!(false),
+    }
+    match lexer.next_token() {
+        Ok((Token::Eof, pos)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(6, pos.column);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
 fn test_lexer_next_token_returns_variable_identifier_tokens()
 {
     let s = "abcDef ghi_12";

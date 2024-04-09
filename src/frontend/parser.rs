@@ -979,7 +979,7 @@ impl<'a> Parser<'a>
                             is_access_fun = true;
                             match self.lexer.next_token()? {
                                 (Token::Eof, pos3) => return Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
-                                (Token::RParen, _) => (),
+                                (Token::RBracket, _) => (),
                                 (_, pos3) => return Err(FrontendError::Message(pos3, String::from("unclosed bracket"))),
                             }
                         },
@@ -994,11 +994,6 @@ impl<'a> Parser<'a>
                             idx_expr = None;
                             fields = Some(self.parse_one_or_more_fields()?);
                             is_access_fun = true;
-                            match self.lexer.next_token()? {
-                                (Token::Eof, pos3) => return Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
-                                (Token::RParen, _) => (),
-                                (_, pos3) => return Err(FrontendError::Message(pos3, String::from("unclosed bracket"))),
-                            }
                         },
                         (token2, pos2) => {
                             self.lexer.undo_token(token2, pos2);
@@ -1050,7 +1045,7 @@ impl<'a> Parser<'a>
                     (_, Some(idx_expr)) => {
                         match access_fun {
                             AccessFun::Get => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_get_nth"), None, first_pos.clone())), vec![expr1, idx_expr], None, first_pos))),
-                            AccessFun::Get2 => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("opt_get2_nth"), None, first_pos.clone())), vec![expr1, idx_expr], None, first_pos))),
+                            AccessFun::Get2 => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_get2_nth"), None, first_pos.clone())), vec![expr1, idx_expr], None, first_pos))),
                             AccessFun::Set(expr2) => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_set_nth"), None, first_pos.clone())), vec![expr1, idx_expr, expr2], None, first_pos))),
                             AccessFun::Update(expr2) => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_update_nth"), None, first_pos.clone())), vec![expr1, idx_expr, expr2], None, first_pos))),
                             AccessFun::UpdateGet2(expr2) => Ok(Box::new(Expr::App(Box::new(Expr::Var(String::from("op_update_get2_nth"), None, first_pos.clone())), vec![expr1, idx_expr, expr2], None, first_pos))),
@@ -1404,7 +1399,13 @@ impl<'a> Parser<'a>
     }
     
     fn parse_one_or_more_fields(&mut self) -> FrontendResult<Vec<Field>>
-    { self.parse_one_or_more_without_end_sep(&Token::Dot, Self::parse_field) }
+    {
+        let saved_field_dot_flag = self.lexer.has_field_dot();
+        self.lexer.set_field_dot(true);
+        let res = self.parse_one_or_more_without_end_sep(&Token::Dot, Self::parse_field);
+        self.lexer.set_field_dot(saved_field_dot_flag);
+        res
+    }
     
     fn parse_bind(&mut self) -> FrontendResult<Bind>
     {

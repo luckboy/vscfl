@@ -98,6 +98,7 @@ pub struct Lexer<'a>
     pushed_chars: Vec<(char, Pos)>,
     pushed_tokens: Vec<(Token, Pos)>,
     has_single_greater: bool,
+    has_field_dot: bool,
     keywords: HashMap<String, Token>,
 }
 
@@ -138,6 +139,7 @@ impl<'a> Lexer<'a>
             pushed_chars: Vec::new(),
             pushed_tokens: Vec::new(),
             has_single_greater: false,
+            has_field_dot: false,
             keywords,
         }
     }
@@ -147,6 +149,12 @@ impl<'a> Lexer<'a>
 
     pub fn set_single_greater(&mut self, is_single_greater: bool)
     { self.has_single_greater = is_single_greater; }
+
+    pub fn has_field_dot(&self) -> bool
+    { self.has_field_dot }
+
+    pub fn set_field_dot(&mut self, is_field_dot: bool)
+    { self.has_field_dot = is_field_dot; }    
     
     pub fn pos(&self) -> &Pos
     { &self.pos }
@@ -493,14 +501,16 @@ impl<'a> Lexer<'a>
             },
         }
         self.read_token_digits(&mut s, 10)?;
-        match self.next_char()? {
-            (None, _) => (),
-            (Some('.'), _) => {
-                is_dot_or_exp = true;
-                s.push('.');
-                self.read_one_or_more_token_digits(&mut s, 10, &token_pos)?;
-            },
-            (Some(c), pos) => self.undo_char(c, pos),
+        if !self.has_field_dot {
+            match self.next_char()? {
+                (None, _) => (),
+                (Some('.'), _) => {
+                    is_dot_or_exp = true;
+                    s.push('.');
+                    self.read_one_or_more_token_digits(&mut s, 10, &token_pos)?;
+                },
+                (Some(c), pos) => self.undo_char(c, pos),
+            }
         }
         match self.next_char()? {
             (None, _) => (),
