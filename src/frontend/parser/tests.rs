@@ -6188,3 +6188,773 @@ h: () = printf(\"%d\\n\", 2);
         _ => assert!(false),
     }
 }
+
+#[test]
+fn test_parser_parse_parses_pattern1()
+{
+    let s = "
+a: Int =
+    x match {
+        C() | D() => 1;
+    };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(1, tree.defs().len());
+    match &*tree.defs()[0] {
+        Def::Var(ident, var, pos) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("a"), *ident);
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
+                    match &**type_expr {
+                        TypeExpr::Var(type_expr_ident, pos) => {
+                            assert_eq!(1, pos.line);
+                            assert_eq!(4, pos.column);
+                            assert_eq!(String::from("Int"), *type_expr_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                    assert_eq!(true, where_tuples.is_empty());
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Match(expr, cases, None, pos) => {
+                                    assert_eq!(2, pos.line);
+                                    assert_eq!(5, pos.column);
+                                    match &**expr {
+                                        Expr::Var(var_ident, None, pos) => {
+                                            assert_eq!(2, pos.line);
+                                            assert_eq!(5, pos.column);
+                                            assert_eq!(String::from("x"), *var_ident);
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(1, cases.len());
+                                    match &cases[0] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Alt(patterns, None, pos) => {
+                                                    assert_eq!(3, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    assert_eq!(2, patterns.len());
+                                                    match &*patterns[0] {
+                                                        Pattern::UnnamedFieldCon(con_ident, patterns, None, pos) => {
+                                                            assert_eq!(3, pos.line);
+                                                            assert_eq!(9, pos.column);
+                                                            assert_eq!(String::from("C"), *con_ident);
+                                                            assert_eq!(0, patterns.len());
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    match &*patterns[1] {
+                                                        Pattern::UnnamedFieldCon(con_ident, patterns, None, pos) => {
+                                                            assert_eq!(3, pos.line);
+                                                            assert_eq!(15, pos.column);
+                                                            assert_eq!(String::from("D"), *con_ident);
+                                                            assert_eq!(0, patterns.len());
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(3, pos.line);
+                                                    assert_eq!(22, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(1, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_parses_patterns2()
+{
+    let s = "
+a: Int =
+    x match {
+        y @ (C() | D()) => 1;
+        1 => 2;
+        2 as Float => 3;
+        X => 4;
+        C() => 5;
+        E(1, 2) => 6;
+        C {} => 7;
+        E { x: 1, y: 2, } => 8;
+        y => 9;
+        private y => 10;
+        local y => 11;
+        global y => 12;
+        constant y => 13;
+        y @ C() => 14;
+        private y @ C() => 15;
+        local y @ C() => 16;
+        global y @ C() => 17;
+        constant y @ C() => 18;
+        _ => 19;
+    };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(1, tree.defs().len());
+    match &*tree.defs()[0] {
+        Def::Var(ident, var, pos) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("a"), *ident);
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
+                    match &**type_expr {
+                        TypeExpr::Var(type_expr_ident, pos) => {
+                            assert_eq!(1, pos.line);
+                            assert_eq!(4, pos.column);
+                            assert_eq!(String::from("Int"), *type_expr_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                    assert_eq!(true, where_tuples.is_empty());
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Match(expr, cases, None, pos) => {
+                                    assert_eq!(2, pos.line);
+                                    assert_eq!(5, pos.column);
+                                    match &**expr {
+                                        Expr::Var(var_ident, None, pos) => {
+                                            assert_eq!(2, pos.line);
+                                            assert_eq!(5, pos.column);
+                                            assert_eq!(String::from("x"), *var_ident);
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(19, cases.len());
+                                    match &cases[0] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::At(VarModifier::None, var_ident, pattern, None, pos) => {
+                                                    assert_eq!(3, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    assert_eq!(String::from("y"), *var_ident);
+                                                    match &**pattern {
+                                                        Pattern::Alt(patterns, None, pos) => {
+                                                            assert_eq!(3, pos.line);
+                                                            assert_eq!(14, pos.column);
+                                                            assert_eq!(2, patterns.len());
+                                                            match &*patterns[0] {
+                                                                Pattern::UnnamedFieldCon(con_ident, patterns, None, pos) => {
+                                                                    assert_eq!(3, pos.line);
+                                                                    assert_eq!(14, pos.column);
+                                                                    assert_eq!(String::from("C"), *con_ident);
+                                                                    assert_eq!(0, patterns.len());
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                            match &*patterns[1] {
+                                                                Pattern::UnnamedFieldCon(con_ident, patterns, None, pos) => {
+                                                                    assert_eq!(3, pos.line);
+                                                                    assert_eq!(20, pos.column);
+                                                                    assert_eq!(String::from("D"), *con_ident);
+                                                                    assert_eq!(0, patterns.len());
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(3, pos.line);
+                                                    assert_eq!(28, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(1, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[1] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(4, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(1, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(4, pos.line);
+                                                    assert_eq!(14, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(2, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[2] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::As(literal, type_expr, None, pos) => {
+                                                    assert_eq!(5, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(2, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                    match &**type_expr {
+                                                        TypeExpr::Var(type_expr_ident, pos) => {
+                                                            assert_eq!(5, pos.line);
+                                                            assert_eq!(14, pos.column);
+                                                            assert_eq!(String::from("Float"), *type_expr_ident);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(5, pos.line);
+                                                    assert_eq!(23, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(3, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[3] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Const(con_ident, None, pos) => {
+                                                    assert_eq!(6, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    assert_eq!(String::from("X"), *con_ident);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(6, pos.line);
+                                                    assert_eq!(14, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(4, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[4] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::UnnamedFieldCon(con_ident, patterns, None, pos) => {
+                                                    assert_eq!(7, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    assert_eq!(String::from("C"), *con_ident);
+                                                    assert_eq!(true, patterns.is_empty());
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(7, pos.line);
+                                                    assert_eq!(16, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(5, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[5] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::UnnamedFieldCon(con_ident, patterns, None, pos) => {
+                                                    assert_eq!(8, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    assert_eq!(String::from("E"), *con_ident);
+                                                    assert_eq!(2, patterns.len());
+                                                    match &*patterns[0] {
+                                                        Pattern::Literal(literal, None, pos) => {
+                                                            assert_eq!(8, pos.line);
+                                                            assert_eq!(11, pos.column);
+                                                            match &**literal {
+                                                                Literal::Int(n) => assert_eq!(1, *n),
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    match &*patterns[1] {
+                                                        Pattern::Literal(literal, None, pos) => {
+                                                            assert_eq!(8, pos.line);
+                                                            assert_eq!(14, pos.column);
+                                                            match &**literal {
+                                                                Literal::Int(n) => assert_eq!(2, *n),
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(8, pos.line);
+                                                    assert_eq!(20, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(6, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[6] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::NamedFieldCon(con_ident, pattern_named_field_pairs, None, pos) => {
+                                                    assert_eq!(9, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    assert_eq!(String::from("C"), *con_ident);
+                                                    assert_eq!(true, pattern_named_field_pairs.is_empty());
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(9, pos.line);
+                                                    assert_eq!(17, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(7, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[7] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::NamedFieldCon(con_ident, pattern_named_field_pairs, None, pos) => {
+                                                    assert_eq!(10, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    assert_eq!(String::from("E"), *con_ident);
+                                                    assert_eq!(2, pattern_named_field_pairs.len());
+                                                    match &pattern_named_field_pairs[0] {
+                                                        NamedFieldPair(field_ident, pattern, pos) => {
+                                                            assert_eq!(10, pos.line);
+                                                            assert_eq!(13, pos.column);
+                                                            assert_eq!(String::from("x"), *field_ident);
+                                                            match &**pattern {
+                                                                Pattern::Literal(literal, None, pos) => {
+                                                                    assert_eq!(10, pos.line);
+                                                                    assert_eq!(16, pos.column);
+                                                                    match &**literal {
+                                                                        Literal::Int(n) => assert_eq!(1, *n),
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                    }
+                                                    match &pattern_named_field_pairs[1] {
+                                                        NamedFieldPair(field_ident, pattern, pos) => {
+                                                            assert_eq!(10, pos.line);
+                                                            assert_eq!(19, pos.column);
+                                                            assert_eq!(String::from("y"), *field_ident);
+                                                            match &**pattern {
+                                                                Pattern::Literal(literal, None, pos) => {
+                                                                    assert_eq!(10, pos.line);
+                                                                    assert_eq!(22, pos.column);
+                                                                    match &**literal {
+                                                                        Literal::Int(n) => assert_eq!(2, *n),
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(10, pos.line);
+                                                    assert_eq!(30, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(8, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[8] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Var(VarModifier::None, var_ident, None, pos) => {
+                                                    assert_eq!(11, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    assert_eq!(String::from("y"), *var_ident);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(11, pos.line);
+                                                    assert_eq!(14, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(9, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[9] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Var(VarModifier::Private, var_ident, None, pos) => {
+                                                    assert_eq!(12, pos.line);
+                                                    assert_eq!(17, pos.column);
+                                                    assert_eq!(String::from("y"), *var_ident);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(12, pos.line);
+                                                    assert_eq!(22, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(10, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[10] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Var(VarModifier::Local, var_ident, None, pos) => {
+                                                    assert_eq!(13, pos.line);
+                                                    assert_eq!(15, pos.column);
+                                                    assert_eq!(String::from("y"), *var_ident);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(13, pos.line);
+                                                    assert_eq!(20, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(11, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[11] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Var(VarModifier::Global, var_ident, None, pos) => {
+                                                    assert_eq!(14, pos.line);
+                                                    assert_eq!(16, pos.column);
+                                                    assert_eq!(String::from("y"), *var_ident);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(14, pos.line);
+                                                    assert_eq!(21, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(12, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[12] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Var(VarModifier::Constant, var_ident, None, pos) => {
+                                                    assert_eq!(15, pos.line);
+                                                    assert_eq!(18, pos.column);
+                                                    assert_eq!(String::from("y"), *var_ident);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(15, pos.line);
+                                                    assert_eq!(23, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(13, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[13] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::At(VarModifier::None, var_ident, pattern, None, pos) => {
+                                                    assert_eq!(16, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    assert_eq!(String::from("y"), *var_ident);
+                                                    match &**pattern {
+                                                        Pattern::UnnamedFieldCon(con_ident, patterns, None, pos) => {
+                                                            assert_eq!(16, pos.line);
+                                                            assert_eq!(13, pos.column);
+                                                            assert_eq!(String::from("C"), *con_ident);
+                                                            assert_eq!(true, patterns.is_empty());
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(16, pos.line);
+                                                    assert_eq!(20, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(14, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[14] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::At(VarModifier::Private, var_ident, pattern, None, pos) => {
+                                                    assert_eq!(17, pos.line);
+                                                    assert_eq!(17, pos.column);
+                                                    assert_eq!(String::from("y"), *var_ident);
+                                                    match &**pattern {
+                                                        Pattern::UnnamedFieldCon(con_ident, patterns, None, pos) => {
+                                                            assert_eq!(17, pos.line);
+                                                            assert_eq!(21, pos.column);
+                                                            assert_eq!(String::from("C"), *con_ident);
+                                                            assert_eq!(true, patterns.is_empty());
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(17, pos.line);
+                                                    assert_eq!(28, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(15, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[15] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::At(VarModifier::Local, var_ident, pattern, None, pos) => {
+                                                    assert_eq!(18, pos.line);
+                                                    assert_eq!(15, pos.column);
+                                                    assert_eq!(String::from("y"), *var_ident);
+                                                    match &**pattern {
+                                                        Pattern::UnnamedFieldCon(con_ident, patterns, None, pos) => {
+                                                            assert_eq!(18, pos.line);
+                                                            assert_eq!(19, pos.column);
+                                                            assert_eq!(String::from("C"), *con_ident);
+                                                            assert_eq!(true, patterns.is_empty());
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(18, pos.line);
+                                                    assert_eq!(26, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(16, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[16] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::At(VarModifier::Global, var_ident, pattern, None, pos) => {
+                                                    assert_eq!(19, pos.line);
+                                                    assert_eq!(16, pos.column);
+                                                    assert_eq!(String::from("y"), *var_ident);
+                                                    match &**pattern {
+                                                        Pattern::UnnamedFieldCon(con_ident, patterns, None, pos) => {
+                                                            assert_eq!(19, pos.line);
+                                                            assert_eq!(20, pos.column);
+                                                            assert_eq!(String::from("C"), *con_ident);
+                                                            assert_eq!(true, patterns.is_empty());
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(19, pos.line);
+                                                    assert_eq!(27, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(17, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[17] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::At(VarModifier::Constant, var_ident, pattern, None, pos) => {
+                                                    assert_eq!(20, pos.line);
+                                                    assert_eq!(18, pos.column);
+                                                    assert_eq!(String::from("y"), *var_ident);
+                                                    match &**pattern {
+                                                        Pattern::UnnamedFieldCon(con_ident, patterns, None, pos) => {
+                                                            assert_eq!(20, pos.line);
+                                                            assert_eq!(22, pos.column);
+                                                            assert_eq!(String::from("C"), *con_ident);
+                                                            assert_eq!(true, patterns.is_empty());
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(20, pos.line);
+                                                    assert_eq!(29, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(18, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[18] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Wildcard(None, pos) => {
+                                                    assert_eq!(21, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(21, pos.line);
+                                                    assert_eq!(14, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(19, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
