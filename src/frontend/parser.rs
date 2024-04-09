@@ -493,7 +493,7 @@ impl<'a> Parser<'a>
                             (Token::Eof, pos3) => return Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
                             (Token::Eq, _) => {
                                 let type_expr = self.parse_type_expr()?;
-                                Ok(Box::new(Def::Type(ident, Rc::new(RefCell::new(TypeVar::Synonym(type_args, type_expr))), first_pos)))
+                                Ok(Box::new(Def::Type(ident, Rc::new(RefCell::new(TypeVar::Synonym(type_args, type_expr, None))), first_pos)))
                             },
                             (_, pos3) => return Err(FrontendError::Message(pos3, String::from("unexpected token"))),
                         }
