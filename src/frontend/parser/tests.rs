@@ -10398,3 +10398,103 @@ a: A = [1, 2; 10];
         _ => assert!(false),
     }
 }
+
+#[test]
+fn test_parser_parse_type_args_parses_type_arguments()
+{
+    let s = "t1, t2, t3";
+    let mut cursor = Cursor::new(s.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    match parser.parse_type_args() {
+        Ok(type_args) => {
+            assert_eq!(3, type_args.len());
+            match &type_args[0] {
+                TypeArg(type_arg_ident, pos) => {
+                    assert_eq!(1, pos.line);
+                    assert_eq!(1, pos.column);
+                    assert_eq!(String::from("t1"), *type_arg_ident);
+                },
+            }
+            match &type_args[1] {
+                TypeArg(type_arg_ident, pos) => {
+                    assert_eq!(1, pos.line);
+                    assert_eq!(5, pos.column);
+                    assert_eq!(String::from("t2"), *type_arg_ident);
+                },
+            }
+            match &type_args[2] {
+                TypeArg(type_arg_ident, pos) => {
+                    assert_eq!(1, pos.line);
+                    assert_eq!(9, pos.column);
+                    assert_eq!(String::from("t3"), *type_arg_ident);
+                },
+            }
+        },
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_type_parses_type_expression()
+{
+    let s = "T<Int>";
+    let mut cursor = Cursor::new(s.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    match parser.parse_type() {
+        Ok(type_expr) => {
+            match &type_expr {
+                TypeExpr::App(type_var_ident, type_exprs, pos) => {
+                    assert_eq!(1, pos.line);
+                    assert_eq!(1, pos.column);
+                    assert_eq!(String::from("T"), *type_var_ident);
+                    assert_eq!(1, type_exprs.len());
+                    match &*type_exprs[0] {
+                        TypeExpr::Var(type_var_ident, pos) => {
+                            assert_eq!(1, pos.line);
+                            assert_eq!(3, pos.column);
+                            assert_eq!(String::from("Int"), *type_var_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_where_parses_where_tuples()
+{
+    let s = "t1: T + U, t2: V";
+    let mut cursor = Cursor::new(s.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    match parser.parse_where() {
+        Ok(where_tuples) => {
+            assert_eq!(2, where_tuples.len());
+            match &where_tuples[0] {
+                WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                    assert_eq!(1, pos.line);
+                    assert_eq!(1, pos.column);
+                    assert_eq!(String::from("t1"), *type_param_ident);
+                    assert_eq!(2, trait_names.len());
+                    assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
+                    assert_eq!(TraitName::Name(String::from("U")), trait_names[1]);
+                    assert_eq!(true, type_exprs.is_empty());
+                },
+            }
+            match &where_tuples[1] {
+                WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                    assert_eq!(1, pos.line);
+                    assert_eq!(12, pos.column);
+                    assert_eq!(String::from("t2"), *type_param_ident);
+                    assert_eq!(1, trait_names.len());
+                    assert_eq!(TraitName::Name(String::from("V")), trait_names[0]);
+                    assert_eq!(true, type_exprs.is_empty());
+                },
+            }
+        },
+        Err(_) => assert!(false),
+    }
+}
