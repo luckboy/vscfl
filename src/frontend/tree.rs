@@ -24,12 +24,6 @@ pub enum FunModifier
 {
     None,
     Kernel,
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub enum InlineModifier
-{
-    None,
     Inline,
 }
 
@@ -107,7 +101,7 @@ pub enum Var
 #[derive(Clone, Debug)]
 pub enum Fun
 {
-    Fun(FunModifier, InlineModifier, Vec<Arg>, Box<TypeExpr>, Vec<WhereTuple>, Option<Box<Expr>>, Option<LocalType>, Option<Box<LocalTypes>>),
+    Fun(FunModifier, Vec<Arg>, Box<TypeExpr>, Vec<WhereTuple>, Option<Box<Expr>>, Option<LocalType>, Option<Box<LocalTypes>>),
     Con(Rc<RefCell<Con>>),
 }
 

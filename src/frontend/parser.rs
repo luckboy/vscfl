@@ -39,13 +39,12 @@ struct Modifiers
 {
     var_modifier_pair: Option<(VarModifier, Pos)>,
     fun_modifier_pair: Option<(FunModifier, Pos)>,
-    inline_modifier_pair: Option<(InlineModifier, Pos)>,
 }
 
 impl Modifiers
 {
     fn new() -> Self
-    { Modifiers { var_modifier_pair: None, fun_modifier_pair: None, inline_modifier_pair: None, } }
+    { Modifiers { var_modifier_pair: None, fun_modifier_pair: None, } }
 }
 
 #[derive(Clone)]
@@ -63,10 +62,6 @@ fn check_modifiers_for_builtin_var(modifiers: &Modifiers) -> FrontendResult<Rc<R
     }
     match &modifiers.fun_modifier_pair {
         Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos.clone(), String::from("built-in variable mustn't have function modifier"))),
-        None => (),
-    }
-    match &modifiers.inline_modifier_pair {
-        Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos.clone(), String::from("built-in variable mustn't have inline modifier"))),
         None => (),
     }
     Ok(Rc::new(RefCell::new(Var::Builtin(None))))
@@ -235,10 +230,10 @@ impl<'a> Parser<'a>
                     }
                 },
                 (Token::Inline, pos) => {
-                    if modifiers.inline_modifier_pair.is_none() {
-                        modifiers.inline_modifier_pair = Some((InlineModifier::Inline, pos));
+                    if modifiers.fun_modifier_pair.is_none() {
+                        modifiers.fun_modifier_pair = Some((FunModifier::Inline, pos));
                     } else {
-                        return Err(FrontendError::Message(pos, String::from("already used inline modifier")));
+                        return Err(FrontendError::Message(pos, String::from("already used function modifier")));
                     }
                 },
                 (token, pos) => {
@@ -262,10 +257,6 @@ impl<'a> Parser<'a>
                 let fun_modifier = match &modifiers.fun_modifier_pair {
                     Some((tmp_fun_modifier, _)) => *tmp_fun_modifier,
                     None => FunModifier::None,
-                };
-                let inline_modifier = match &modifiers.inline_modifier_pair {
-                    Some((tmp_inline_modifier, _)) => *tmp_inline_modifier,
-                    None => InlineModifier::None,
                 };
                 let args = self.parse_args(&[Token::RParen])?;
                 match self.lexer.next_token()? {
@@ -292,7 +283,7 @@ impl<'a> Parser<'a>
                                 None
                             },
                         };
-                        Ok(Rc::new(RefCell::new(Var::Fun(Box::new(Fun::Fun(fun_modifier, inline_modifier, args, ret_type_expr, where_tuples, body, None, None)), None))))
+                        Ok(Rc::new(RefCell::new(Var::Fun(Box::new(Fun::Fun(fun_modifier, args, ret_type_expr, where_tuples, body, None, None)), None))))
                     },
                     (_, pos2) => Err(FrontendError::Message(pos2, String::from("unclosed parenthesis"))),
                 }
@@ -305,10 +296,6 @@ impl<'a> Parser<'a>
                 };
                 match &modifiers.fun_modifier_pair {
                     Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos.clone(), String::from("variable mustn't have function modifier"))),
-                    None => (),
-                }
-                match &modifiers.inline_modifier_pair {
-                    Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos.clone(), String::from("variable mustn't have inline modifier"))),
                     None => (),
                 }
                 let type_expr = self.parse_type_expr()?;
@@ -359,10 +346,6 @@ impl<'a> Parser<'a>
                                     Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("built-in type mustn't have function modifier"))),
                                     None => (),
                                 }
-                                match modifiers.inline_modifier_pair {
-                                    Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("built-in type mustn't have inline modifier"))),
-                                    None => (),
-                                }
                                 Ok(Box::new(Def::Type(ident, Rc::new(RefCell::new(TypeVar::Builtin(None, None))), first_pos)))
                             },
                             (_, pos3) => Err(FrontendError::Message(pos3, String::from("unexpected token"))),
@@ -386,10 +369,6 @@ impl<'a> Parser<'a>
                                 }
                                 match modifiers.fun_modifier_pair {
                                     Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("trait mustn't have function modifier"))),
-                                    None => (),
-                                }
-                                match modifiers.inline_modifier_pair {
-                                    Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("trait mustn't have inline modifier"))),
                                     None => (),
                                 }
                                 match self.lexer.next_token()? {
@@ -418,10 +397,6 @@ impl<'a> Parser<'a>
                         }
                         match modifiers.fun_modifier_pair {
                             Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("type mustn't have function modifier"))),
-                            None => (),
-                        }
-                        match modifiers.inline_modifier_pair {
-                            Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("type mustn't have inline modifier"))),
                             None => (),
                         }
                         let saved_single_greater_flag = self.lexer.has_single_greater();
@@ -466,10 +441,6 @@ impl<'a> Parser<'a>
                         }
                         match modifiers.fun_modifier_pair {
                             Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("type synonym mustn't have function modifier"))),
-                            None => (),
-                        }
-                        match modifiers.inline_modifier_pair {
-                            Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("type synonym mustn't have inline modifier"))),
                             None => (),
                         }
                         let saved_single_greater_flag = self.lexer.has_single_greater();
@@ -523,10 +494,6 @@ impl<'a> Parser<'a>
                             Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("trait mustn't have function modifier"))),
                             None => (),
                         }
-                        match modifiers.inline_modifier_pair {
-                            Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("trait mustn't have inline modifier"))),
-                            None => (),
-                        }
                         let saved_single_greater_flag = self.lexer.has_single_greater();
                         self.lexer.set_single_greater(true);
                         let type_args = match self.lexer.next_token()? {
@@ -571,10 +538,6 @@ impl<'a> Parser<'a>
                         }
                         match modifiers.fun_modifier_pair {
                             Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("trait mustn't have function modifier"))),
-                            None => (),
-                        }
-                        match modifiers.inline_modifier_pair {
-                            Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("trait mustn't have inline modifier"))),
                             None => (),
                         }
                         match self.lexer.next_token()? {

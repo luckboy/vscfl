@@ -646,7 +646,7 @@ kernel i() -> () = ();
             match &*var_r {
                 Var::Fun(fun, None) => {
                     match &**fun {
-                        Fun::Fun(FunModifier::None, InlineModifier::None, args, ret_type_expr, where_tuples, expr, None, None) => {
+                        Fun::Fun(FunModifier::None, args, ret_type_expr, where_tuples, expr, None, None) => {
                             assert_eq!(true, args.is_empty());
                             match &**ret_type_expr {
                                 TypeExpr::Var(type_var_ident, pos) => {
@@ -691,7 +691,7 @@ kernel i() -> () = ();
             match &*var_r {
                 Var::Fun(fun, None) => {
                     match &**fun {
-                        Fun::Fun(FunModifier::None, InlineModifier::None, args, ret_type_expr, where_tuples, expr, None, None) => {
+                        Fun::Fun(FunModifier::None, args, ret_type_expr, where_tuples, expr, None, None) => {
                             assert_eq!(true, args.is_empty());
                             match &**ret_type_expr {
                                 TypeExpr::Var(type_var_ident, pos) => {
@@ -736,7 +736,7 @@ kernel i() -> () = ();
             match &*var_r {
                 Var::Fun(fun, None) => {
                     match &**fun {
-                        Fun::Fun(FunModifier::None, InlineModifier::None, args, ret_type_expr, where_tuples, expr, None, None) => {
+                        Fun::Fun(FunModifier::None, args, ret_type_expr, where_tuples, expr, None, None) => {
                             assert_eq!(2, args.len());
                             match &args[0] {
                                 Arg(arg_ident, arg_type_expr, None, pos) => {
@@ -834,7 +834,7 @@ kernel i() -> () = ();
             match &*var_r {
                 Var::Fun(fun, None) => {
                     match &**fun {
-                        Fun::Fun(FunModifier::None, InlineModifier::Inline, args, ret_type_expr, where_tuples, expr, None, None) => {
+                        Fun::Fun(FunModifier::Inline, args, ret_type_expr, where_tuples, expr, None, None) => {
                             assert_eq!(2, args.len());
                             match &args[0] {
                                 Arg(arg_ident, arg_type_expr, None, pos) => {
@@ -932,7 +932,7 @@ kernel i() -> () = ();
             match &*var_r {
                 Var::Fun(fun, None) => {
                     match &**fun {
-                        Fun::Fun(FunModifier::Kernel, InlineModifier::None, args, ret_type_expr, where_tuples, expr, None, None) => {
+                        Fun::Fun(FunModifier::Kernel, args, ret_type_expr, where_tuples, expr, None, None) => {
                             assert_eq!(true, args.is_empty());
                             match &**ret_type_expr {
                                 TypeExpr::Tuple(type_exprs, pos) => {
@@ -1769,7 +1769,7 @@ f() -> (t1, t2, t3)
             match &*var_r {
                 Var::Fun(fun, None) => {
                     match &**fun {
-                        Fun::Fun(FunModifier::None, InlineModifier::None, args, ret_type_expr, where_tuples, expr, None, None) => {
+                        Fun::Fun(FunModifier::None, args, ret_type_expr, where_tuples, expr, None, None) => {
                             assert_eq!(true, args.is_empty());
                             match &**ret_type_expr {
                                 TypeExpr::Tuple(type_exprs, pos) => {
@@ -8880,7 +8880,7 @@ trait T
                             match &*var_r {
                                 Var::Fun(fun, None) => {
                                     match &**fun {
-                                        Fun::Fun(FunModifier::None, InlineModifier::None, args, ret_type_expr, where_tuples, expr, None, None) => {
+                                        Fun::Fun(FunModifier::None, args, ret_type_expr, where_tuples, expr, None, None) => {
                                             assert_eq!(true, args.is_empty());
                                             match &**ret_type_expr {
                                                 TypeExpr::Param(type_param_ident, pos) => {
@@ -8931,7 +8931,7 @@ trait T
                             match &*var_r {
                                 Var::Fun(fun, None) => {
                                     match &**fun {
-                                        Fun::Fun(FunModifier::None, InlineModifier::None, args, ret_type_expr, where_tuples, expr, None, None) => {
+                                        Fun::Fun(FunModifier::None, args, ret_type_expr, where_tuples, expr, None, None) => {
                                             assert_eq!(true, args.is_empty());
                                             match &**ret_type_expr {
                                                 TypeExpr::Param(type_param_ident, pos) => {
@@ -8982,7 +8982,7 @@ trait T
                             match &*var_r {
                                 Var::Fun(fun, None) => {
                                     match &**fun {
-                                        Fun::Fun(FunModifier::None, InlineModifier::None, args, ret_type_expr, where_tuples, expr, None, None) => {
+                                        Fun::Fun(FunModifier::None, args, ret_type_expr, where_tuples, expr, None, None) => {
                                             assert_eq!(2, args.len());
                                             match &args[0] {
                                                 Arg(arg_ident, arg_type_expr, None, pos) => {
@@ -9089,7 +9089,7 @@ trait T
                             match &*var_r {
                                 Var::Fun(fun, None) => {
                                     match &**fun {
-                                        Fun::Fun(FunModifier::None, InlineModifier::Inline, args, ret_type_expr, where_tuples, expr, None, None) => {
+                                        Fun::Fun(FunModifier::Inline, args, ret_type_expr, where_tuples, expr, None, None) => {
                                             assert_eq!(2, args.len());
                                             match &args[0] {
                                                 Arg(arg_ident, arg_type_expr, None, pos) => {
@@ -9196,7 +9196,7 @@ trait T
                             match &*var_r {
                                 Var::Fun(fun, None) => {
                                     match &**fun {
-                                        Fun::Fun(FunModifier::Kernel, InlineModifier::None, args, ret_type_expr, where_tuples, expr, None, None) => {
+                                        Fun::Fun(FunModifier::Kernel, args, ret_type_expr, where_tuples, expr, None, None) => {
                                             assert_eq!(1, args.len());
                                             match &args[0] {
                                                 Arg(arg_ident, arg_type_expr, None, pos) => {
@@ -9266,7 +9266,7 @@ trait T
                             match &*var_r {
                                 Var::Fun(fun, None) => {
                                     match &**fun {
-                                        Fun::Fun(FunModifier::None, InlineModifier::None, args, ret_type_expr, where_tuples, None, None, None) => {
+                                        Fun::Fun(FunModifier::None, args, ret_type_expr, where_tuples, None, None, None) => {
                                             assert_eq!(true, args.is_empty());
                                             match &**ret_type_expr {
                                                 TypeExpr::Param(type_param_ident, pos) => {
