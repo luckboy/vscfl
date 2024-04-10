@@ -6958,3 +6958,1476 @@ a: Int =
         _ => assert!(false),
     }
 }
+
+#[test]
+fn test_parser_parse_parses_expression_literals()
+{
+    let s = "
+a: Bool = false;
+b: Bool = true;
+c: Char = 'a';
+d: Int = 1i;
+e: Long = 2I;
+f: Uint = 3u;
+g: Ulong = 4U;
+h: Float = 1.5f;
+i: Double = 2.5F;
+j: S = \"abc\";
+k: U = ();
+l: T = (1, 2);
+m: A1 = [];
+n: A2 = [1, 2, 3];
+o: A3 = [1; 10];
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(15, tree.defs().len());
+    match &*tree.defs()[0] {
+        Def::Var(ident, var, pos) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("a"), *ident);
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
+                    match &**type_expr {
+                        TypeExpr::Var(type_expr_ident, pos) => {
+                            assert_eq!(1, pos.line);
+                            assert_eq!(4, pos.column);
+                            assert_eq!(String::from("Bool"), *type_expr_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                    assert_eq!(true, where_tuples.is_empty());
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(literal, None, pos) => {
+                                    assert_eq!(1, pos.line);
+                                    assert_eq!(11, pos.column);
+                                    match &**literal {
+                                        Literal::Bool(b) => assert_eq!(false, *b),
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[1] {
+        Def::Var(ident, var, pos) => {
+            assert_eq!(2, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("b"), *ident);
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
+                    match &**type_expr {
+                        TypeExpr::Var(type_expr_ident, pos) => {
+                            assert_eq!(2, pos.line);
+                            assert_eq!(4, pos.column);
+                            assert_eq!(String::from("Bool"), *type_expr_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                    assert_eq!(true, where_tuples.is_empty());
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(literal, None, pos) => {
+                                    assert_eq!(2, pos.line);
+                                    assert_eq!(11, pos.column);
+                                    match &**literal {
+                                        Literal::Bool(b) => assert_eq!(true, *b),
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[2] {
+        Def::Var(ident, var, pos) => {
+            assert_eq!(3, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("c"), *ident);
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
+                    match &**type_expr {
+                        TypeExpr::Var(type_expr_ident, pos) => {
+                            assert_eq!(3, pos.line);
+                            assert_eq!(4, pos.column);
+                            assert_eq!(String::from("Char"), *type_expr_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                    assert_eq!(true, where_tuples.is_empty());
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(literal, None, pos) => {
+                                    assert_eq!(3, pos.line);
+                                    assert_eq!(11, pos.column);
+                                    match &**literal {
+                                        Literal::Char(n) => assert_eq!(b'a' as i8, *n),
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[3] {
+        Def::Var(ident, var, pos) => {
+            assert_eq!(4, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("d"), *ident);
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
+                    match &**type_expr {
+                        TypeExpr::Var(type_expr_ident, pos) => {
+                            assert_eq!(4, pos.line);
+                            assert_eq!(4, pos.column);
+                            assert_eq!(String::from("Int"), *type_expr_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                    assert_eq!(true, where_tuples.is_empty());
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(literal, None, pos) => {
+                                    assert_eq!(4, pos.line);
+                                    assert_eq!(10, pos.column);
+                                    match &**literal {
+                                        Literal::Int(n) => assert_eq!(1, *n),
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[4] {
+        Def::Var(ident, var, pos) => {
+            assert_eq!(5, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("e"), *ident);
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
+                    match &**type_expr {
+                        TypeExpr::Var(type_expr_ident, pos) => {
+                            assert_eq!(5, pos.line);
+                            assert_eq!(4, pos.column);
+                            assert_eq!(String::from("Long"), *type_expr_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                    assert_eq!(true, where_tuples.is_empty());
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(literal, None, pos) => {
+                                    assert_eq!(5, pos.line);
+                                    assert_eq!(11, pos.column);
+                                    match &**literal {
+                                        Literal::Long(n) => assert_eq!(2, *n),
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[5] {
+        Def::Var(ident, var, pos) => {
+            assert_eq!(6, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("f"), *ident);
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
+                    match &**type_expr {
+                        TypeExpr::Var(type_expr_ident, pos) => {
+                            assert_eq!(6, pos.line);
+                            assert_eq!(4, pos.column);
+                            assert_eq!(String::from("Uint"), *type_expr_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                    assert_eq!(true, where_tuples.is_empty());
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(literal, None, pos) => {
+                                    assert_eq!(6, pos.line);
+                                    assert_eq!(11, pos.column);
+                                    match &**literal {
+                                        Literal::Uint(n) => assert_eq!(3, *n),
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[6] {
+        Def::Var(ident, var, pos) => {
+            assert_eq!(7, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("g"), *ident);
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
+                    match &**type_expr {
+                        TypeExpr::Var(type_expr_ident, pos) => {
+                            assert_eq!(7, pos.line);
+                            assert_eq!(4, pos.column);
+                            assert_eq!(String::from("Ulong"), *type_expr_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                    assert_eq!(true, where_tuples.is_empty());
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(literal, None, pos) => {
+                                    assert_eq!(7, pos.line);
+                                    assert_eq!(12, pos.column);
+                                    match &**literal {
+                                        Literal::Ulong(n) => assert_eq!(4, *n),
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[7] {
+        Def::Var(ident, var, pos) => {
+            assert_eq!(8, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("h"), *ident);
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
+                    match &**type_expr {
+                        TypeExpr::Var(type_expr_ident, pos) => {
+                            assert_eq!(8, pos.line);
+                            assert_eq!(4, pos.column);
+                            assert_eq!(String::from("Float"), *type_expr_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                    assert_eq!(true, where_tuples.is_empty());
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(literal, None, pos) => {
+                                    assert_eq!(8, pos.line);
+                                    assert_eq!(12, pos.column);
+                                    match &**literal {
+                                        Literal::Float(n) => assert_eq!(1.5, *n),
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[8] {
+        Def::Var(ident, var, pos) => {
+            assert_eq!(9, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("i"), *ident);
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
+                    match &**type_expr {
+                        TypeExpr::Var(type_expr_ident, pos) => {
+                            assert_eq!(9, pos.line);
+                            assert_eq!(4, pos.column);
+                            assert_eq!(String::from("Double"), *type_expr_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                    assert_eq!(true, where_tuples.is_empty());
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(literal, None, pos) => {
+                                    assert_eq!(9, pos.line);
+                                    assert_eq!(13, pos.column);
+                                    match &**literal {
+                                        Literal::Double(n) => assert_eq!(2.5, *n),
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[9] {
+        Def::Var(ident, var, pos) => {
+            assert_eq!(10, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("j"), *ident);
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
+                    match &**type_expr {
+                        TypeExpr::Var(type_expr_ident, pos) => {
+                            assert_eq!(10, pos.line);
+                            assert_eq!(4, pos.column);
+                            assert_eq!(String::from("S"), *type_expr_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                    assert_eq!(true, where_tuples.is_empty());
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(literal, None, pos) => {
+                                    assert_eq!(10, pos.line);
+                                    assert_eq!(8, pos.column);
+                                    match &**literal {
+                                        Literal::String(bs) => assert_eq!("abc".as_bytes(), *bs),
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[10] {
+        Def::Var(ident, var, pos) => {
+            assert_eq!(11, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("k"), *ident);
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
+                    match &**type_expr {
+                        TypeExpr::Var(type_expr_ident, pos) => {
+                            assert_eq!(11, pos.line);
+                            assert_eq!(4, pos.column);
+                            assert_eq!(String::from("U"), *type_expr_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                    assert_eq!(true, where_tuples.is_empty());
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(literal, None, pos) => {
+                                    assert_eq!(11, pos.line);
+                                    assert_eq!(8, pos.column);
+                                    match &**literal {
+                                        Literal::Tuple(exprs) => assert_eq!(true, exprs.is_empty()),
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[11] {
+        Def::Var(ident, var, pos) => {
+            assert_eq!(12, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("l"), *ident);
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
+                    match &**type_expr {
+                        TypeExpr::Var(type_expr_ident, pos) => {
+                            assert_eq!(12, pos.line);
+                            assert_eq!(4, pos.column);
+                            assert_eq!(String::from("T"), *type_expr_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                    assert_eq!(true, where_tuples.is_empty());
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(literal, None, pos) => {
+                                    assert_eq!(12, pos.line);
+                                    assert_eq!(8, pos.column);
+                                    match &**literal {
+                                        Literal::Tuple(exprs) => {
+                                            assert_eq!(2, exprs.len());
+                                            match &*exprs[0] {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(12, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(1, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &*exprs[1] {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(12, pos.line);
+                                                    assert_eq!(12, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(2, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[12] {
+        Def::Var(ident, var, pos) => {
+            assert_eq!(13, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("m"), *ident);
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
+                    match &**type_expr {
+                        TypeExpr::Var(type_expr_ident, pos) => {
+                            assert_eq!(13, pos.line);
+                            assert_eq!(4, pos.column);
+                            assert_eq!(String::from("A1"), *type_expr_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                    assert_eq!(true, where_tuples.is_empty());
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(literal, None, pos) => {
+                                    assert_eq!(13, pos.line);
+                                    assert_eq!(9, pos.column);
+                                    match &**literal {
+                                        Literal::Array(exprs) => assert_eq!(true, exprs.is_empty()),
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[13] {
+        Def::Var(ident, var, pos) => {
+            assert_eq!(14, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("n"), *ident);
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
+                    match &**type_expr {
+                        TypeExpr::Var(type_expr_ident, pos) => {
+                            assert_eq!(14, pos.line);
+                            assert_eq!(4, pos.column);
+                            assert_eq!(String::from("A2"), *type_expr_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                    assert_eq!(true, where_tuples.is_empty());
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(literal, None, pos) => {
+                                    assert_eq!(14, pos.line);
+                                    assert_eq!(9, pos.column);
+                                    match &**literal {
+                                        Literal::Array(exprs) => {
+                                            assert_eq!(3, exprs.len());
+                                            match &*exprs[0] {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(14, pos.line);
+                                                    assert_eq!(10, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(1, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &*exprs[1] {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(14, pos.line);
+                                                    assert_eq!(13, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(2, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &*exprs[2] {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(14, pos.line);
+                                                    assert_eq!(16, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(3, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[14] {
+        Def::Var(ident, var, pos) => {
+            assert_eq!(15, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("o"), *ident);
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
+                    match &**type_expr {
+                        TypeExpr::Var(type_expr_ident, pos) => {
+                            assert_eq!(15, pos.line);
+                            assert_eq!(4, pos.column);
+                            assert_eq!(String::from("A3"), *type_expr_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                    assert_eq!(true, where_tuples.is_empty());
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(literal, None, pos) => {
+                                    assert_eq!(15, pos.line);
+                                    assert_eq!(9, pos.column);
+                                    match &**literal {
+                                        Literal::FilledArray(expr, len) => {
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(15, pos.line);
+                                                    assert_eq!(10, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(1, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(10, *len);
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_parses_pattern_literals()
+{
+    let s = "
+a: Int =
+    x match {
+        false => 1;
+        true => 2;
+        'a' => 3;
+        1i => 4;
+        2I => 5;
+        3u => 6;
+        4U => 7;
+        1.5f => 8;
+        2.5F => 9;
+        !false => 10;
+        !true => 11;
+        -!'a' => 12;
+        -!1i => 13;
+        -!2I => 14;
+        !3u => 15;
+        !4U => 16;
+        -1.5f => 17;
+        -2.5F => 18;
+        \"abc\" => 19;
+        () => 20;
+        (1, 2) => 21;
+        [] => 22;
+        [1, 2, 3] => 23;
+        [1; 10] => 24;
+    };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(1, tree.defs().len());
+    match &*tree.defs()[0] {
+        Def::Var(ident, var, pos) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("a"), *ident);
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
+                    match &**type_expr {
+                        TypeExpr::Var(type_expr_ident, pos) => {
+                            assert_eq!(1, pos.line);
+                            assert_eq!(4, pos.column);
+                            assert_eq!(String::from("Int"), *type_expr_ident);
+                        },
+                        _ => assert!(false),
+                    }
+                    assert_eq!(true, where_tuples.is_empty());
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Match(expr, cases, None, pos) => {
+                                    assert_eq!(2, pos.line);
+                                    assert_eq!(5, pos.column);
+                                    match &**expr {
+                                        Expr::Var(var_ident, None, pos) => {
+                                            assert_eq!(2, pos.line);
+                                            assert_eq!(5, pos.column);
+                                            assert_eq!(String::from("x"), *var_ident);
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(24, cases.len());
+                                    match &cases[0] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(3, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Bool(b) => assert_eq!(false, *b),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(3, pos.line);
+                                                    assert_eq!(18, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(1, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[1] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(4, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Bool(b) => assert_eq!(true, *b),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(4, pos.line);
+                                                    assert_eq!(17, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(2, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[2] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(5, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Char(n) => assert_eq!(b'a' as i8, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(5, pos.line);
+                                                    assert_eq!(16, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(3, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[3] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(6, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(1, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(6, pos.line);
+                                                    assert_eq!(15, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(4, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[4] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(7, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Long(n) => assert_eq!(2, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(7, pos.line);
+                                                    assert_eq!(15, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(5, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[5] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(8, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Uint(n) => assert_eq!(3, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(8, pos.line);
+                                                    assert_eq!(15, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(6, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[6] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(9, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Ulong(n) => assert_eq!(4, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(9, pos.line);
+                                                    assert_eq!(15, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(7, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[7] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(10, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Float(n) => assert_eq!(1.5, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(10, pos.line);
+                                                    assert_eq!(17, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(8, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[8] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(11, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Double(n) => assert_eq!(2.5, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(11, pos.line);
+                                                    assert_eq!(17, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(9, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+
+
+                                    match &cases[9] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(12, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Bool(b) => assert_eq!(!false, *b),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(12, pos.line);
+                                                    assert_eq!(19, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(10, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[10] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(13, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Bool(b) => assert_eq!(!true, *b),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(13, pos.line);
+                                                    assert_eq!(18, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(11, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[11] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(14, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Char(n) => assert_eq!(-!(b'a' as i8), *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(14, pos.line);
+                                                    assert_eq!(18, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(12, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[12] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(15, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(-!1, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(15, pos.line);
+                                                    assert_eq!(17, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(13, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[13] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(16, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Long(n) => assert_eq!(-!2, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(16, pos.line);
+                                                    assert_eq!(17, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(14, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[14] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(17, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Uint(n) => assert_eq!(!3, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(17, pos.line);
+                                                    assert_eq!(16, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(15, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[15] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(18, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Ulong(n) => assert_eq!(!4, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(18, pos.line);
+                                                    assert_eq!(16, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(16, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[16] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(19, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Float(n) => assert_eq!(-1.5, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(19, pos.line);
+                                                    assert_eq!(18, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(17, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[17] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(20, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Double(n) => assert_eq!(-2.5, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(20, pos.line);
+                                                    assert_eq!(18, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(18, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[18] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(21, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::String(bs) => assert_eq!("abc".as_bytes(), *bs),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(21, pos.line);
+                                                    assert_eq!(18, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(19, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[19] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(22, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Tuple(patterns) => assert_eq!(true, patterns.is_empty()),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(22, pos.line);
+                                                    assert_eq!(15, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(20, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[20] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(23, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Tuple(patterns) => {
+                                                            assert_eq!(2, patterns.len());
+                                                            match &*patterns[0] {
+                                                                Pattern::Literal(literal, None, pos) => {
+                                                                    assert_eq!(23, pos.line);
+                                                                    assert_eq!(10, pos.column);
+                                                                    match &**literal {
+                                                                        Literal::Int(n) => assert_eq!(1, *n),
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                            match &*patterns[1] {
+                                                                Pattern::Literal(literal, None, pos) => {
+                                                                    assert_eq!(23, pos.line);
+                                                                    assert_eq!(13, pos.column);
+                                                                    match &**literal {
+                                                                        Literal::Int(n) => assert_eq!(2, *n),
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(23, pos.line);
+                                                    assert_eq!(19, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(21, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[21] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(24, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Array(patterns) => assert_eq!(true, patterns.is_empty()),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(24, pos.line);
+                                                    assert_eq!(15, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(22, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[22] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(25, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::Array(patterns) => {
+                                                            assert_eq!(3, patterns.len());
+                                                            match &*patterns[0] {
+                                                                Pattern::Literal(literal, None, pos) => {
+                                                                    assert_eq!(25, pos.line);
+                                                                    assert_eq!(10, pos.column);
+                                                                    match &**literal {
+                                                                        Literal::Int(n) => assert_eq!(1, *n),
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                            match &*patterns[1] {
+                                                                Pattern::Literal(literal, None, pos) => {
+                                                                    assert_eq!(25, pos.line);
+                                                                    assert_eq!(13, pos.column);
+                                                                    match &**literal {
+                                                                        Literal::Int(n) => assert_eq!(2, *n),
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                            match &*patterns[2] {
+                                                                Pattern::Literal(literal, None, pos) => {
+                                                                    assert_eq!(25, pos.line);
+                                                                    assert_eq!(16, pos.column);
+                                                                    match &**literal {
+                                                                        Literal::Int(n) => assert_eq!(3, *n),
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(25, pos.line);
+                                                    assert_eq!(22, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(23, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[23] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, None, pos) => {
+                                                    assert_eq!(26, pos.line);
+                                                    assert_eq!(9, pos.column);
+                                                    match &**literal {
+                                                        Literal::FilledArray(pattern, len) => {
+                                                            match &**pattern {
+                                                                Pattern::Literal(literal, None, pos) => {
+                                                                    assert_eq!(26, pos.line);
+                                                                    assert_eq!(10, pos.column);
+                                                                    match &**literal {
+                                                                        Literal::Int(n) => assert_eq!(1, *n),
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                            assert_eq!(10, *len);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(literal, None, pos) => {
+                                                    assert_eq!(26, pos.line);
+                                                    assert_eq!(20, pos.column);
+                                                    match &**literal {
+                                                        Literal::Int(n) => assert_eq!(24, *n),
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}

@@ -1520,7 +1520,7 @@ impl<'a> Parser<'a>
                 // pattern_literal
                 // pattern_literal, "as", type_expr
                 self.lexer.undo_token(token, pos.clone());
-                match self.parse_literal_either(false, Self::parse_pattern)? {
+                match self.parse_literal_either(true, Self::parse_pattern)? {
                     LiteralEither::Literal(literal) => {
                         match self.lexer.next_token()? {
                             (Token::As, _) => Ok(Box::new(Pattern::As(literal, self.parse_type_expr()?, None, pos))),
