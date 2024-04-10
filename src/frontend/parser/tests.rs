@@ -32,10 +32,10 @@ x: Int = 1;
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -391,10 +391,10 @@ constant e: Int = 6;
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -430,10 +430,10 @@ constant e: Int = 6;
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(2, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -469,10 +469,10 @@ constant e: Int = 6;
             match &*var_r {
                 Var::Var(VarModifier::Private, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(3, pos.line);
                             assert_eq!(12, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -508,10 +508,10 @@ constant e: Int = 6;
             match &*var_r {
                 Var::Var(VarModifier::Local, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(4, pos.line);
                             assert_eq!(10, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -547,10 +547,10 @@ constant e: Int = 6;
             match &*var_r {
                 Var::Var(VarModifier::Global, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(5, pos.line);
                             assert_eq!(11, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -586,10 +586,10 @@ constant e: Int = 6;
             match &*var_r {
                 Var::Var(VarModifier::Constant, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(6, pos.line);
                             assert_eq!(13, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -649,10 +649,10 @@ kernel i() -> () = ();
                         Fun::Fun(FunModifier::None, InlineModifier::None, args, ret_type_expr, where_tuples, expr, None, None) => {
                             assert_eq!(true, args.is_empty());
                             match &**ret_type_expr {
-                                TypeExpr::Var(type_expr_ident, pos) => {
+                                TypeExpr::Var(type_var_ident, pos) => {
                                     assert_eq!(1, pos.line);
                                     assert_eq!(8, pos.column);
-                                    assert_eq!(String::from("Int"), *type_expr_ident);
+                                    assert_eq!(String::from("Int"), *type_var_ident);
                                 },
                                 _ => assert!(false),
                             }
@@ -694,10 +694,10 @@ kernel i() -> () = ();
                         Fun::Fun(FunModifier::None, InlineModifier::None, args, ret_type_expr, where_tuples, expr, None, None) => {
                             assert_eq!(true, args.is_empty());
                             match &**ret_type_expr {
-                                TypeExpr::Var(type_expr_ident, pos) => {
+                                TypeExpr::Var(type_var_ident, pos) => {
                                     assert_eq!(2, pos.line);
                                     assert_eq!(8, pos.column);
-                                    assert_eq!(String::from("Int"), *type_expr_ident);
+                                    assert_eq!(String::from("Int"), *type_var_ident);
                                 },
                                 _ => assert!(false),
                             }
@@ -744,10 +744,10 @@ kernel i() -> () = ();
                                     assert_eq!(3, pos.column);
                                     assert_eq!(String::from("x"), *arg_ident);
                                     match &**arg_type_expr {
-                                        TypeExpr::Var(type_expr_ident, pos) => {
+                                        TypeExpr::Var(type_var_ident, pos) => {
                                             assert_eq!(3, pos.line);
                                             assert_eq!(6, pos.column);
-                                            assert_eq!(String::from("Int"), *type_expr_ident);
+                                            assert_eq!(String::from("Int"), *type_var_ident);
                                         },
                                         _ => assert!(false),
                                     }
@@ -760,10 +760,10 @@ kernel i() -> () = ();
                                     assert_eq!(11, pos.column);
                                     assert_eq!(String::from("y"), *arg_ident);
                                     match &**arg_type_expr {
-                                        TypeExpr::Var(type_expr_ident, pos) => {
+                                        TypeExpr::Var(type_var_ident, pos) => {
                                             assert_eq!(3, pos.line);
                                             assert_eq!(14, pos.column);
-                                            assert_eq!(String::from("Int"), *type_expr_ident);
+                                            assert_eq!(String::from("Int"), *type_var_ident);
                                         },
                                         _ => assert!(false),
                                     }
@@ -771,10 +771,10 @@ kernel i() -> () = ();
                                 _ => assert!(false),
                             }
                             match &**ret_type_expr {
-                                TypeExpr::Var(type_expr_ident, pos) => {
+                                TypeExpr::Var(type_var_ident, pos) => {
                                     assert_eq!(3, pos.line);
                                     assert_eq!(22, pos.column);
-                                    assert_eq!(String::from("Int"), *type_expr_ident);
+                                    assert_eq!(String::from("Int"), *type_var_ident);
                                 },
                                 _ => assert!(false),
                             }
@@ -842,10 +842,10 @@ kernel i() -> () = ();
                                     assert_eq!(10, pos.column);
                                     assert_eq!(String::from("x"), *arg_ident);
                                     match &**arg_type_expr {
-                                        TypeExpr::Var(type_expr_ident, pos) => {
+                                        TypeExpr::Var(type_var_ident, pos) => {
                                             assert_eq!(4, pos.line);
                                             assert_eq!(13, pos.column);
-                                            assert_eq!(String::from("Int"), *type_expr_ident);
+                                            assert_eq!(String::from("Int"), *type_var_ident);
                                         },
                                         _ => assert!(false),
                                     }
@@ -858,10 +858,10 @@ kernel i() -> () = ();
                                     assert_eq!(18, pos.column);
                                     assert_eq!(String::from("y"), *arg_ident);
                                     match &**arg_type_expr {
-                                        TypeExpr::Var(type_expr_ident, pos) => {
+                                        TypeExpr::Var(type_var_ident, pos) => {
                                             assert_eq!(4, pos.line);
                                             assert_eq!(21, pos.column);
-                                            assert_eq!(String::from("Int"), *type_expr_ident);
+                                            assert_eq!(String::from("Int"), *type_var_ident);
                                         },
                                         _ => assert!(false),
                                     }
@@ -869,10 +869,10 @@ kernel i() -> () = ();
                                 _ => assert!(false),
                             }
                             match &**ret_type_expr {
-                                TypeExpr::Var(type_expr_ident, pos) => {
+                                TypeExpr::Var(type_var_ident, pos) => {
                                     assert_eq!(4, pos.line);
                                     assert_eq!(29, pos.column);
-                                    assert_eq!(String::from("Int"), *type_expr_ident);
+                                    assert_eq!(String::from("Int"), *type_var_ident);
                                 },
                                 _ => assert!(false),
                             }
@@ -1924,10 +1924,10 @@ c: Int =
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -1992,10 +1992,10 @@ c: Int =
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(2, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -2107,10 +2107,10 @@ c: Int =
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(6, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -2220,10 +2220,10 @@ b: Int = shared 2.5 as Int;
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -2253,10 +2253,10 @@ b: Int = shared 2.5 as Int;
                                         _ => assert!(false),
                                     }
                                     match &**type_expr {
-                                        TypeExpr::Var(type_expr_ident, pos) => {
+                                        TypeExpr::Var(type_var_ident, pos) => {
                                             assert_eq!(1, pos.line);
                                             assert_eq!(20, pos.column);
-                                            assert_eq!(String::from("Int"), *type_expr_ident);
+                                            assert_eq!(String::from("Int"), *type_var_ident);
                                         },
                                         _ => assert!(false),
                                     }
@@ -2281,10 +2281,10 @@ b: Int = shared 2.5 as Int;
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(2, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -2314,10 +2314,10 @@ b: Int = shared 2.5 as Int;
                                         _ => assert!(false),
                                     }
                                     match &**type_expr {
-                                        TypeExpr::Var(type_expr_ident, pos) => {
+                                        TypeExpr::Var(type_var_ident, pos) => {
                                             assert_eq!(2, pos.line);
                                             assert_eq!(24, pos.column);
-                                            assert_eq!(String::from("Int"), *type_expr_ident);
+                                            assert_eq!(String::from("Int"), *type_var_ident);
                                         },
                                         _ => assert!(false),
                                     }
@@ -2363,10 +2363,10 @@ b: Bool = shared false | true;
                             assert_eq!(1, pos.line);
                             assert_eq!(4, pos.column);
                             match &**type_expr {
-                                TypeExpr::Var(type_expr_ident, pos) => {
+                                TypeExpr::Var(type_var_ident, pos) => {
                                     assert_eq!(1, pos.line);
                                     assert_eq!(9, pos.column);
-                                    assert_eq!(String::from("Bool"), *type_expr_ident);
+                                    assert_eq!(String::from("Bool"), *type_var_ident);
                                 },
                                 _ => assert!(false),
                             }
@@ -2439,10 +2439,10 @@ b: Bool = shared false | true;
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(2, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Bool"), *type_expr_ident);
+                            assert_eq!(String::from("Bool"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -2529,10 +2529,10 @@ a: Bool = true ^ false | false ^ true;
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Bool"), *type_expr_ident);
+                            assert_eq!(String::from("Bool"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -2666,10 +2666,10 @@ a: Bool = true & false ^ false & true;
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Bool"), *type_expr_ident);
+                            assert_eq!(String::from("Bool"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -2803,10 +2803,10 @@ a: Bool = 1 == 2 & 3 != 4;
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Bool"), *type_expr_ident);
+                            assert_eq!(String::from("Bool"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -2945,10 +2945,10 @@ f: Bool = 1 << 2 <= 3 >> 4;
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Bool"), *type_expr_ident);
+                            assert_eq!(String::from("Bool"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -3065,10 +3065,10 @@ f: Bool = 1 << 2 <= 3 >> 4;
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(2, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Bool"), *type_expr_ident);
+                            assert_eq!(String::from("Bool"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -3185,10 +3185,10 @@ f: Bool = 1 << 2 <= 3 >> 4;
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(3, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Bool"), *type_expr_ident);
+                            assert_eq!(String::from("Bool"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -3305,10 +3305,10 @@ f: Bool = 1 << 2 <= 3 >> 4;
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(4, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Bool"), *type_expr_ident);
+                            assert_eq!(String::from("Bool"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -3425,10 +3425,10 @@ f: Bool = 1 << 2 <= 3 >> 4;
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(5, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Bool"), *type_expr_ident);
+                            assert_eq!(String::from("Bool"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -3545,10 +3545,10 @@ f: Bool = 1 << 2 <= 3 >> 4;
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(6, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Bool"), *type_expr_ident);
+                            assert_eq!(String::from("Bool"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -3683,10 +3683,10 @@ b: Int = 1 + 2 >> 3 - 4;
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -3803,10 +3803,10 @@ b: Int = 1 + 2 >> 3 - 4;
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(2, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -3941,10 +3941,10 @@ b: Int = 1 * 2 - 3 / 4;
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -4061,10 +4061,10 @@ b: Int = 1 * 2 - 3 / 4;
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(2, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -4200,10 +4200,10 @@ c: Int = -1 % !2;
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -4298,10 +4298,10 @@ c: Int = -1 % !2;
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(2, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -4396,10 +4396,10 @@ c: Int = -1 % !2;
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(3, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -4511,10 +4511,10 @@ a: Int = -!1;
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -4623,10 +4623,10 @@ d: Int =
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -4689,10 +4689,10 @@ d: Int =
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(2, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -4946,10 +4946,10 @@ d: Int =
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(10, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -5299,10 +5299,10 @@ d: Int =
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(18, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -5628,10 +5628,10 @@ h: () = printf(\"%d\\n\", 2);
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -5748,10 +5748,10 @@ h: () = printf(\"%d\\n\", 2);
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(2, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -5787,10 +5787,10 @@ h: () = printf(\"%d\\n\", 2);
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(3, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Fun"), *type_expr_ident);
+                            assert_eq!(String::from("Fun"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -5810,10 +5810,10 @@ h: () = printf(\"%d\\n\", 2);
                                             match arg_type_expr {
                                                 Some(arg_type_expr) => {
                                                     match &**arg_type_expr {
-                                                        TypeExpr::Var(type_expr_ident, pos) => {
+                                                        TypeExpr::Var(type_var_ident, pos) => {
                                                             assert_eq!(3, pos.line);
                                                             assert_eq!(14, pos.column);
-                                                            assert_eq!(String::from("Int"), *type_expr_ident);
+                                                            assert_eq!(String::from("Int"), *type_var_ident);
                                                         },
                                                         _ => assert!(false),
                                                     }
@@ -5884,10 +5884,10 @@ h: () = printf(\"%d\\n\", 2);
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(4, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Fun"), *type_expr_ident);
+                            assert_eq!(String::from("Fun"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -5915,10 +5915,10 @@ h: () = printf(\"%d\\n\", 2);
                                             match arg_type_expr {
                                                 Some(arg_type_expr) => {
                                                     match &**arg_type_expr {
-                                                        TypeExpr::Var(type_expr_ident, pos) => {
+                                                        TypeExpr::Var(type_var_ident, pos) => {
                                                             assert_eq!(4, pos.line);
                                                             assert_eq!(17, pos.column);
-                                                            assert_eq!(String::from("Int"), *type_expr_ident);
+                                                            assert_eq!(String::from("Int"), *type_var_ident);
                                                         },
                                                         _ => assert!(false),
                                                     }
@@ -5931,10 +5931,10 @@ h: () = printf(\"%d\\n\", 2);
                                     match ret_type_expr {
                                         Some(ret_type_expr) => {
                                             match &**ret_type_expr {
-                                                TypeExpr::Var(type_expr_ident, pos) => {
+                                                TypeExpr::Var(type_var_ident, pos) => {
                                                     assert_eq!(4, pos.line);
                                                     assert_eq!(25, pos.column);
-                                                    assert_eq!(String::from("Int"), *type_expr_ident);
+                                                    assert_eq!(String::from("Int"), *type_var_ident);
                                                 },
                                                 _ => assert!(false),
                                             }
@@ -5994,10 +5994,10 @@ h: () = printf(\"%d\\n\", 2);
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(5, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -6030,10 +6030,10 @@ h: () = printf(\"%d\\n\", 2);
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(6, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -6066,10 +6066,10 @@ h: () = printf(\"%d\\n\", 2);
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(7, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("T"), *type_expr_ident);
+                            assert_eq!(String::from("T"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -6217,10 +6217,10 @@ a: Int =
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -6340,10 +6340,10 @@ a: Int =
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -6449,10 +6449,10 @@ a: Int =
                                                         _ => assert!(false),
                                                     }
                                                     match &**type_expr {
-                                                        TypeExpr::Var(type_expr_ident, pos) => {
+                                                        TypeExpr::Var(type_var_ident, pos) => {
                                                             assert_eq!(5, pos.line);
                                                             assert_eq!(14, pos.column);
-                                                            assert_eq!(String::from("Float"), *type_expr_ident);
+                                                            assert_eq!(String::from("Float"), *type_var_ident);
                                                         },
                                                         _ => assert!(false),
                                                     }
@@ -6998,10 +6998,10 @@ o: A3 = [1; 10];
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Bool"), *type_expr_ident);
+                            assert_eq!(String::from("Bool"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -7037,10 +7037,10 @@ o: A3 = [1; 10];
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(2, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Bool"), *type_expr_ident);
+                            assert_eq!(String::from("Bool"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -7076,10 +7076,10 @@ o: A3 = [1; 10];
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(3, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Char"), *type_expr_ident);
+                            assert_eq!(String::from("Char"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -7115,10 +7115,10 @@ o: A3 = [1; 10];
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(4, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -7154,10 +7154,10 @@ o: A3 = [1; 10];
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(5, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Long"), *type_expr_ident);
+                            assert_eq!(String::from("Long"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -7193,10 +7193,10 @@ o: A3 = [1; 10];
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(6, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Uint"), *type_expr_ident);
+                            assert_eq!(String::from("Uint"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -7232,10 +7232,10 @@ o: A3 = [1; 10];
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(7, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Ulong"), *type_expr_ident);
+                            assert_eq!(String::from("Ulong"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -7271,10 +7271,10 @@ o: A3 = [1; 10];
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(8, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Float"), *type_expr_ident);
+                            assert_eq!(String::from("Float"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -7310,10 +7310,10 @@ o: A3 = [1; 10];
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(9, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Double"), *type_expr_ident);
+                            assert_eq!(String::from("Double"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -7349,10 +7349,10 @@ o: A3 = [1; 10];
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(10, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("S"), *type_expr_ident);
+                            assert_eq!(String::from("S"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -7388,10 +7388,10 @@ o: A3 = [1; 10];
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(11, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("U"), *type_expr_ident);
+                            assert_eq!(String::from("U"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -7427,10 +7427,10 @@ o: A3 = [1; 10];
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(12, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("T"), *type_expr_ident);
+                            assert_eq!(String::from("T"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -7490,10 +7490,10 @@ o: A3 = [1; 10];
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(13, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("A1"), *type_expr_ident);
+                            assert_eq!(String::from("A1"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -7529,10 +7529,10 @@ o: A3 = [1; 10];
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(14, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("A2"), *type_expr_ident);
+                            assert_eq!(String::from("A2"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -7603,10 +7603,10 @@ o: A3 = [1; 10];
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(15, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("A3"), *type_expr_ident);
+                            assert_eq!(String::from("A3"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
@@ -7698,10 +7698,10 @@ a: Int =
             match &*var_r {
                 Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
                     match &**type_expr {
-                        TypeExpr::Var(type_expr_ident, pos) => {
+                        TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
                             assert_eq!(4, pos.column);
-                            assert_eq!(String::from("Int"), *type_expr_ident);
+                            assert_eq!(String::from("Int"), *type_var_ident);
                         },
                         _ => assert!(false),
                     }
