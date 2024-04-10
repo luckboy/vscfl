@@ -9736,3 +9736,665 @@ impl T for ()
         _ => assert!(false),
     }
 }
+
+#[test]
+fn test_parser_parse_complains_on_unexpected_token_for_data_definition()
+{
+    let s = "
+data T +
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(8, pos.column);
+            assert_eq!(String::from("unexpected token"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unexpected_token_for_type_definition()
+{
+    let s = "
+type T +
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(8, pos.column);
+            assert_eq!(String::from("unexpected token"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unexpected_token_for_variable_definition()
+{
+    let s = "
+x +
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(3, pos.column);
+            assert_eq!(String::from("unexpected token"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unexpected_token_for_function_definition()
+{
+    let s = "
+f(x: Int) +
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(11, pos.column);
+            assert_eq!(String::from("unexpected token"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unexpected_token_for_trait_definition()
+{
+    let s = "
+trait T +
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(9, pos.column);
+            assert_eq!(String::from("unexpected token"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unexpected_token_for_implementation_definition()
+{
+    let s = "
+impl T +
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(8, pos.column);
+            assert_eq!(String::from("unexpected token"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unexpected_end_of_file_for_data_definition()
+{
+    let s = "
+data T<t,
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(2, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("unexpected end of file"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unexpected_end_of_file_for_type_definition()
+{
+    let s = "
+type T<t,
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(2, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("unexpected end of file"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unexpected_end_of_file_for_function_definition()
+{
+    let s = "
+f(x: Int,
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(2, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("unexpected end of file"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unexpected_end_of_file_for_trait_definition()
+{
+    let s = "
+trait T<t,
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(2, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("unexpected end of file"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unexpected_end_of_file_for_trait_definition_and_brace()
+{
+    let s = "
+trait T
+{
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(3, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("unexpected end of file"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unexpected_end_of_file_for_implementation_definition_and_brace()
+{
+    let s = "
+impl T for U
+{
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(3, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("unexpected end of file"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unexpected_end_of_file_for_type_expression()
+{
+    let s = "
+type T = U<Int,
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(2, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("unexpected end of file"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unexpected_end_of_file_for_type_expression_and_parenthesis()
+{
+    let s = "
+type T = (Int,
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(2, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("unexpected end of file"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unexpected_end_of_file_for_type_expression_and_bracket()
+{
+    let s = "
+type T = [Int;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(2, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("unexpected end of file"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unexpected_end_of_file_for_constructor()
+{
+    let s = "
+data T = C(Int,
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(2, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("unexpected end of file"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unexpected_end_of_file_for_constructor_and_brace()
+{
+    let s = "
+data T = C { x: Int,
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(2, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("unexpected end of file"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unexpected_end_of_file_for_expression()
+{
+    let s = "
+a: Int = f(1, 
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(2, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("unexpected end of file"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unexpected_end_of_file_for_expression_and_brace()
+{
+    let s = "
+a: T = C { x: 1,
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(2, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("unexpected end of file"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unexpected_end_of_file_for_expression_and_bar_bracket()
+{
+    let s = "
+a: Fun = |x: Int,
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(2, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("unexpected end of file"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unclosed_angle_bracket_for_type_definition()
+{
+    let s = "
+type T<t;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(9, pos.column);
+            assert_eq!(String::from("unclosed angle bracket"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unclosed_angle_bracket_for_data_definition()
+{
+    let s = "
+data T<t;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(9, pos.column);
+            assert_eq!(String::from("unclosed angle bracket"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unclosed_parenthesis_for_function_definition()
+{
+    let s = "
+f(x: Int;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(9, pos.column);
+            assert_eq!(String::from("unclosed parenthesis"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unclosed_angle_bracet_for_trait_definition()
+{
+    let s = "
+trait T<t;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(10, pos.column);
+            assert_eq!(String::from("unclosed angle bracket"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unclosed_parenthesis_for_type_expression()
+{
+    let s = "
+type T = (Int;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(14, pos.column);
+            assert_eq!(String::from("unclosed parenthesis"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unclosed_bracket_for_type_expression()
+{
+    let s = "
+type T = [Int;10;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(17, pos.column);
+            assert_eq!(String::from("unclosed bracket"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unclosed_angle_bracket_for_type_expression()
+{
+    let s = "
+type T = U<Int;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(15, pos.column);
+            assert_eq!(String::from("unclosed angle bracket"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unclosed_parenthesis_for_constructor()
+{
+    let s = "
+data T = C(Int;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(15, pos.column);
+            assert_eq!(String::from("unclosed parenthesis"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unclosed_brace_for_constructor()
+{
+    let s = "
+data T = C { x: Int;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(20, pos.column);
+            assert_eq!(String::from("unclosed brace"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unclosed_parethesis_for_expression()
+{
+    let s = "
+a: Int = f(1; 
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(13, pos.column);
+            assert_eq!(String::from("unclosed parenthesis"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unclosed_brace_for_expression()
+{
+    let s = "
+a: T = C { x: 1; 
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(16, pos.column);
+            assert_eq!(String::from("unclosed brace"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unclosed_bar_brace_for_expression()
+{
+    let s = "
+a: Fun = |x: Int; 
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(17, pos.column);
+            assert_eq!(String::from("unclosed bar bracket"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_must_be_one_element_for_filled_array_for_expression()
+{
+    let s = "
+a: A = [1, 2; 10];
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(13, pos.column);
+            assert_eq!(String::from("must be one element for filled array"), msg);
+        },
+        _ => assert!(false),
+    }
+}
