@@ -319,7 +319,7 @@ type U<t1, t2> = (t1, t2);
 }
 
 #[test]
-fn test_parser_parse_parses_builtin_var_definitions()
+fn test_parser_parse_parses_builtin_variable_definitions()
 {
     let s = "
 builtin A;
@@ -985,6 +985,7 @@ trait U<t1, t2> {};
         Ok(()) => assert!(true),
         Err(_) => assert!(false),
     }
+    assert_eq!(2, tree.defs().len());
     match &*tree.defs()[0] {
         Def::Trait(ident, trait1, pos) => {
             assert_eq!(1, pos.line);
@@ -8423,6 +8424,1310 @@ a: Int =
                             }
                         },
                         _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_parses_trait_builtin_variable_definitions()
+{
+    let s = "
+trait T
+{
+    builtin A;
+    builtin a;
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(1, tree.defs().len());
+    match &*tree.defs()[0] {
+        Def::Trait(ident, trait1, pos) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("T"), *ident);
+            let trait_r = trait1.borrow();
+            match &*trait_r {
+                Trait(type_args, trait_defs, None) => {
+                    assert_eq!(true, type_args.is_empty());
+                    assert_eq!(2, trait_defs.len());
+                    match &*trait_defs[0] {
+                        TraitDef(ident, var, pos) => {
+                            assert_eq!(3, pos.line);
+                            assert_eq!(5, pos.column);
+                            assert_eq!(String::from("A"), *ident);
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Builtin(None) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                    match &*trait_defs[1] {
+                        TraitDef(ident, var, pos) => {
+                            assert_eq!(4, pos.line);
+                            assert_eq!(5, pos.column);
+                            assert_eq!(String::from("a"), *ident);
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Builtin(None) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_parses_trait_variable_definitions()
+{
+    let s = "
+trait T
+{
+    A: t1 where t1: T = x1;
+    a: t1 where t1: T = x2;
+    private b: t1 where t1: T = x3;
+    local c: t1 where t1: T = x4;
+    global d: t1 where t1: T = x5;
+    constant e: t1 where t1: T = x6;
+    f: t1 where t1: T;
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(1, tree.defs().len());
+    match &*tree.defs()[0] {
+        Def::Trait(ident, trait1, pos) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("T"), *ident);
+            let trait_r = trait1.borrow();
+            match &*trait_r {
+                Trait(type_args, trait_defs, None) => {
+                    assert_eq!(true, type_args.is_empty());
+                    assert_eq!(7, trait_defs.len());
+                    match &*trait_defs[0] {
+                        TraitDef(ident, var, pos) => {
+                            assert_eq!(3, pos.line);
+                            assert_eq!(5, pos.column);
+                            assert_eq!(String::from("A"), *ident);
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
+                                    match &**type_expr {
+                                        TypeExpr::Param(type_param_ident, pos) => {
+                                            assert_eq!(3, pos.line);
+                                            assert_eq!(8, pos.column);
+                                            assert_eq!(String::from("t1"), *type_param_ident);
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(1, where_tuples.len());
+                                    match &where_tuples[0] {
+                                        WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                            assert_eq!(3, pos.line);
+                                            assert_eq!(17, pos.column);
+                                            assert_eq!(String::from("t1"), *type_param_ident);
+                                            assert_eq!(1, trait_names.len());
+                                            assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
+                                            assert_eq!(true, type_exprs.is_empty());
+                                        },
+                                    }
+                                    match expr {
+                                        Some(expr) => {
+                                            match &**expr {
+                                                Expr::Var(var_ident, None, pos) => {
+                                                    assert_eq!(3, pos.line);
+                                                    assert_eq!(25, pos.column);
+                                                    assert_eq!(String::from("x1"), *var_ident);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                    match &*trait_defs[1] {
+                        TraitDef(ident, var, pos) => {
+                            assert_eq!(4, pos.line);
+                            assert_eq!(5, pos.column);
+                            assert_eq!(String::from("a"), *ident);
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None) => {
+                                    match &**type_expr {
+                                        TypeExpr::Param(type_param_ident, pos) => {
+                                            assert_eq!(4, pos.line);
+                                            assert_eq!(8, pos.column);
+                                            assert_eq!(String::from("t1"), *type_param_ident);
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(1, where_tuples.len());
+                                    match &where_tuples[0] {
+                                        WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                            assert_eq!(4, pos.line);
+                                            assert_eq!(17, pos.column);
+                                            assert_eq!(String::from("t1"), *type_param_ident);
+                                            assert_eq!(1, trait_names.len());
+                                            assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
+                                            assert_eq!(true, type_exprs.is_empty());
+                                        },
+                                    }
+                                    match expr {
+                                        Some(expr) => {
+                                            match &**expr {
+                                                Expr::Var(var_ident, None, pos) => {
+                                                    assert_eq!(4, pos.line);
+                                                    assert_eq!(25, pos.column);
+                                                    assert_eq!(String::from("x2"), *var_ident);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                    match &*trait_defs[2] {
+                        TraitDef(ident, var, pos) => {
+                            assert_eq!(5, pos.line);
+                            assert_eq!(5, pos.column);
+                            assert_eq!(String::from("b"), *ident);
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Var(VarModifier::Private, type_expr, where_tuples, expr, None, None, None) => {
+                                    match &**type_expr {
+                                        TypeExpr::Param(type_param_ident, pos) => {
+                                            assert_eq!(5, pos.line);
+                                            assert_eq!(16, pos.column);
+                                            assert_eq!(String::from("t1"), *type_param_ident);
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(1, where_tuples.len());
+                                    match &where_tuples[0] {
+                                        WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                            assert_eq!(5, pos.line);
+                                            assert_eq!(25, pos.column);
+                                            assert_eq!(String::from("t1"), *type_param_ident);
+                                            assert_eq!(1, trait_names.len());
+                                            assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
+                                            assert_eq!(true, type_exprs.is_empty());
+                                        },
+                                    }
+                                    match expr {
+                                        Some(expr) => {
+                                            match &**expr {
+                                                Expr::Var(var_ident, None, pos) => {
+                                                    assert_eq!(5, pos.line);
+                                                    assert_eq!(33, pos.column);
+                                                    assert_eq!(String::from("x3"), *var_ident);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                    match &*trait_defs[3] {
+                        TraitDef(ident, var, pos) => {
+                            assert_eq!(6, pos.line);
+                            assert_eq!(5, pos.column);
+                            assert_eq!(String::from("c"), *ident);
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Var(VarModifier::Local, type_expr, where_tuples, expr, None, None, None) => {
+                                    match &**type_expr {
+                                        TypeExpr::Param(type_param_ident, pos) => {
+                                            assert_eq!(6, pos.line);
+                                            assert_eq!(14, pos.column);
+                                            assert_eq!(String::from("t1"), *type_param_ident);
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(1, where_tuples.len());
+                                    match &where_tuples[0] {
+                                        WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                            assert_eq!(6, pos.line);
+                                            assert_eq!(23, pos.column);
+                                            assert_eq!(String::from("t1"), *type_param_ident);
+                                            assert_eq!(1, trait_names.len());
+                                            assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
+                                            assert_eq!(true, type_exprs.is_empty());
+                                        },
+                                    }
+                                    match expr {
+                                        Some(expr) => {
+                                            match &**expr {
+                                                Expr::Var(var_ident, None, pos) => {
+                                                    assert_eq!(6, pos.line);
+                                                    assert_eq!(31, pos.column);
+                                                    assert_eq!(String::from("x4"), *var_ident);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                    match &*trait_defs[4] {
+                        TraitDef(ident, var, pos) => {
+                            assert_eq!(7, pos.line);
+                            assert_eq!(5, pos.column);
+                            assert_eq!(String::from("d"), *ident);
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Var(VarModifier::Global, type_expr, where_tuples, expr, None, None, None) => {
+                                    match &**type_expr {
+                                        TypeExpr::Param(type_param_ident, pos) => {
+                                            assert_eq!(7, pos.line);
+                                            assert_eq!(15, pos.column);
+                                            assert_eq!(String::from("t1"), *type_param_ident);
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(1, where_tuples.len());
+                                    match &where_tuples[0] {
+                                        WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                            assert_eq!(7, pos.line);
+                                            assert_eq!(24, pos.column);
+                                            assert_eq!(String::from("t1"), *type_param_ident);
+                                            assert_eq!(1, trait_names.len());
+                                            assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
+                                            assert_eq!(true, type_exprs.is_empty());
+                                        },
+                                    }
+                                    match expr {
+                                        Some(expr) => {
+                                            match &**expr {
+                                                Expr::Var(var_ident, None, pos) => {
+                                                    assert_eq!(7, pos.line);
+                                                    assert_eq!(32, pos.column);
+                                                    assert_eq!(String::from("x5"), *var_ident);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                    match &*trait_defs[5] {
+                        TraitDef(ident, var, pos) => {
+                            assert_eq!(8, pos.line);
+                            assert_eq!(5, pos.column);
+                            assert_eq!(String::from("e"), *ident);
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Var(VarModifier::Constant, type_expr, where_tuples, expr, None, None, None) => {
+                                    match &**type_expr {
+                                        TypeExpr::Param(type_param_ident, pos) => {
+                                            assert_eq!(8, pos.line);
+                                            assert_eq!(17, pos.column);
+                                            assert_eq!(String::from("t1"), *type_param_ident);
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(1, where_tuples.len());
+                                    match &where_tuples[0] {
+                                        WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                            assert_eq!(8, pos.line);
+                                            assert_eq!(26, pos.column);
+                                            assert_eq!(String::from("t1"), *type_param_ident);
+                                            assert_eq!(1, trait_names.len());
+                                            assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
+                                            assert_eq!(true, type_exprs.is_empty());
+                                        },
+                                    }
+                                    match expr {
+                                        Some(expr) => {
+                                            match &**expr {
+                                                Expr::Var(var_ident, None, pos) => {
+                                                    assert_eq!(8, pos.line);
+                                                    assert_eq!(34, pos.column);
+                                                    assert_eq!(String::from("x6"), *var_ident);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                    match &*trait_defs[6] {
+                        TraitDef(ident, var, pos) => {
+                            assert_eq!(9, pos.line);
+                            assert_eq!(5, pos.column);
+                            assert_eq!(String::from("f"), *ident);
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Var(VarModifier::None, type_expr, where_tuples, None, None, None, None) => {
+                                    match &**type_expr {
+                                        TypeExpr::Param(type_param_ident, pos) => {
+                                            assert_eq!(9, pos.line);
+                                            assert_eq!(8, pos.column);
+                                            assert_eq!(String::from("t1"), *type_param_ident);
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(1, where_tuples.len());
+                                    match &where_tuples[0] {
+                                        WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                            assert_eq!(9, pos.line);
+                                            assert_eq!(17, pos.column);
+                                            assert_eq!(String::from("t1"), *type_param_ident);
+                                            assert_eq!(1, trait_names.len());
+                                            assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
+                                            assert_eq!(true, type_exprs.is_empty());
+                                        },
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_parses_trait_function_definitions()
+{
+    let s = "
+trait T
+{
+    F() -> t1 where t1: T = x1;
+    f() -> t1 where t1: T = x2;
+    g(x: t1, y: t1) -> t1 where t1: T = f1(x, y);
+    inline h(x: t1, y: t1) -> t1 where t1: T = f2(x, y);
+    kernel i(x: t1) -> () where t1: T = ();
+    j() -> t1 where t1: T;
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(1, tree.defs().len());
+    match &*tree.defs()[0] {
+        Def::Trait(ident, trait1, pos) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("T"), *ident);
+            let trait_r = trait1.borrow();
+            match &*trait_r {
+                Trait(type_args, trait_defs, None) => {
+                    assert_eq!(true, type_args.is_empty());
+                    assert_eq!(6, trait_defs.len());
+                    match &*trait_defs[0] {
+                        TraitDef(ident, var, pos) => {
+                            assert_eq!(3, pos.line);
+                            assert_eq!(5, pos.column);
+                            assert_eq!(String::from("F"), *ident);
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Fun(fun, None) => {
+                                    match &**fun {
+                                        Fun::Fun(FunModifier::None, InlineModifier::None, args, ret_type_expr, where_tuples, expr, None, None) => {
+                                            assert_eq!(true, args.is_empty());
+                                            match &**ret_type_expr {
+                                                TypeExpr::Param(type_param_ident, pos) => {
+                                                    assert_eq!(3, pos.line);
+                                                    assert_eq!(12, pos.column);
+                                                    assert_eq!(String::from("t1"), *type_param_ident);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(1, where_tuples.len());
+                                            match &where_tuples[0] {
+                                                WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                                    assert_eq!(3, pos.line);
+                                                    assert_eq!(21, pos.column);
+                                                    assert_eq!(String::from("t1"), *type_param_ident);
+                                                    assert_eq!(1, trait_names.len());
+                                                    assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
+                                                    assert_eq!(true, type_exprs.is_empty());
+                                                },
+                                            }
+                                            match expr {
+                                                Some(expr) => {
+                                                    match &**expr {
+                                                        Expr::Var(var_ident, None, pos) => {
+                                                            assert_eq!(3, pos.line);
+                                                            assert_eq!(29, pos.column);
+                                                            assert_eq!(String::from("x1"), *var_ident);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                    match &*trait_defs[1] {
+                        TraitDef(ident, var, pos) => {
+                            assert_eq!(4, pos.line);
+                            assert_eq!(5, pos.column);
+                            assert_eq!(String::from("f"), *ident);
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Fun(fun, None) => {
+                                    match &**fun {
+                                        Fun::Fun(FunModifier::None, InlineModifier::None, args, ret_type_expr, where_tuples, expr, None, None) => {
+                                            assert_eq!(true, args.is_empty());
+                                            match &**ret_type_expr {
+                                                TypeExpr::Param(type_param_ident, pos) => {
+                                                    assert_eq!(4, pos.line);
+                                                    assert_eq!(12, pos.column);
+                                                    assert_eq!(String::from("t1"), *type_param_ident);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(1, where_tuples.len());
+                                            match &where_tuples[0] {
+                                                WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                                    assert_eq!(4, pos.line);
+                                                    assert_eq!(21, pos.column);
+                                                    assert_eq!(String::from("t1"), *type_param_ident);
+                                                    assert_eq!(1, trait_names.len());
+                                                    assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
+                                                    assert_eq!(true, type_exprs.is_empty());
+                                                },
+                                            }
+                                            match expr {
+                                                Some(expr) => {
+                                                    match &**expr {
+                                                        Expr::Var(var_ident, None, pos) => {
+                                                            assert_eq!(4, pos.line);
+                                                            assert_eq!(29, pos.column);
+                                                            assert_eq!(String::from("x2"), *var_ident);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                    match &*trait_defs[2] {
+                        TraitDef(ident, var, pos) => {
+                            assert_eq!(5, pos.line);
+                            assert_eq!(5, pos.column);
+                            assert_eq!(String::from("g"), *ident);
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Fun(fun, None) => {
+                                    match &**fun {
+                                        Fun::Fun(FunModifier::None, InlineModifier::None, args, ret_type_expr, where_tuples, expr, None, None) => {
+                                            assert_eq!(2, args.len());
+                                            match &args[0] {
+                                                Arg(arg_ident, arg_type_expr, None, pos) => {
+                                                    assert_eq!(5, pos.line);
+                                                    assert_eq!(7, pos.column);
+                                                    assert_eq!(String::from("x"), *arg_ident);
+                                                    match &**arg_type_expr {
+                                                        TypeExpr::Param(type_param_ident, pos) => {
+                                                            assert_eq!(5, pos.line);
+                                                            assert_eq!(10, pos.column);
+                                                            assert_eq!(String::from("t1"), *type_param_ident);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &args[1] {
+                                                Arg(arg_ident, arg_type_expr, None, pos) => {
+                                                    assert_eq!(5, pos.line);
+                                                    assert_eq!(14, pos.column);
+                                                    assert_eq!(String::from("y"), *arg_ident);
+                                                    match &**arg_type_expr {
+                                                        TypeExpr::Param(type_param_ident, pos) => {
+                                                            assert_eq!(5, pos.line);
+                                                            assert_eq!(17, pos.column);
+                                                            assert_eq!(String::from("t1"), *type_param_ident);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**ret_type_expr {
+                                                TypeExpr::Param(type_param_ident, pos) => {
+                                                    assert_eq!(5, pos.line);
+                                                    assert_eq!(24, pos.column);
+                                                    assert_eq!(String::from("t1"), *type_param_ident);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(1, where_tuples.len());
+                                            match &where_tuples[0] {
+                                                WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                                    assert_eq!(5, pos.line);
+                                                    assert_eq!(33, pos.column);
+                                                    assert_eq!(String::from("t1"), *type_param_ident);
+                                                    assert_eq!(1, trait_names.len());
+                                                    assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
+                                                    assert_eq!(true, type_exprs.is_empty());
+                                                },
+                                            }
+                                            match expr {
+                                                Some(expr) => {
+                                                    match &**expr {
+                                                        Expr::App(expr, exprs, None, pos) => {
+                                                            assert_eq!(5, pos.line);
+                                                            assert_eq!(41, pos.column);
+                                                            match &**expr {
+                                                                Expr::Var(var_ident, None, pos) => {
+                                                                    assert_eq!(5, pos.line);
+                                                                    assert_eq!(41, pos.column);
+                                                                    assert_eq!(String::from("f1"), *var_ident);
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                            assert_eq!(2, exprs.len());
+                                                            match &*exprs[0] {
+                                                                Expr::Var(var_ident, None, pos) => {
+                                                                    assert_eq!(5, pos.line);
+                                                                    assert_eq!(44, pos.column);
+                                                                    assert_eq!(String::from("x"), *var_ident);
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                            match &*exprs[1] {
+                                                                Expr::Var(var_ident, None, pos) => {
+                                                                    assert_eq!(5, pos.line);
+                                                                    assert_eq!(47, pos.column);
+                                                                    assert_eq!(String::from("y"), *var_ident);
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                    match &*trait_defs[3] {
+                        TraitDef(ident, var, pos) => {
+                            assert_eq!(6, pos.line);
+                            assert_eq!(5, pos.column);
+                            assert_eq!(String::from("h"), *ident);
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Fun(fun, None) => {
+                                    match &**fun {
+                                        Fun::Fun(FunModifier::None, InlineModifier::Inline, args, ret_type_expr, where_tuples, expr, None, None) => {
+                                            assert_eq!(2, args.len());
+                                            match &args[0] {
+                                                Arg(arg_ident, arg_type_expr, None, pos) => {
+                                                    assert_eq!(6, pos.line);
+                                                    assert_eq!(14, pos.column);
+                                                    assert_eq!(String::from("x"), *arg_ident);
+                                                    match &**arg_type_expr {
+                                                        TypeExpr::Param(type_param_ident, pos) => {
+                                                            assert_eq!(6, pos.line);
+                                                            assert_eq!(17, pos.column);
+                                                            assert_eq!(String::from("t1"), *type_param_ident);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &args[1] {
+                                                Arg(arg_ident, arg_type_expr, None, pos) => {
+                                                    assert_eq!(6, pos.line);
+                                                    assert_eq!(21, pos.column);
+                                                    assert_eq!(String::from("y"), *arg_ident);
+                                                    match &**arg_type_expr {
+                                                        TypeExpr::Param(type_param_ident, pos) => {
+                                                            assert_eq!(6, pos.line);
+                                                            assert_eq!(24, pos.column);
+                                                            assert_eq!(String::from("t1"), *type_param_ident);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**ret_type_expr {
+                                                TypeExpr::Param(type_param_ident, pos) => {
+                                                    assert_eq!(6, pos.line);
+                                                    assert_eq!(31, pos.column);
+                                                    assert_eq!(String::from("t1"), *type_param_ident);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(1, where_tuples.len());
+                                            match &where_tuples[0] {
+                                                WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                                    assert_eq!(6, pos.line);
+                                                    assert_eq!(40, pos.column);
+                                                    assert_eq!(String::from("t1"), *type_param_ident);
+                                                    assert_eq!(1, trait_names.len());
+                                                    assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
+                                                    assert_eq!(true, type_exprs.is_empty());
+                                                },
+                                            }
+                                            match expr {
+                                                Some(expr) => {
+                                                    match &**expr {
+                                                        Expr::App(expr, exprs, None, pos) => {
+                                                            assert_eq!(6, pos.line);
+                                                            assert_eq!(48, pos.column);
+                                                            match &**expr {
+                                                                Expr::Var(var_ident, None, pos) => {
+                                                                    assert_eq!(6, pos.line);
+                                                                    assert_eq!(48, pos.column);
+                                                                    assert_eq!(String::from("f2"), *var_ident);
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                            assert_eq!(2, exprs.len());
+                                                            match &*exprs[0] {
+                                                                Expr::Var(var_ident, None, pos) => {
+                                                                    assert_eq!(6, pos.line);
+                                                                    assert_eq!(51, pos.column);
+                                                                    assert_eq!(String::from("x"), *var_ident);
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                            match &*exprs[1] {
+                                                                Expr::Var(var_ident, None, pos) => {
+                                                                    assert_eq!(6, pos.line);
+                                                                    assert_eq!(54, pos.column);
+                                                                    assert_eq!(String::from("y"), *var_ident);
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                    match &*trait_defs[4] {
+                        TraitDef(ident, var, pos) => {
+                            assert_eq!(7, pos.line);
+                            assert_eq!(5, pos.column);
+                            assert_eq!(String::from("i"), *ident);
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Fun(fun, None) => {
+                                    match &**fun {
+                                        Fun::Fun(FunModifier::Kernel, InlineModifier::None, args, ret_type_expr, where_tuples, expr, None, None) => {
+                                            assert_eq!(1, args.len());
+                                            match &args[0] {
+                                                Arg(arg_ident, arg_type_expr, None, pos) => {
+                                                    assert_eq!(7, pos.line);
+                                                    assert_eq!(14, pos.column);
+                                                    assert_eq!(String::from("x"), *arg_ident);
+                                                    match &**arg_type_expr {
+                                                        TypeExpr::Param(type_param_ident, pos) => {
+                                                            assert_eq!(7, pos.line);
+                                                            assert_eq!(17, pos.column);
+                                                            assert_eq!(String::from("t1"), *type_param_ident);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**ret_type_expr {
+                                                TypeExpr::Tuple(type_exprs, pos) => {
+                                                    assert_eq!(7, pos.line);
+                                                    assert_eq!(24, pos.column);
+                                                    assert_eq!(true, type_exprs.is_empty());
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(1, where_tuples.len());
+                                            match &where_tuples[0] {
+                                                WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                                    assert_eq!(7, pos.line);
+                                                    assert_eq!(33, pos.column);
+                                                    assert_eq!(String::from("t1"), *type_param_ident);
+                                                    assert_eq!(1, trait_names.len());
+                                                    assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
+                                                    assert_eq!(true, type_exprs.is_empty());
+                                                },
+                                            }
+                                            match expr {
+                                                Some(expr) => {
+                                                    match &**expr {
+                                                        Expr::Literal(literal, None, pos) => {
+                                                            assert_eq!(7, pos.line);
+                                                            assert_eq!(41, pos.column);
+                                                            match &**literal {
+                                                                Literal::Tuple(exprs) => assert_eq!(true, exprs.is_empty()),
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                    match &*trait_defs[5] {
+                        TraitDef(ident, var, pos) => {
+                            assert_eq!(8, pos.line);
+                            assert_eq!(5, pos.column);
+                            assert_eq!(String::from("j"), *ident);
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Fun(fun, None) => {
+                                    match &**fun {
+                                        Fun::Fun(FunModifier::None, InlineModifier::None, args, ret_type_expr, where_tuples, None, None, None) => {
+                                            assert_eq!(true, args.is_empty());
+                                            match &**ret_type_expr {
+                                                TypeExpr::Param(type_param_ident, pos) => {
+                                                    assert_eq!(8, pos.line);
+                                                    assert_eq!(12, pos.column);
+                                                    assert_eq!(String::from("t1"), *type_param_ident);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(1, where_tuples.len());
+                                            match &where_tuples[0] {
+                                                WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                                    assert_eq!(8, pos.line);
+                                                    assert_eq!(21, pos.column);
+                                                    assert_eq!(String::from("t1"), *type_param_ident);
+                                                    assert_eq!(1, trait_names.len());
+                                                    assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
+                                                    assert_eq!(true, type_exprs.is_empty());
+                                                },
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_parses_type_names()
+{
+    let s = "
+impl T for () {};
+impl U for (_, _) {};
+impl V for () -> _ {};
+impl W for (_, _) -> _ {};
+impl X for [_; 10] {};
+impl Y for [_; _] {};
+impl Z for A {};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(7, tree.defs().len());
+    match &*tree.defs()[0] {
+        Def::Impl(impl1, pos) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Impl(trait_ident, type_name, impl_defs, None) => {
+                    assert_eq!(String::from("T"), *trait_ident);
+                    assert_eq!(TypeName::Tuple(0), *type_name);
+                    assert_eq!(true, impl_defs.is_empty());
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[1] {
+        Def::Impl(impl1, pos) => {
+            assert_eq!(2, pos.line);
+            assert_eq!(1, pos.column);
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Impl(trait_ident, type_name, impl_defs, None) => {
+                    assert_eq!(String::from("U"), *trait_ident);
+                    assert_eq!(TypeName::Tuple(2), *type_name);
+                    assert_eq!(true, impl_defs.is_empty());
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[2] {
+        Def::Impl(impl1, pos) => {
+            assert_eq!(3, pos.line);
+            assert_eq!(1, pos.column);
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Impl(trait_ident, type_name, impl_defs, None) => {
+                    assert_eq!(String::from("V"), *trait_ident);
+                    assert_eq!(TypeName::Fun(0), *type_name);
+                    assert_eq!(true, impl_defs.is_empty());
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[3] {
+        Def::Impl(impl1, pos) => {
+            assert_eq!(4, pos.line);
+            assert_eq!(1, pos.column);
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Impl(trait_ident, type_name, impl_defs, None) => {
+                    assert_eq!(String::from("W"), *trait_ident);
+                    assert_eq!(TypeName::Fun(2), *type_name);
+                    assert_eq!(true, impl_defs.is_empty());
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[4] {
+        Def::Impl(impl1, pos) => {
+            assert_eq!(5, pos.line);
+            assert_eq!(1, pos.column);
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Impl(trait_ident, type_name, impl_defs, None) => {
+                    assert_eq!(String::from("X"), *trait_ident);
+                    assert_eq!(TypeName::Array(Some(10)), *type_name);
+                    assert_eq!(true, impl_defs.is_empty());
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[5] {
+        Def::Impl(impl1, pos) => {
+            assert_eq!(6, pos.line);
+            assert_eq!(1, pos.column);
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Impl(trait_ident, type_name, impl_defs, None) => {
+                    assert_eq!(String::from("Y"), *trait_ident);
+                    assert_eq!(TypeName::Array(None), *type_name);
+                    assert_eq!(true, impl_defs.is_empty());
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[6] {
+        Def::Impl(impl1, pos) => {
+            assert_eq!(7, pos.line);
+            assert_eq!(1, pos.column);
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Impl(trait_ident, type_name, impl_defs, None) => {
+                    assert_eq!(String::from("Z"), *trait_ident);
+                    assert_eq!(TypeName::Name(String::from("A")), *type_name);
+                    assert_eq!(true, impl_defs.is_empty());
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_parses_implementation_builtin_variable_definitions()
+{
+    let s = "
+impl T for ()
+{
+    builtin A;
+    builtin a;
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(1, tree.defs().len());
+    match &*tree.defs()[0] {
+        Def::Impl(impl1, pos) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Impl(trait_ident, type_name, impl_defs, None) => {
+                    assert_eq!(String::from("T"), *trait_ident);
+                    assert_eq!(TypeName::Tuple(0), *type_name);
+                    assert_eq!(2, impl_defs.len());
+                    match &*impl_defs[0] {
+                        ImplDef(ident, impl_var, pos) => {
+                            assert_eq!(3, pos.line);
+                            assert_eq!(5, pos.column);
+                            assert_eq!(String::from("A"), *ident);
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Builtin(None) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                    match &*impl_defs[1] {
+                        ImplDef(ident, impl_var, pos) => {
+                            assert_eq!(4, pos.line);
+                            assert_eq!(5, pos.column);
+                            assert_eq!(String::from("a"), *ident);
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Builtin(None) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_parses_implementation_variable_definitions()
+{
+    let s = "
+impl T for ()
+{
+    A = x1;
+    a = x2;
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(1, tree.defs().len());
+    match &*tree.defs()[0] {
+        Def::Impl(impl1, pos) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Impl(trait_ident, type_name, impl_defs, None) => {
+                    assert_eq!(String::from("T"), *trait_ident);
+                    assert_eq!(TypeName::Tuple(0), *type_name);
+                    assert_eq!(2, impl_defs.len());
+                    match &*impl_defs[0] {
+                        ImplDef(ident, impl_var, pos) => {
+                            assert_eq!(3, pos.line);
+                            assert_eq!(5, pos.column);
+                            assert_eq!(String::from("A"), *ident);
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Var(expr, None, None) => {
+                                    match &**expr {
+                                        Expr::Var(var_ident, None, pos) => {
+                                            assert_eq!(3, pos.line);
+                                            assert_eq!(9, pos.column);
+                                            assert_eq!(String::from("x1"), *var_ident);
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                    match &*impl_defs[1] {
+                        ImplDef(ident, impl_var, pos) => {
+                            assert_eq!(4, pos.line);
+                            assert_eq!(5, pos.column);
+                            assert_eq!(String::from("a"), *ident);
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Var(expr, None, None) => {
+                                    match &**expr {
+                                        Expr::Var(var_ident, None, pos) => {
+                                            assert_eq!(4, pos.line);
+                                            assert_eq!(9, pos.column);
+                                            assert_eq!(String::from("x2"), *var_ident);
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_parses_implementation_function_definitions()
+{
+    let s = "
+impl T for ()
+{
+    F() = x1;
+    f() = x2;
+    g(x, y) = f1(x, y);
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(1, tree.defs().len());
+    match &*tree.defs()[0] {
+        Def::Impl(impl1, pos) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Impl(trait_ident, type_name, impl_defs, None) => {
+                    assert_eq!(String::from("T"), *trait_ident);
+                    assert_eq!(TypeName::Tuple(0), *type_name);
+                    assert_eq!(3, impl_defs.len());
+                    match &*impl_defs[0] {
+                        ImplDef(ident, impl_var, pos) => {
+                            assert_eq!(3, pos.line);
+                            assert_eq!(5, pos.column);
+                            assert_eq!(String::from("F"), *ident);
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Fun(fun, None) => {
+                                    match &**fun {
+                                        ImplFun(impl_args, expr, None, None) => {
+                                            assert_eq!(true, impl_args.is_empty());
+                                            match &**expr {
+                                                Expr::Var(var_ident, None, pos) => {
+                                                    assert_eq!(3, pos.line);
+                                                    assert_eq!(11, pos.column);
+                                                    assert_eq!(String::from("x1"), *var_ident);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                    match &*impl_defs[1] {
+                        ImplDef(ident, impl_var, pos) => {
+                            assert_eq!(4, pos.line);
+                            assert_eq!(5, pos.column);
+                            assert_eq!(String::from("f"), *ident);
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Fun(fun, None) => {
+                                    match &**fun {
+                                        ImplFun(impl_args, expr, None, None) => {
+                                            assert_eq!(true, impl_args.is_empty());
+                                            match &**expr {
+                                                Expr::Var(var_ident, None, pos) => {
+                                                    assert_eq!(4, pos.line);
+                                                    assert_eq!(11, pos.column);
+                                                    assert_eq!(String::from("x2"), *var_ident);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                    match &*impl_defs[2] {
+                        ImplDef(ident, impl_var, pos) => {
+                            assert_eq!(5, pos.line);
+                            assert_eq!(5, pos.column);
+                            assert_eq!(String::from("g"), *ident);
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Fun(fun, None) => {
+                                    match &**fun {
+                                        ImplFun(impl_args, expr, None, None) => {
+                                            assert_eq!(2, impl_args.len());
+                                            match &impl_args[0] {
+                                                ImplArg(impl_arg_ident, None, pos) => {
+                                                    assert_eq!(5, pos.line);
+                                                    assert_eq!(7, pos.column);
+                                                    assert_eq!(String::from("x"), *impl_arg_ident);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &impl_args[1] {
+                                                ImplArg(impl_arg_ident, None, pos) => {
+                                                    assert_eq!(5, pos.line);
+                                                    assert_eq!(10, pos.column);
+                                                    assert_eq!(String::from("y"), *impl_arg_ident);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::App(expr, exprs, None, pos) => {
+                                                    assert_eq!(5, pos.line);
+                                                    assert_eq!(15, pos.column);
+                                                    match &**expr {
+                                                        Expr::Var(var_ident, None, pos) => {
+                                                            assert_eq!(5, pos.line);
+                                                            assert_eq!(15, pos.column);
+                                                            assert_eq!(String::from("f1"), *var_ident);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(2, exprs.len());
+                                                    match &*exprs[0] {
+                                                        Expr::Var(var_ident, None, pos) => {
+                                                            assert_eq!(5, pos.line);
+                                                            assert_eq!(18, pos.column);
+                                                            assert_eq!(String::from("x"), *var_ident);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    match &*exprs[1] {
+                                                        Expr::Var(var_ident, None, pos) => {
+                                                            assert_eq!(5, pos.line);
+                                                            assert_eq!(21, pos.column);
+                                                            assert_eq!(String::from("y"), *var_ident);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
                     }
                 },
                 _ => assert!(false),

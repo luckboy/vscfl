@@ -1761,7 +1761,10 @@ impl<'a> Parser<'a>
         let mut count = 0usize;
         loop {
             match self.lexer.next_token()? {
-                (token, _) if end_tokens.iter().any(|t| t == &token) => break,
+                (token, pos) if end_tokens.iter().any(|t| t == &token) => {
+                    self.lexer.undo_token(token, pos);
+                    break;
+                },
                 (Token::Eof, pos) => return Err(FrontendError::Message(pos, String::from("unexpected end of file"))),
                 (Token::Wildcard, _) => {
                     count += 1;
