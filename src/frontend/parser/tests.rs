@@ -9811,6 +9811,26 @@ x +
 }
 
 #[test]
+fn test_parser_parse_complains_on_unexpected_token_for_variable_definition_without_expression()
+{
+    let s = "
+x: Int;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(7, pos.column);
+            assert_eq!(String::from("unexpected token"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
 fn test_parser_parse_complains_on_unexpected_token_for_function_definition()
 {
     let s = "
@@ -9824,6 +9844,26 @@ f(x: Int) +
         Err(FrontendError::Message(pos, msg)) => {
             assert_eq!(1, pos.line);
             assert_eq!(11, pos.column);
+            assert_eq!(String::from("unexpected token"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_unexpected_token_for_function_definition_without_body()
+{
+    let s = "
+f(x: Int) -> Int;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(17, pos.column);
             assert_eq!(String::from("unexpected token"), msg);
         },
         _ => assert!(false),
