@@ -364,11 +364,11 @@ impl<'a> Parser<'a>
                             (Token::Eof, pos3) => Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
                             (Token::ConIdent(ident), _) => {
                                 match modifiers.var_modifier_pair {
-                                    Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("trait variable mustn't have variable modifier"))),
+                                    Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("built-in implementation mustn't have variable modifier"))),
                                     None => (),
                                 }
                                 match modifiers.fun_modifier_pair {
-                                    Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("trait mustn't have function modifier"))),
+                                    Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("built-in implementation mustn't have function modifier"))),
                                     None => (),
                                 }
                                 match self.lexer.next_token()? {
@@ -392,7 +392,7 @@ impl<'a> Parser<'a>
                     (Token::Eof, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
                     (Token::ConIdent(ident), _) => { 
                         match modifiers.var_modifier_pair {
-                            Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("type variable mustn't have variable modifier"))),
+                            Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("type mustn't have variable modifier"))),
                             None => (),
                         }
                         match modifiers.fun_modifier_pair {
@@ -436,7 +436,7 @@ impl<'a> Parser<'a>
                     (Token::Eof, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
                     (Token::ConIdent(ident), _) => {
                         match modifiers.var_modifier_pair {
-                            Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("type synonym variable mustn't have variable modifier"))),
+                            Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("type synonym mustn't have variable modifier"))),
                             None => (),
                         }
                         match modifiers.fun_modifier_pair {
@@ -487,7 +487,7 @@ impl<'a> Parser<'a>
                     (Token::Eof, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
                     (Token::ConIdent(ident), _) => {
                         match modifiers.var_modifier_pair {
-                            Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("trait variable mustn't have variable modifier"))),
+                            Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("trait mustn't have variable modifier"))),
                             None => (),
                         }
                         match modifiers.fun_modifier_pair {
@@ -533,11 +533,11 @@ impl<'a> Parser<'a>
                     (Token::Eof, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
                     (Token::ConIdent(ident), _) => {
                         match modifiers.var_modifier_pair {
-                            Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("trait variable mustn't have variable modifier"))),
+                            Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("implementation mustn't have variable modifier"))),
                             None => (),
                         }
                         match modifiers.fun_modifier_pair {
-                            Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("trait mustn't have function modifier"))),
+                            Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos, String::from("implementation mustn't have function modifier"))),
                             None => (),
                         }
                         match self.lexer.next_token()? {

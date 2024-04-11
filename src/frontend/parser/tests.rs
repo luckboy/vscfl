@@ -10453,6 +10453,326 @@ a: A = [1, 2; 10];
 }
 
 #[test]
+fn test_parser_parse_complains_on_already_used_variable_modifier()
+{
+    let s = "
+private local
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(9, pos.column);
+            assert_eq!(String::from("already used variable modifier"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_already_used_function_modifier()
+{
+    let s = "
+kernel inline
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(8, pos.column);
+            assert_eq!(String::from("already used function modifier"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_built_in_type_must_not_have_variable_modifier()
+{
+    let s = "
+private builtin type T;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("built-in type mustn't have variable modifier"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_built_in_type_must_not_have_function_modifier()
+{
+    let s = "
+kernel builtin type T;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("built-in type mustn't have function modifier"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_type_must_not_have_variable_modifier()
+{
+    let s = "
+private data T;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("type mustn't have variable modifier"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_type_must_not_have_function_modifier()
+{
+    let s = "
+kernel data T;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("type mustn't have function modifier"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_type_synonym_must_not_have_variable_modifier()
+{
+    let s = "
+private type T = Int;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("type synonym mustn't have variable modifier"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_type_synonym_must_not_have_function_modifier()
+{
+    let s = "
+kernel type T = Int;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("type synonym mustn't have function modifier"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_variable_must_not_have_function_modifier()
+{
+    let s = "
+kernel a: Int = 1;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("variable mustn't have function modifier"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_function_must_not_have_variable_modifier()
+{
+    let s = "
+private f() -> Int = 1;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("function mustn't have variable modifier"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_trait_must_not_have_variable_modifier()
+{
+    let s = "
+private trait T {};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("trait mustn't have variable modifier"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_trait_must_not_have_function_modifier()
+{
+    let s = "
+kernel trait T {};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("trait mustn't have function modifier"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_built_in_implementation_must_not_have_variable_modifier()
+{
+    let s = "
+private builtin impl T for U;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("built-in implementation mustn't have variable modifier"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_built_in_implementation_must_not_have_function_modifier()
+{
+    let s = "
+kernel builtin impl T for U;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("built-in implementation mustn't have function modifier"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_implementation_must_not_have_variable_modifier()
+{
+    let s = "
+private impl T for U {};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("implementation mustn't have variable modifier"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_parser_parse_complains_on_implementation_must_not_have_function_modifier()
+{
+    let s = "
+kernel impl T for U {};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Err(FrontendError::Message(pos, msg)) => {
+            assert_eq!(1, pos.line);
+            assert_eq!(1, pos.column);
+            assert_eq!(String::from("implementation mustn't have function modifier"), msg);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
 fn test_parser_parse_type_args_parses_type_arguments()
 {
     let s = "t1, t2, t3";
