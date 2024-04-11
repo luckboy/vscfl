@@ -93,9 +93,9 @@ pub enum TypeExpr
 #[derive(Clone, Debug)]
 pub enum Var
 {
-    Builtin(Option<Box<Type>>),
-    Var(VarModifier, Box<TypeExpr>, Vec<WhereTuple>, Option<Box<Expr>>, Option<Box<LocalTypes>>, Option<Box<Type>>, Option<Value>),
-    Fun(Box<Fun>, Option<Box<Type>>),
+    Builtin(Option<String>, Option<Box<Type>>),
+    Var(VarModifier, Box<TypeExpr>, Vec<WhereTuple>, Option<Box<Expr>>, Option<String>, Option<Box<LocalTypes>>, Option<Box<Type>>, Option<Value>),
+    Fun(Box<Fun>, Option<String>, Option<Box<Type>>),
 }
 
 #[derive(Clone, Debug)]

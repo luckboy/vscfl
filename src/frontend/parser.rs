@@ -54,7 +54,7 @@ enum LiteralEither<T>
     Other(Box<T>),
 }
 
-fn check_modifiers_for_builtin_var(modifiers: &Modifiers) -> FrontendResult<Rc<RefCell<Var>>>
+fn check_modifiers_for_builtin_var(modifiers: &Modifiers, trait_ident: Option<String>) -> FrontendResult<Rc<RefCell<Var>>>
 {
     match &modifiers.var_modifier_pair {
         Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos.clone(), String::from("built-in variable mustn't have variable modifier"))),
@@ -64,7 +64,7 @@ fn check_modifiers_for_builtin_var(modifiers: &Modifiers) -> FrontendResult<Rc<R
         Some((_, tmp_pos)) => return Err(FrontendError::Message(tmp_pos.clone(), String::from("built-in variable mustn't have function modifier"))),
         None => (),
     }
-    Ok(Rc::new(RefCell::new(Var::Builtin(None))))
+    Ok(Rc::new(RefCell::new(Var::Builtin(trait_ident, None))))
 }
 
 pub struct Parser<'a>
@@ -245,7 +245,7 @@ impl<'a> Parser<'a>
         Ok(modifiers)
     }
  
-    fn parse_var(&mut self, modifiers: &Modifiers, is_in_trait: bool) -> FrontendResult<Rc<RefCell<Var>>>
+    fn parse_var(&mut self, modifiers: &Modifiers, trait_ident: Option<String>) -> FrontendResult<Rc<RefCell<Var>>>
     {
         match self.lexer.next_token()? {
             (Token::LParen, _) => {
@@ -275,15 +275,15 @@ impl<'a> Parser<'a>
                             }
                         };
                         let body = match self.lexer.next_token()? {
-                            (Token::Eof, pos3) if !is_in_trait => return Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
+                            (Token::Eof, pos3) if trait_ident.is_none() => return Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
                             (Token::Eq, _) => Some(self.parse_expr()?),
-                            (_, pos3) if !is_in_trait => return Err(FrontendError::Message(pos3, String::from("unexpected token"))),
+                            (_, pos3) if trait_ident.is_none() => return Err(FrontendError::Message(pos3, String::from("unexpected token"))),
                             (token3, pos3) => {
                                 self.lexer.undo_token(token3, pos3);
                                 None
                             },
                         };
-                        Ok(Rc::new(RefCell::new(Var::Fun(Box::new(Fun::Fun(fun_modifier, args, ret_type_expr, where_tuples, body, None, None)), None))))
+                        Ok(Rc::new(RefCell::new(Var::Fun(Box::new(Fun::Fun(fun_modifier, args, ret_type_expr, where_tuples, body, None, None)), trait_ident, None))))
                     },
                     (_, pos2) => Err(FrontendError::Message(pos2, String::from("unclosed parenthesis"))),
                 }
@@ -307,15 +307,15 @@ impl<'a> Parser<'a>
                     }
                 };
                 let expr = match self.lexer.next_token()? {
-                    (Token::Eof, pos2) if !is_in_trait => return Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
+                    (Token::Eof, pos2) if trait_ident.is_none() => return Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
                     (Token::Eq, _) => Some(self.parse_expr()?),
-                    (_, pos2) if !is_in_trait => return Err(FrontendError::Message(pos2, String::from("unexpected token"))),
+                    (_, pos2) if trait_ident.is_none() => return Err(FrontendError::Message(pos2, String::from("unexpected token"))),
                     (token2, pos2) => {
                         self.lexer.undo_token(token2, pos2);
                         None
                     },
                 };
-                Ok(Rc::new(RefCell::new(Var::Var(var_modifier, type_expr, where_tuples, expr, None, None, None))))
+                Ok(Rc::new(RefCell::new(Var::Var(var_modifier, type_expr, where_tuples, expr, trait_ident, None, None, None))))
             },
             (_, pos) => Err(FrontendError::Message(pos, String::from("unexpected token"))),
         }
@@ -357,7 +357,7 @@ impl<'a> Parser<'a>
                             Token::VarIdent(tmp_ident) => tmp_ident,
                             _ => return Err(FrontendError::Interal(String::from("no identifier"))),
                         };
-                        Ok(Box::new(Def::Var(ident, check_modifiers_for_builtin_var(&modifiers)?, first_pos)))
+                        Ok(Box::new(Def::Var(ident, check_modifiers_for_builtin_var(&modifiers, None)?, first_pos)))
                     },
                     (Token::Impl, _) => {
                         match self.lexer.next_token()? {
@@ -479,7 +479,7 @@ impl<'a> Parser<'a>
                     Token::VarIdent(tmp_ident) => tmp_ident,
                     _ => return Err(FrontendError::Interal(String::from("no identifier"))),
                 };
-                Ok(Box::new(Def::Var(ident, self.parse_var(&modifiers, false)?, first_pos)))
+                Ok(Box::new(Def::Var(ident, self.parse_var(&modifiers, None)?, first_pos)))
             },
             (Token::Trait, _) => {
                 // "trait", con_ident, [ "<," one_or_more_type_args, ">" ]
@@ -514,7 +514,7 @@ impl<'a> Parser<'a>
                         match self.lexer.next_token()? {
                             (Token::Eof, pos3) => return Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
                             (Token::LBrace, _) => {
-                                let trait_defs = self.parse_trait_defs(&[Token::RBrace])?;
+                                let trait_defs = self.parse_trait_defs(ident.as_str(), &[Token::RBrace])?;
                                 match self.lexer.next_token()? {
                                     (Token::Eof, pos4) => return Err(FrontendError::Message(pos4, String::from("unexpected end of file"))),
                                     (Token::RBrace, _) => Ok(Box::new(Def::Trait(ident, Rc::new(RefCell::new(Trait(type_args, trait_defs, None))), first_pos))),
@@ -1682,7 +1682,7 @@ impl<'a> Parser<'a>
     fn parse_lambda_args(&mut self, end_tokens: &[Token]) -> FrontendResult<Vec<LambdaArg>>
     { self.parse_zero_or_more(&Token::Comma, end_tokens, Self::parse_lambda_arg) }
 
-    fn parse_trait_def(&mut self) -> FrontendResult<Box<TraitDef>>
+    fn parse_trait_def(&mut self, trait_ident: String) -> FrontendResult<Box<TraitDef>>
     {
         let (tmp_token, first_pos) = self.lexer.next_token()?;
         self.lexer.undo_token(tmp_token, first_pos.clone());
@@ -1698,7 +1698,7 @@ impl<'a> Parser<'a>
                             Token::VarIdent(tmp_ident) => tmp_ident,
                             _ => return Err(FrontendError::Interal(String::from("no identifier"))),
                         };
-                        Ok(Box::new(TraitDef(ident, check_modifiers_for_builtin_var(&modifiers)?, first_pos)))
+                        Ok(Box::new(TraitDef(ident, check_modifiers_for_builtin_var(&modifiers, Some(trait_ident))?, first_pos)))
                     },
                     (_, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected token"))),
                 }
@@ -1710,14 +1710,14 @@ impl<'a> Parser<'a>
                     Token::VarIdent(tmp_ident) => tmp_ident,
                     _ => return Err(FrontendError::Interal(String::from("no identifier"))),
                 };
-                Ok(Box::new(TraitDef(ident, self.parse_var(&modifiers, true)?, first_pos)))
+                Ok(Box::new(TraitDef(ident, self.parse_var(&modifiers, Some(trait_ident))?, first_pos)))
             },
             (_, pos) => Err(FrontendError::Message(pos, String::from("unexpected token"))),
         }
     }
 
-    fn parse_trait_defs(&mut self, end_tokens: &[Token]) -> FrontendResult<Vec<Box<TraitDef>>>
-    { self.parse_zero_or_more(&Token::Semi, end_tokens, Self::parse_trait_def) }
+    fn parse_trait_defs(&mut self, trait_ident: &str, end_tokens: &[Token]) -> FrontendResult<Vec<Box<TraitDef>>>
+    { self.parse_zero_or_more(&Token::Semi, end_tokens, |parser| parser.parse_trait_def(String::from(trait_ident))) }
 
     fn parse_wildcards(&mut self, end_tokens: &[Token]) -> FrontendResult<usize>
     {
