@@ -384,8 +384,8 @@ impl Namer
         }
     }
     
-    fn check_idents_for_named_field_pairs<T, F>(&self, named_field_pairs: &[NamedFieldPair<T>], con: Rc<RefCell<Con>>, tree: &Tree, type_param_env: &mut Environment<()>, pos: Pos, errs: &mut Vec<FrontendError>, mut f: F) -> FrontendResultWithErrors<()>
-        where F: FnMut(&Self, &T, &Tree, &mut Environment<()>, &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn check_idents_for_named_field_pairs<T, F>(&self, named_field_pairs: &[NamedFieldPair<T>], con: Rc<RefCell<Con>>, tree: &Tree, var_env: &mut Environment<()>, type_param_env: &mut Environment<()>, pos: Pos, errs: &mut Vec<FrontendError>, mut f: F) -> FrontendResultWithErrors<()>
+        where F: FnMut(&Self, &T, &Tree, &mut Environment<()>, &mut Environment<()>, &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         let con_r = con.borrow();
         match &*con_r {
@@ -397,7 +397,7 @@ impl Namer
                         NamedFieldPair(field_ident, other, field_pos) => {
                             if !field_idents.contains(field_ident) {
                                 if named_fields.field_indices.contains_key(field_ident) {
-                                    f(self, &**other, tree, type_param_env, errs)?;
+                                    f(self, &**other, tree, var_env, type_param_env, errs)?;
                                     field_idents.insert(field_ident.clone());
                                     count += 1;
                                 } else {
@@ -492,11 +492,7 @@ impl Namer
             Expr::Var(ident, _, pos) => check_var_ident(ident, tree, var_env, pos.clone(), errs),
             Expr::NamedFieldConApp(ident, expr_named_field_pairs, _, pos) => {
                 match check_con_ident(ident, tree, pos.clone(), true, errs) {
-                    Some(con) => {
-                        self.check_idents_for_named_field_pairs(expr_named_field_pairs.as_slice(), con, tree, type_param_env, pos.clone(), errs, |namer, expr, tree, type_param_env, errs| {
-                                namer.check_idents_for_expr(expr, tree, var_env, type_param_env, errs)
-                        })?;
-                    },
+                    Some(con) => self.check_idents_for_named_field_pairs(expr_named_field_pairs.as_slice(), con, tree, var_env, type_param_env, pos.clone(), errs, Self::check_idents_for_expr)?,
                     None => (),
                 }
             },
@@ -617,8 +613,8 @@ impl Namer
             Pattern::NamedFieldCon(ident, pattern_named_field_pairs, _, pos) => {
                 match check_con_ident(ident, tree, pos.clone(), true, errs) {
                     Some(con) => {
-                        self.check_idents_for_named_field_pairs(pattern_named_field_pairs.as_slice(), con, tree, type_param_env, pos.clone(), errs, |namer, expr, tree, type_param_env, errs| {
-                                namer.check_idents_for_pattern(expr, tree, var_env, type_param_env, var_idents, is_in_alt_pattern, errs)
+                        self.check_idents_for_named_field_pairs(pattern_named_field_pairs.as_slice(), con, tree, var_env, type_param_env, pos.clone(), errs, |namer, pattern, tree, var_env, type_param_env, errs| {
+                                namer.check_idents_for_pattern(pattern, tree, var_env, type_param_env, var_idents, is_in_alt_pattern, errs)
                         })?;
                     },
                     None => (),
