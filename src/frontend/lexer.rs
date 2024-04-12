@@ -596,7 +596,7 @@ impl<'a> Lexer<'a>
         loop {
             match self.next_char()? {
                 (None, _) => break,
-                (Some(c), _) if c.is_alphanumeric() || c == '_' => s.push(c),
+                (Some(c), _) if c.is_ascii_alphanumeric() || c == '_' => s.push(c),
                 (Some(c), pos) => {
                     self.undo_char(c, pos);
                     break;
@@ -610,7 +610,7 @@ impl<'a> Lexer<'a>
     {
         match self.next_char()? {
             (None, _) => Ok(None),
-            (Some(c), pos) if c.is_uppercase() => {
+            (Some(c), pos) if c.is_ascii_uppercase() => {
                 let mut s = String::new();
                 s.push(c);
                 self.read_ident_chars(&mut s)?;
@@ -627,7 +627,7 @@ impl<'a> Lexer<'a>
     {
         match self.next_char()? {
             (None, _) => Ok(None),
-            (Some(c), pos) if c.is_lowercase() || c == '_' => {
+            (Some(c), pos) if c.is_ascii_lowercase() || c == '_' => {
                 let mut s = String::new();
                 s.push(c);
                 self.read_ident_chars(&mut s)?;
