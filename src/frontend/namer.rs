@@ -47,8 +47,8 @@ impl Namer
     pub fn check_idents(&self, tree: &mut Tree) -> FrontendResultWithErrors<()>
     {
         let mut errs: Vec<FrontendError> = Vec::new();
-        self.add_defs(tree, &mut errs);
-        self.add_impls_for_defs(tree, &mut errs);
+        self.add_defs(tree, &mut errs)?;
+        self.add_impls_for_defs(tree, &mut errs)?;
         if errs.is_empty() {
             Ok(())
         } else {
@@ -56,7 +56,7 @@ impl Namer
         }
     }
     
-    fn add_defs(&self, tree: &mut Tree, errs: &mut Vec<FrontendError>)
+    fn add_defs(&self, tree: &mut Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         for def in &tree.defs {
             match &**def {
@@ -129,7 +129,7 @@ impl Namer
                                                             Some(trait_vars) => {
                                                                 trait_vars.vars.insert(var_ident.clone(), var.clone());
                                                             },
-                                                            None => errs.push(FrontendError::Internal(String::from("no trait variables"))),
+                                                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no trait variables"))])),
                                                         }
                                                     },
                                                 }
@@ -144,9 +144,10 @@ impl Namer
                 _ => ()
             }
         }
+        Ok(())
     }
 
-    fn add_impls_for_defs(&self, tree: &mut Tree, errs: &mut Vec<FrontendError>)
+    fn add_impls_for_defs(&self, tree: &mut Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         for def in &tree.defs {
             match &**def {
@@ -177,7 +178,7 @@ impl Namer
                                                     Some(impl_vars) => {
                                                         impl_vars.vars.insert(trait_var_ident.clone(), Rc::new(RefCell::new(ImplVar::Builtin(None))));
                                                     },
-                                                    None => errs.push(FrontendError::Internal(String::from("no implementation variables"))),
+                                                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no implementation variables"))])),
                                                 }
                                             }
                                         },
@@ -206,7 +207,7 @@ impl Namer
                                                                         Some(impl_vars) => {
                                                                             impl_vars.vars.insert(impl_var_ident.clone(), impl_var.clone());
                                                                         },
-                                                                        None => errs.push(FrontendError::Internal(String::from("no implementation variables"))),
+                                                                        None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no implementation variables"))])),
                                                                     }
                                                                 }
                                                             },
@@ -225,7 +226,7 @@ impl Namer
                                                                     errs.push(FrontendError::Message(pos.clone(), format!("undefined required variable {} at implementation {}", trait_var_ident, trait_ident)));
                                                                 }
                                                             },
-                                                            None => errs.push(FrontendError::Internal(String::from("no implementation variables"))),
+                                                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no implementation variables"))])),
                                                         }
                                                     },
                                                     Var::Fun(fun, _, _) => {
@@ -237,7 +238,7 @@ impl Namer
                                                                             errs.push(FrontendError::Message(pos.clone(), format!("undefined required function {} at implementation {}", trait_var_ident, trait_ident)));
                                                                         }
                                                                     },
-                                                                    None => errs.push(FrontendError::Internal(String::from("no implementation variables"))),
+                                                                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no implementation variables"))])),
                                                                 }
                                                             },
                                                             _ => (),
@@ -249,7 +250,7 @@ impl Namer
                                         },
                                     }
                                 },
-                                _ => errs.push(FrontendError::Internal(String::from("no trait variables"))),
+                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no trait variables"))])),
                             }
                         },
                         None => errs.push(FrontendError::Message(pos.clone(), format!("undefined trait {}", trait_ident))),
@@ -258,5 +259,6 @@ impl Namer
                 _ => (),
             }
         }
+        Ok(())
     }
 }
