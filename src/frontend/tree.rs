@@ -97,7 +97,7 @@ pub struct TypeArg(pub String, pub Pos);
 pub enum Con
 {
     UnnamedField(String, Vec<Box<TypeExpr>>, String, Pos),
-    NamedField(String, Vec<NamedFieldPair<TypeExpr>>, String, Pos),
+    NamedField(String, Vec<NamedFieldPair<TypeExpr>>, String, Option<Box<NamedFields>>, Pos),
 }
 
 #[derive(Clone, Debug)]
@@ -300,6 +300,29 @@ pub enum SharedFlag
 
 #[derive(Clone, Debug)]
 pub struct TypeArgs;
+
+#[derive(Clone, Debug)]
+pub struct NamedFields
+{
+    pub(crate) field_indices: BTreeMap<String, usize>,
+}
+
+impl NamedFields
+{
+    pub fn new() -> Self
+    { NamedFields { field_indices: BTreeMap::new(), } }
+    
+    pub fn field_indices(&self) -> &BTreeMap<String, usize>
+    { &self.field_indices }
+    
+    pub fn field_index(&self, ident: &String) -> Option<usize>
+    {
+       match self.field_indices.get(ident) {
+           Some(i) => Some(*i),
+           None => None,
+       }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct TypeValue;

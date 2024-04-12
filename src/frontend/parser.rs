@@ -606,7 +606,7 @@ impl<'a> Parser<'a>
                         let type_expr_named_field_pairs = self.parse_named_field_pairs(&[Token::RBrace], Self::parse_type_expr)?;
                         match self.lexer.next_token()? {
                             (Token::Eof, pos3) => Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
-                            (Token::RBrace, _) => Ok(Rc::new(RefCell::new(Con::NamedField(ident, type_expr_named_field_pairs, data_ident, pos)))),
+                            (Token::RBrace, _) => Ok(Rc::new(RefCell::new(Con::NamedField(ident, type_expr_named_field_pairs, data_ident, None, pos)))),
                             (_, pos3) => Err(FrontendError::Message(pos3, String::from("unclosed brace"))),
                         }
                     },

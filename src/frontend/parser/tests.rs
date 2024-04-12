@@ -1167,7 +1167,7 @@ data T = C()
                     }
                     let con3_r = cons[2].borrow();
                     match &*con3_r {
-                        Con::NamedField(con_ident, type_expr_named_field_pairs, data_ident, pos) => {
+                        Con::NamedField(con_ident, type_expr_named_field_pairs, data_ident, None, pos) => {
                             assert_eq!(3, pos.line);
                             assert_eq!(10, pos.column);
                             assert_eq!(String::from("E"), *con_ident);
@@ -1178,7 +1178,7 @@ data T = C()
                     }
                     let con4_r = cons[3].borrow();
                     match &*con4_r {
-                        Con::NamedField(con_ident, type_expr_named_field_pairs, data_ident, pos) => {
+                        Con::NamedField(con_ident, type_expr_named_field_pairs, data_ident, None, pos) => {
                             assert_eq!(4, pos.line);
                             assert_eq!(10, pos.column);
                             assert_eq!(String::from("F"), *con_ident);
