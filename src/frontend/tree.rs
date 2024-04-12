@@ -5,6 +5,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 //
+use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::cell::*;
 use std::rc::*;
 use crate::frontend::error::Pos;
@@ -31,12 +33,22 @@ pub enum FunModifier
 pub struct Tree
 {
     defs: Vec<Box<Def>>,
+    type_vars: HashMap<String, Rc<RefCell<TypeVar>>>,
+    vars: HashMap<String, Rc<RefCell<Var>>>,
+    traits: HashMap<String, Rc<RefCell<Trait>>>,
 }
 
 impl Tree
 {
     pub fn new() -> Self
-    { Tree { defs: Vec::new(), } }
+    {
+        Tree {
+            defs: Vec::new(),
+            type_vars: HashMap::new(),
+            vars: HashMap::new(),
+            traits: HashMap::new(),
+        }
+    }
     
     pub fn defs(&self) -> &[Box<Def>]
     { self.defs.as_slice() }
@@ -46,6 +58,33 @@ impl Tree
 
     pub fn append_defs(&mut self, defs: &mut Vec<Box<Def>>)
     { self.defs.append(defs); }
+
+    pub fn type_vars(&self) -> &HashMap<String, Rc<RefCell<TypeVar>>>
+    { &self.type_vars }
+    
+    pub fn type_var(&self, ident: &String) -> Option<&Rc<RefCell<TypeVar>>>
+    { self.type_vars.get(ident) }
+    
+    pub fn add_type_var(&mut self, ident: String, type_var: Rc<RefCell<TypeVar>>)
+    { self.type_vars.insert(ident, type_var); }
+
+    pub fn vars(&self) -> &HashMap<String, Rc<RefCell<Var>>>
+    { &self.vars }
+
+    pub fn var(&self, ident: &String) -> Option<&Rc<RefCell<Var>>>
+    { self.vars.get(ident) }
+    
+    pub fn add_var(&mut self, ident: String, var: Rc<RefCell<Var>>)
+    { self.vars.insert(ident, var); }
+
+    pub fn traits(&self) -> &HashMap<String, Rc<RefCell<Trait>>>
+    { &self.traits }
+    
+    pub fn trait1(&self, ident: &String) -> Option<&Rc<RefCell<Trait>>>
+    { self.traits.get(ident) }
+    
+    pub fn add_trait(&mut self, ident: String, trait1: Rc<RefCell<Trait>>)
+    { self.traits.insert(ident, trait1); }
 }
 
 #[derive(Clone, Debug)]
@@ -254,7 +293,53 @@ pub struct LocalTypes;
 pub struct Value;
 
 #[derive(Clone, Debug)]
-pub struct TraitVars;
+pub struct TraitVars
+{
+    impls: BTreeMap<TypeName, Rc<RefCell<Impl>>>,
+    vars: BTreeMap<String, Rc<RefCell<Var>>>,
+}
+
+impl TraitVars
+{
+    pub fn new() -> Self
+    { TraitVars { impls: BTreeMap::new(), vars: BTreeMap::new(), } }
+
+    pub fn impls(&self) -> &BTreeMap<TypeName, Rc<RefCell<Impl>>>
+    { &self.impls }
+    
+    pub fn impl1(&self, type_name: &TypeName) -> Option<&Rc<RefCell<Impl>>>
+    { self.impls.get(type_name) }
+    
+    pub fn add_impl(&mut self, type_name: TypeName, impl1: Rc<RefCell<Impl>>)
+    { self.impls.insert(type_name, impl1); }
+
+    pub fn vars(&self) -> &BTreeMap<String, Rc<RefCell<Var>>>
+    { &self.vars }
+    
+    pub fn var(&self, ident: &String) -> Option<&Rc<RefCell<Var>>>
+    { self.vars.get(ident) }
+    
+    pub fn add_var(&mut self, ident: String, var: Rc<RefCell<Var>>)
+    { self.vars.insert(ident, var); }
+}
 
 #[derive(Clone, Debug)]
-pub struct ImplVars;
+pub struct ImplVars
+{
+    vars: BTreeMap<String, Rc<RefCell<ImplVar>>>,
+}
+
+impl ImplVars
+{
+    pub fn new() -> Self
+    { ImplVars { vars: BTreeMap::new(), } }
+
+    pub fn vars(&self) -> &BTreeMap<String, Rc<RefCell<ImplVar>>>
+    { &self.vars }
+    
+    pub fn var(&self, ident: &String) -> Option<&Rc<RefCell<ImplVar>>>
+    { self.vars.get(ident) }
+    
+    pub fn add_var(&mut self, ident: String, var: Rc<RefCell<ImplVar>>)
+    { self.vars.insert(ident, var); }
+}
