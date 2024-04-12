@@ -121,6 +121,20 @@ fn check_con_ident(ident: &String, tree: &Tree, pos: Pos, are_named_fields: bool
     }
 }
 
+fn add_var_ident(ident: &String, var_env: &mut Environment<()>, var_idents: &mut BTreeSet<String>, pos: Pos, is_in_alt_pattern: bool, errs: &mut Vec<FrontendError>)
+{
+    if !is_in_alt_pattern {
+        if !var_idents.contains(ident) {
+            var_env.add_var(ident.clone(), ());
+            var_idents.insert(ident.clone());
+        } else {
+            errs.push(FrontendError::Message(pos, format!("already variable {} in pattern", ident)));
+        }
+    } else {
+        errs.push(FrontendError::Message(pos, String::from("variable pattern mustn't be in alternative pattern")));
+    }
+}
+
 pub struct Namer
 {}
 
@@ -620,29 +634,9 @@ impl Namer
                     None => (),
                 }
             }
-            Pattern::Var(_, ident, _, pos) => {
-                if !is_in_alt_pattern {
-                    if !var_idents.contains(ident) {
-                        var_env.add_var(ident.clone(), ());
-                        var_idents.insert(ident.clone());
-                    } else {
-                        errs.push(FrontendError::Message(pos.clone(), format!("already variable {} in pattern", ident)));
-                    }
-                } else {
-                    errs.push(FrontendError::Message(pos.clone(), String::from("variable pattern mustn't be in alternative pattern")));
-                }
-            },
+            Pattern::Var(_, ident, _, pos) => add_var_ident(ident, var_env, var_idents, pos.clone(), is_in_alt_pattern, errs),
             Pattern::At(_, ident, pattern2, _, pos) => {
-                if !is_in_alt_pattern {
-                    if !var_idents.contains(ident) {
-                        var_env.add_var(ident.clone(), ());
-                        var_idents.insert(ident.clone());
-                    } else {
-                        errs.push(FrontendError::Message(pos.clone(), format!("already defined {} in pattern", ident)));
-                    }
-                } else {
-                    errs.push(FrontendError::Message(pos.clone(), String::from("variable pattern mustn't be in alternative pattern")));
-                }
+                add_var_ident(ident, var_env, var_idents, pos.clone(), is_in_alt_pattern, errs);
                 self.check_idents_for_pattern(&**pattern2, tree, var_env, type_param_env, var_idents, is_in_alt_pattern, errs)?;
             },
             Pattern::Wildcard(_, _) => (),
