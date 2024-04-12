@@ -8,6 +8,7 @@
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::cell::*;
+use std::fmt;
 use std::rc::*;
 use crate::frontend::error::Pos;
 
@@ -235,6 +236,44 @@ pub enum TypeName
     Name(String),
 }
 
+impl fmt::Display for TypeName
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+    {
+        match self {
+            TypeName::Tuple(count) => {
+                write!(f, "(")?;
+                let mut is_first = true;
+                for _ in 0..*count {
+                    if !is_first {
+                        write!(f, ", _")?;
+                    } else {
+                        write!(f, "_")?;
+                    }
+                    is_first = false;
+                }
+                write!(f, ")")
+            },
+            TypeName::Fun(count) => {
+                write!(f, "(")?;
+                let mut is_first = true;
+                for _ in 0..*count {
+                    if !is_first {
+                        write!(f, ", _")?;
+                    } else {
+                        write!(f, "_")?;
+                    }
+                    is_first = false;
+                }
+                write!(f, ") -> _")
+            },
+            TypeName::Array(Some(len)) => write!(f, "[_; {}]", len),
+            TypeName::Array(None) => write!(f, "[_; _]"),
+            TypeName::Name(ident) => write!(f, "{}", ident),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct ImplDef(pub String, pub Rc<RefCell<ImplVar>>, pub Pos);
 
@@ -242,7 +281,7 @@ pub struct ImplDef(pub String, pub Rc<RefCell<ImplVar>>, pub Pos);
 pub enum ImplVar
 {
     Builtin(Option<Box<Type>>),
-    Var(Box<Expr>, Option<Box<LocalTypes>>, Option<Box<Type>>),
+    Var(Box<Expr>, Option<Box<LocalTypes>>, Option<Box<Type>>, Option<Value>),
     Fun(Box<ImplFun>, Option<Box<Type>>),
 }
 

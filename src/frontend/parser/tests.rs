@@ -9548,7 +9548,7 @@ impl T for ()
                             assert_eq!(String::from("A"), *ident);
                             let impl_var_r = impl_var.borrow();
                             match &*impl_var_r {
-                                ImplVar::Var(expr, None, None) => {
+                                ImplVar::Var(expr, None, None, None) => {
                                     match &**expr {
                                         Expr::Var(var_ident, None, pos) => {
                                             assert_eq!(3, pos.line);
@@ -9569,7 +9569,7 @@ impl T for ()
                             assert_eq!(String::from("a"), *ident);
                             let impl_var_r = impl_var.borrow();
                             match &*impl_var_r {
-                                ImplVar::Var(expr, None, None) => {
+                                ImplVar::Var(expr, None, None, None) => {
                                     match &**expr {
                                         Expr::Var(var_ident, None, pos) => {
                                             assert_eq!(4, pos.line);

@@ -1856,7 +1856,7 @@ impl<'a> Parser<'a>
                     },
                     (Token::Eq, _) => {
                         let expr = self.parse_expr()?;
-                        Ok(Box::new(ImplDef(ident, Rc::new(RefCell::new(ImplVar::Var(expr, None, None))), pos)))
+                        Ok(Box::new(ImplDef(ident, Rc::new(RefCell::new(ImplVar::Var(expr, None, None, None))), pos)))
                     },
                     (_, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected token"))),
                 }
