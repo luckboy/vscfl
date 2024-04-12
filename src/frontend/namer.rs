@@ -12,7 +12,7 @@ use crate::frontend::error::*;
 use crate::frontend::tree::*;
 use crate::utils::env::*;
 
-fn add_error_for_type_var(ident: &str, defined_type_var: &TypeVar, pos: Pos, errs: &mut Vec<FrontendError>)
+fn add_error_for_type_var(ident: &str, pos: Pos, defined_type_var: &TypeVar, errs: &mut Vec<FrontendError>)
 {
     match defined_type_var {
         TypeVar::Builtin(_, _) => errs.push(FrontendError::Message(pos, format!("already defined built-in type {}", ident))),
@@ -21,7 +21,7 @@ fn add_error_for_type_var(ident: &str, defined_type_var: &TypeVar, pos: Pos, err
     }
 }
 
-fn add_error_for_var(ident: &str, defined_var: &Var, pos: Pos, errs: &mut Vec<FrontendError>)
+fn add_error_for_var(ident: &str, pos: Pos, defined_var: &Var, errs: &mut Vec<FrontendError>)
 {
     match defined_var {
         Var::Builtin(_, _) => errs.push(FrontendError::Message(pos, format!("already defined built-in variable {}", ident))),
@@ -38,7 +38,7 @@ fn add_error_for_var(ident: &str, defined_var: &Var, pos: Pos, errs: &mut Vec<Fr
 fn add_error_for_trait(ident: &str, pos: Pos, errs: &mut Vec<FrontendError>)
 { errs.push(FrontendError::Message(pos, format!("already defined trait {}", ident))); }
 
-fn check_type_param_ident(ident: &String, type_param_env: &Environment<()>, pos: Pos, are_errs: bool, errs: &mut Vec<FrontendError>)
+fn check_type_param_ident(ident: &String, pos: Pos, type_param_env: &Environment<()>, are_errs: bool, errs: &mut Vec<FrontendError>)
 {
     if type_param_env.var(ident).is_none() {
         if are_errs {
@@ -47,7 +47,7 @@ fn check_type_param_ident(ident: &String, type_param_env: &Environment<()>, pos:
     }
 }
 
-fn check_type_var_ident(ident: &String, tree: &Tree, pos: Pos, are_errs: bool, errs: &mut Vec<FrontendError>)
+fn check_type_var_ident(ident: &String, pos: Pos, tree: &Tree, are_errs: bool, errs: &mut Vec<FrontendError>)
 {
     if !tree.type_vars.contains_key(ident) {
         if are_errs {
@@ -56,7 +56,7 @@ fn check_type_var_ident(ident: &String, tree: &Tree, pos: Pos, are_errs: bool, e
     }
 }
 
-fn check_var_ident(ident: &String, tree: &Tree, var_env: &Environment<()>, pos: Pos, errs: &mut Vec<FrontendError>)
+fn check_var_ident(ident: &String, pos: Pos, tree: &Tree, var_env: &Environment<()>, errs: &mut Vec<FrontendError>)
 {
     if var_env.var(ident).is_none() {
         if !tree.vars.contains_key(ident) {
@@ -65,7 +65,7 @@ fn check_var_ident(ident: &String, tree: &Tree, var_env: &Environment<()>, pos: 
     }
 }
 
-fn check_const_ident(ident: &String, tree: &Tree, pos: Pos, errs: &mut Vec<FrontendError>)
+fn check_const_ident(ident: &String, pos: Pos, tree: &Tree, errs: &mut Vec<FrontendError>)
 {
     match tree.vars.get(ident) {
         Some(var) => {
@@ -80,7 +80,7 @@ fn check_const_ident(ident: &String, tree: &Tree, pos: Pos, errs: &mut Vec<Front
     }
 }
 
-fn check_con_ident(ident: &String, tree: &Tree, pos: Pos, are_named_fields: bool, errs: &mut Vec<FrontendError>) -> Option<Rc<RefCell<Con>>>
+fn check_con_ident(ident: &String, pos: Pos, tree: &Tree, are_named_fields: bool, errs: &mut Vec<FrontendError>) -> Option<Rc<RefCell<Con>>>
 {
     match tree.vars.get(ident) {
         Some(var) => {
@@ -121,7 +121,7 @@ fn check_con_ident(ident: &String, tree: &Tree, pos: Pos, are_named_fields: bool
     }
 }
 
-fn add_var_ident(ident: &String, var_env: &mut Environment<()>, var_idents: &mut BTreeSet<String>, pos: Pos, is_in_alt_pattern: bool, errs: &mut Vec<FrontendError>)
+fn add_var_ident(ident: &String, pos: Pos, var_env: &mut Environment<()>, var_idents: &mut BTreeSet<String>, is_in_alt_pattern: bool, errs: &mut Vec<FrontendError>)
 {
     if !is_in_alt_pattern {
         if !var_idents.contains(ident) {
@@ -163,7 +163,7 @@ impl Namer
                     match tree.type_vars.get(ident) {
                         Some(defined_type_var) => {
                             let defined_type_var_r = defined_type_var.borrow();
-                            add_error_for_type_var(ident.as_str(), &*defined_type_var_r, pos.clone(), errs);
+                            add_error_for_type_var(ident.as_str(), pos.clone(), &*defined_type_var_r, errs);
                         },
                         None => {
                             tree.type_vars.insert(ident.clone(), type_var.clone());
@@ -179,7 +179,7 @@ impl Namer
                                         match tree.vars.get(con_ident) {
                                             Some(defined_var) => {
                                                 let defined_var_r = defined_var.borrow();
-                                                add_error_for_var(con_ident.as_str(), &*defined_var_r, con_pos.clone(), errs);
+                                                add_error_for_var(con_ident.as_str(), con_pos.clone(), &*defined_var_r, errs);
                                             },
                                             None => {
                                                 tree.vars.insert(ident.clone(), Rc::new(RefCell::new(Var::Fun(Box::new(Fun::Con(con.clone())), None, None))));
@@ -222,7 +222,7 @@ impl Namer
                     match tree.vars.get(ident) {
                         Some(defined_var) => {
                             let defined_var_r = defined_var.borrow();
-                            add_error_for_var(ident.as_str(), &*defined_var_r, pos.clone(), errs);
+                            add_error_for_var(ident.as_str(), pos.clone(), &*defined_var_r, errs);
                         },
                         None => {
                             tree.vars.insert(ident.clone(), var.clone());
@@ -243,7 +243,7 @@ impl Namer
                                                 match tree.vars.get(ident) {
                                                     Some(defined_var) => {
                                                         let defined_var_r = defined_var.borrow();
-                                                        add_error_for_var(var_ident.as_str(), &*defined_var_r, var_pos.clone(), errs);
+                                                        add_error_for_var(var_ident.as_str(), var_pos.clone(), &*defined_var_r, errs);
                                                     },
                                                     None => {
                                                         tree.vars.insert(var_ident.clone(), var.clone());
@@ -453,12 +453,12 @@ impl Namer
                 if can_add_type_params {
                     type_param_env.add_var(ident.clone(), ());
                 } else {
-                    check_type_param_ident(ident, type_param_env, pos.clone(), are_errs, errs);
+                    check_type_param_ident(ident, pos.clone(), type_param_env, are_errs, errs);
                 }
             },
-            TypeExpr::Var(ident, pos) => check_type_var_ident(ident, tree, pos.clone(), are_errs, errs),
+            TypeExpr::Var(ident, pos) => check_type_var_ident(ident, pos.clone(), tree, are_errs, errs),
             TypeExpr::App(ident, type_exprs, pos) => {
-                check_type_var_ident(ident, tree, pos.clone(), are_errs, errs);
+                check_type_var_ident(ident, pos.clone(), tree, are_errs, errs);
                 for type_expr2 in type_exprs {
                     self.check_idents_for_type_expr(&**type_expr2, tree, type_param_env, can_add_type_params, are_errs, errs)?;
                 }
@@ -503,9 +503,9 @@ impl Namer
                 self.check_idents_for_expr(&**body, tree, var_env, type_param_env, errs)?;
                 var_env.pop_vars();
             },
-            Expr::Var(ident, _, pos) => check_var_ident(ident, tree, var_env, pos.clone(), errs),
+            Expr::Var(ident, _, pos) => check_var_ident(ident, pos.clone(), tree, var_env, errs),
             Expr::NamedFieldConApp(ident, expr_named_field_pairs, _, pos) => {
-                match check_con_ident(ident, tree, pos.clone(), true, errs) {
+                match check_con_ident(ident, pos.clone(), tree, true, errs) {
                     Some(con) => self.check_idents_for_named_field_pairs(expr_named_field_pairs.as_slice(), con, tree, var_env, type_param_env, pos.clone(), errs, Self::check_idents_for_expr)?,
                     None => (),
                 }
@@ -596,26 +596,19 @@ impl Namer
                 })?;
                 self.check_idents_for_type_expr(&**type_expr, tree, type_param_env, false, true, errs)?;
             },
-            Pattern::Const(ident, _, pos) => check_const_ident(ident, tree, pos.clone(), errs),
+            Pattern::Const(ident, _, pos) => check_const_ident(ident, pos.clone(), tree, errs),
             Pattern::UnnamedFieldCon(ident, patterns, _, pos) => {
-                match check_con_ident(ident, tree, pos.clone(), false, errs) {
+                match check_con_ident(ident, pos.clone(), tree, false, errs) {
                     Some(con) => {
                         let con_r = con.borrow();
-                        match &*con_r {
-                            Con::UnnamedField(_, field_type_exprs, _, _) => {
-                                if patterns.len() < field_type_exprs.len() {
-                                    errs.push(FrontendError::Message(pos.clone(), String::from("too few fields")));
-                                } else if patterns.len() > field_type_exprs.len() {
-                                    errs.push(FrontendError::Message(pos.clone(), String::from("too many fields")));
-                                }
-                            },
-                            Con::NamedField(_, type_expr_named_field_pairs, _, _, _) => {
-                                if patterns.len() < type_expr_named_field_pairs.len() {
-                                    errs.push(FrontendError::Message(pos.clone(), String::from("too few fields")));
-                                } else if patterns.len() > type_expr_named_field_pairs.len() {
-                                    errs.push(FrontendError::Message(pos.clone(), String::from("too many fields")));
-                                }
-                            },
+                        let field_count = match &*con_r {
+                            Con::UnnamedField(_, field_type_exprs, _, _) => field_type_exprs.len(),
+                            Con::NamedField(_, type_expr_named_field_pairs, _, _, _) => type_expr_named_field_pairs.len(),
+                        };
+                        if patterns.len() < field_count {
+                            errs.push(FrontendError::Message(pos.clone(), String::from("too few fields")));
+                        } else if patterns.len() > field_count {
+                            errs.push(FrontendError::Message(pos.clone(), String::from("too many fields")));
                         }
                         for pattern2 in patterns {
                             self.check_idents_for_pattern(&**pattern2, tree, var_env, type_param_env, var_idents, is_in_alt_pattern, errs)?;
@@ -625,7 +618,7 @@ impl Namer
                 }
             },
             Pattern::NamedFieldCon(ident, pattern_named_field_pairs, _, pos) => {
-                match check_con_ident(ident, tree, pos.clone(), true, errs) {
+                match check_con_ident(ident, pos.clone(), tree, true, errs) {
                     Some(con) => {
                         self.check_idents_for_named_field_pairs(pattern_named_field_pairs.as_slice(), con, tree, var_env, type_param_env, pos.clone(), errs, |namer, pattern, tree, var_env, type_param_env, errs| {
                                 namer.check_idents_for_pattern(pattern, tree, var_env, type_param_env, var_idents, is_in_alt_pattern, errs)
@@ -634,9 +627,9 @@ impl Namer
                     None => (),
                 }
             }
-            Pattern::Var(_, ident, _, pos) => add_var_ident(ident, var_env, var_idents, pos.clone(), is_in_alt_pattern, errs),
+            Pattern::Var(_, ident, _, pos) => add_var_ident(ident, pos.clone(), var_env, var_idents, is_in_alt_pattern, errs),
             Pattern::At(_, ident, pattern2, _, pos) => {
-                add_var_ident(ident, var_env, var_idents, pos.clone(), is_in_alt_pattern, errs);
+                add_var_ident(ident, pos.clone(), var_env, var_idents, is_in_alt_pattern, errs);
                 self.check_idents_for_pattern(&**pattern2, tree, var_env, type_param_env, var_idents, is_in_alt_pattern, errs)?;
             },
             Pattern::Wildcard(_, _) => (),
