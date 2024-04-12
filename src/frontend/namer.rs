@@ -630,7 +630,7 @@ impl Namer
                         var_env.add_var(ident.clone(), ());
                         var_idents.insert(ident.clone());
                     } else {
-                        errs.push(FrontendError::Message(pos.clone(), format!("already variable variable {} in pattern", ident)));
+                        errs.push(FrontendError::Message(pos.clone(), format!("already variable {} in pattern", ident)));
                     }
                 } else {
                     errs.push(FrontendError::Message(pos.clone(), String::from("variable pattern mustn't be in alternative pattern")));
@@ -642,7 +642,7 @@ impl Namer
                         var_env.add_var(ident.clone(), ());
                         var_idents.insert(ident.clone());
                     } else {
-                        errs.push(FrontendError::Message(pos.clone(), format!("already defined variable {} in pattern", ident)));
+                        errs.push(FrontendError::Message(pos.clone(), format!("already defined {} in pattern", ident)));
                     }
                 } else {
                     errs.push(FrontendError::Message(pos.clone(), String::from("variable pattern mustn't be in alternative pattern")));
