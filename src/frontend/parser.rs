@@ -82,7 +82,7 @@ impl<'a> Parser<'a>
         let mut defs = self.parse_defs(&[Token::Eof])?;
         match self.lexer.next_token()? {
             (Token::Eof, _) => {
-                tree.append_defs(&mut defs);
+                tree.defs.append(&mut defs);
                 Ok(())
             },
             (_, pos) => Err(FrontendError::Message(pos, String::from("unexpected token"))),
