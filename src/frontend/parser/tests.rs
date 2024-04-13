@@ -1739,10 +1739,29 @@ f() -> (t1, t2, t3)
                         _ => assert!(false),
                     }
                     match &where_tuples[3] {
-                        WhereTuple::Eq(type_param_idents, pos) => {
-                            assert_eq!(5, pos.line);
-                            assert_eq!(11, pos.column);
-                            assert_eq!(vec![String::from("t1"), String::from("t2"), String::from("t3")], *type_param_idents);
+                        WhereTuple::Eq(type_params) => {
+                            assert_eq!(3, type_params.len());
+                            match &type_params[0] {
+                                TypeParam(type_param_ident, pos) => {
+                                    assert_eq!(5, pos.line);
+                                    assert_eq!(11, pos.column);
+                                    assert_eq!(String::from("t1"), *type_param_ident);
+                                },
+                            }
+                            match &type_params[1] {
+                                TypeParam(type_param_ident, pos) => {
+                                    assert_eq!(5, pos.line);
+                                    assert_eq!(17, pos.column);
+                                    assert_eq!(String::from("t2"), *type_param_ident);
+                                },
+                            }
+                            match &type_params[2] {
+                                TypeParam(type_param_ident, pos) => {
+                                    assert_eq!(5, pos.line);
+                                    assert_eq!(23, pos.column);
+                                    assert_eq!(String::from("t3"), *type_param_ident);
+                                },
+                            }
                         },
                         _ => assert!(false),
                     }
@@ -1876,11 +1895,30 @@ f() -> (t1, t2, t3)
                                 _ => assert!(false),
                             }
                             match &where_tuples[3] {
-                                WhereTuple::Eq(type_param_idents, pos) => {
-                                    assert_eq!(10, pos.line);
-                                    assert_eq!(11, pos.column);
-                                    assert_eq!(vec![String::from("t1"), String::from("t2"), String::from("t3")], *type_param_idents);
-                                },
+                                WhereTuple::Eq(type_params) => {
+                                    assert_eq!(3, type_params.len());
+                                    match &type_params[0] {
+                                        TypeParam(type_param_ident, pos) => {
+                                            assert_eq!(10, pos.line);
+                                            assert_eq!(11, pos.column);
+                                            assert_eq!(String::from("t1"), *type_param_ident);
+                                        }
+                                    }
+                                    match &type_params[1] {
+                                        TypeParam(type_param_ident, pos) => {
+                                            assert_eq!(10, pos.line);
+                                            assert_eq!(17, pos.column);
+                                            assert_eq!(String::from("t2"), *type_param_ident);
+                                        }
+                                    }
+                                    match &type_params[2] {
+                                        TypeParam(type_param_ident, pos) => {
+                                            assert_eq!(10, pos.line);
+                                            assert_eq!(23, pos.column);
+                                            assert_eq!(String::from("t3"), *type_param_ident);
+                                        }
+                                    }
+                               },
                                 _ => assert!(false),
                             }
                             match expr {

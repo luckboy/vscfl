@@ -137,7 +137,7 @@ pub struct Arg(pub String, pub Box<TypeExpr>, pub Option<LocalType>, pub Pos);
 pub enum WhereTuple
 {
     Traits(String, Vec<TraitName>, Vec<Box<TypeExpr>>, Pos),
-    Eq(Vec<String>, Pos),
+    Eq(Vec<TypeParam>),
 }
 
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
@@ -147,6 +147,9 @@ pub enum TraitName
     Fun,
     Name(String),
 }
+
+#[derive(Clone, Debug)]
+pub struct TypeParam(pub String, pub Pos);
 
 #[derive(Clone, Debug)]
 pub enum Expr

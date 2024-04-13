@@ -671,9 +671,11 @@ impl Namer
                     self.check_idents_for_type_expr(&**type_expr, tree, type_param_env, false, true, errs)?;
                 }
             }
-            WhereTuple::Eq(idents, pos) => {
-                for ident in idents {
-                    check_type_param_ident(ident, pos.clone(), type_param_env, true, errs);
+            WhereTuple::Eq(type_params) => {
+                for type_param in type_params {
+                    match type_param {
+                        TypeParam(ident, pos) => check_type_param_ident(ident, pos.clone(), type_param_env, true, errs),
+                    }
                 }
             },
         }
