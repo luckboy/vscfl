@@ -411,7 +411,6 @@ impl Namer
                         NamedFieldPair(field_ident, other, field_pos) => {
                             if !field_idents.contains(field_ident) {
                                 if named_fields.field_indices.contains_key(field_ident) {
-                                    f(self, &**other, tree, var_env, type_param_env, errs)?;
                                     field_idents.insert(field_ident.clone());
                                     count += 1;
                                 } else {
@@ -420,13 +419,14 @@ impl Namer
                             } else {
                                 errs.push(FrontendError::Message(field_pos.clone(), format!("already used field {}", field_ident)))
                             }
+                            f(self, &**other, tree, var_env, type_param_env, errs)?;
                         },
                     }
                 }
                 if count < named_fields.field_indices.len() {
-                    errs.push(FrontendError::Message(pos.clone(), String::from("too few used fields")))
+                    errs.push(FrontendError::Message(pos.clone(), String::from("too few fields")))
                 } else if count > named_fields.field_indices.len() {
-                    errs.push(FrontendError::Message(pos.clone(), String::from("too many used fields")))
+                    errs.push(FrontendError::Message(pos.clone(), String::from("too many fields")))
                 }
             },
             _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("unnamed field contructor or no named fields"))])),
@@ -477,12 +477,12 @@ impl Namer
                     if !arg_idents.contains(ident) {
                         var_env.add_var(ident.clone(), ());
                         arg_idents.insert(ident.clone());
-                        self.check_idents_for_type_expr(&**type_expr, tree, type_param_env, true, are_errs, errs)?;
                     } else {
                         if are_errs {
                             errs.push(FrontendError::Message(pos.clone(), format!("already defined argument {}", ident)));
                         }
                     }
+                    self.check_idents_for_type_expr(&**type_expr, tree, type_param_env, true, are_errs, errs)?;
                 },
             }
         }
@@ -671,12 +671,12 @@ impl Namer
                     if !lambda_arg_idents.contains(ident) {
                         var_env.add_var(ident.clone(), ());
                         lambda_arg_idents.insert(ident.clone());
-                        match type_expr {
-                            Some(type_expr) => self.check_idents_for_type_expr(&**type_expr, tree, type_param_env, false, true, errs)?,
-                            None => (),
-                        }
                     } else {
                         errs.push(FrontendError::Message(pos.clone(), format!("already defined argument {}", ident)));
+                    }
+                    match type_expr {
+                        Some(type_expr) => self.check_idents_for_type_expr(&**type_expr, tree, type_param_env, false, true, errs)?,
+                        None => (),
                     }
                 },
             }
