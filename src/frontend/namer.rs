@@ -193,6 +193,33 @@ impl Namer
         }
     }
     
+    pub fn check_idents_for_type_args(&self, type_args: &[TypeArg]) -> FrontendResultWithErrors<()>
+    {
+        let mut errs: Vec<FrontendError> = Vec::new();
+        let mut type_param_env: Environment<()> = Environment::new();
+        self.check_idents_for_type_args2(type_args, &mut type_param_env, &mut errs)?;
+        if errs.is_empty() {
+            Ok(())
+        } else {
+            Err(FrontendErrors::new(errs))
+        }
+    }
+    
+    pub fn check_idents_for_type(&self, type_expr: &TypeExpr, where_tuples: &[WhereTuple], tree: &Tree) -> FrontendResultWithErrors<()>
+    {
+        let mut errs: Vec<FrontendError> = Vec::new();
+        let mut type_param_env: Environment<()> = Environment::new();
+        self.check_idents_for_type_expr(type_expr, tree, &mut type_param_env, true, true, &mut errs)?;
+        for where_tuple in where_tuples {
+            self.check_idents_for_where_tuple(where_tuple, tree, &mut type_param_env, &mut errs)?;
+        }
+        if errs.is_empty() {
+            Ok(())
+        } else {
+            Err(FrontendErrors::new(errs))
+        }
+    }
+    
     fn add_defs(&self, tree: &mut Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         for def in &tree.defs {
