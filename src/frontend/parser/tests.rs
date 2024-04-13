@@ -1622,11 +1622,13 @@ fn test_parser_parse_parses_where_tuples()
 a: (t1, t2, t3)
     where t1: shared,
           t2: T + U <t1, Int>,
-          t3: -> <Int> = g();
+          t3: -> <Int>,
+          t1 == t2 == t3 = g();
 f() -> (t1, t2, t3)
     where t1: shared,
           t2: T + U <t1, Int>,
-          t3: -> <Int> = g();
+          t3: -> <Int>,
+          t1 == t2 == t3 = g();
 ";
     let s2 = &s[1..];
     let mut cursor = Cursor::new(s2.as_bytes());
@@ -1677,9 +1679,9 @@ f() -> (t1, t2, t3)
                         },
                         _ => assert!(false),
                     }
-                    assert_eq!(3, where_tuples.len());
+                    assert_eq!(4, where_tuples.len());
                     match &where_tuples[0] {
-                        WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                        WhereTuple::Traits(type_param_ident, trait_names, type_exprs, pos) => {
                             assert_eq!(2, pos.line);
                             assert_eq!(11, pos.column);
                             assert_eq!(String::from("t1"), *type_param_ident);
@@ -1687,9 +1689,10 @@ f() -> (t1, t2, t3)
                             assert_eq!(TraitName::Shared, trait_names[0]);
                             assert_eq!(true, type_exprs.is_empty());
                         },
+                        _ => assert!(false),
                     }
                     match &where_tuples[1] {
-                        WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                        WhereTuple::Traits(type_param_ident, trait_names, type_exprs, pos) => {
                             assert_eq!(3, pos.line);
                             assert_eq!(11, pos.column);
                             assert_eq!(String::from("t2"), *type_param_ident);
@@ -1714,9 +1717,10 @@ f() -> (t1, t2, t3)
                                 _ => assert!(false),
                             }
                         },
+                        _ => assert!(false),
                     }
                     match &where_tuples[2] {
-                        WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                        WhereTuple::Traits(type_param_ident, trait_names, type_exprs, pos) => {
                             assert_eq!(4, pos.line);
                             assert_eq!(11, pos.column);
                             assert_eq!(String::from("t3"), *type_param_ident);
@@ -1732,17 +1736,26 @@ f() -> (t1, t2, t3)
                                 _ => assert!(false),
                             }
                         },
+                        _ => assert!(false),
+                    }
+                    match &where_tuples[3] {
+                        WhereTuple::Eq(type_param_idents, pos) => {
+                            assert_eq!(5, pos.line);
+                            assert_eq!(11, pos.column);
+                            assert_eq!(vec![String::from("t1"), String::from("t2"), String::from("t3")], *type_param_idents);
+                        },
+                        _ => assert!(false),
                     }
                     match expr {
                         Some(expr) => {
                             match &**expr {
                                 Expr::App(expr, exprs, None, pos) => {
-                                    assert_eq!(4, pos.line);
-                                    assert_eq!(26, pos.column);
+                                    assert_eq!(5, pos.line);
+                                    assert_eq!(28, pos.column);
                                     match &**expr {
                                         Expr::Var(var_ident, None, pos) => {
-                                            assert_eq!(4, pos.line);
-                                            assert_eq!(26, pos.column);
+                                            assert_eq!(5, pos.line);
+                                            assert_eq!(28, pos.column);
                                             assert_eq!(String::from("g"), *var_ident);
                                         },
                                         _ => assert!(false),
@@ -1762,7 +1775,7 @@ f() -> (t1, t2, t3)
     }
     match &*tree.defs()[1] {
         Def::Var(ident, var, pos) => {
-            assert_eq!(5, pos.line);
+            assert_eq!(6, pos.line);
             assert_eq!(1, pos.column);
             assert_eq!(String::from("f"), *ident);
             let var_r = var.borrow();
@@ -1773,12 +1786,12 @@ f() -> (t1, t2, t3)
                             assert_eq!(true, args.is_empty());
                             match &**ret_type_expr {
                                 TypeExpr::Tuple(type_exprs, pos) => {
-                                    assert_eq!(5, pos.line);
+                                    assert_eq!(6, pos.line);
                                     assert_eq!(8, pos.column);
                                     assert_eq!(3, type_exprs.len());
                                     match &*type_exprs[0] {
                                         TypeExpr::Param(type_param_ident, pos) => {
-                                            assert_eq!(5, pos.line);
+                                            assert_eq!(6, pos.line);
                                             assert_eq!(9, pos.column);
                                             assert_eq!(String::from("t1"), *type_param_ident);
                                         },
@@ -1786,7 +1799,7 @@ f() -> (t1, t2, t3)
                                     }
                                     match &*type_exprs[1] {
                                         TypeExpr::Param(type_param_ident, pos) => {
-                                            assert_eq!(5, pos.line);
+                                            assert_eq!(6, pos.line);
                                             assert_eq!(13, pos.column);
                                             assert_eq!(String::from("t2"), *type_param_ident);
                                         },
@@ -1794,7 +1807,7 @@ f() -> (t1, t2, t3)
                                     }
                                     match &*type_exprs[2] {
                                         TypeExpr::Param(type_param_ident, pos) => {
-                                            assert_eq!(5, pos.line);
+                                            assert_eq!(6, pos.line);
                                             assert_eq!(17, pos.column);
                                             assert_eq!(String::from("t3"), *type_param_ident);
                                         },
@@ -1803,20 +1816,21 @@ f() -> (t1, t2, t3)
                                 },
                                 _ => assert!(false),
                             }
-                            assert_eq!(3, where_tuples.len());
+                            assert_eq!(4, where_tuples.len());
                             match &where_tuples[0] {
-                                WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
-                                    assert_eq!(6, pos.line);
+                                WhereTuple::Traits(type_param_ident, trait_names, type_exprs, pos) => {
+                                    assert_eq!(7, pos.line);
                                     assert_eq!(11, pos.column);
                                     assert_eq!(String::from("t1"), *type_param_ident);
                                     assert_eq!(1, trait_names.len());
                                     assert_eq!(TraitName::Shared, trait_names[0]);
                                     assert_eq!(true, type_exprs.is_empty());
                                 },
+                                _ => assert!(false),
                             }
                             match &where_tuples[1] {
-                                WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
-                                    assert_eq!(7, pos.line);
+                                WhereTuple::Traits(type_param_ident, trait_names, type_exprs, pos) => {
+                                    assert_eq!(8, pos.line);
                                     assert_eq!(11, pos.column);
                                     assert_eq!(String::from("t2"), *type_param_ident);
                                     assert_eq!(2, trait_names.len());
@@ -1825,7 +1839,7 @@ f() -> (t1, t2, t3)
                                     assert_eq!(2, type_exprs.len());
                                     match &*type_exprs[0] {
                                         TypeExpr::Param(type_param_ident, pos) => {
-                                            assert_eq!(7, pos.line);
+                                            assert_eq!(8, pos.line);
                                             assert_eq!(22, pos.column);
                                             assert_eq!(String::from("t1"), *type_param_ident);
                                         },
@@ -1833,17 +1847,18 @@ f() -> (t1, t2, t3)
                                     }
                                     match &*type_exprs[1] {
                                         TypeExpr::Var(type_var_ident, pos) => {
-                                            assert_eq!(7, pos.line);
+                                            assert_eq!(8, pos.line);
                                             assert_eq!(26, pos.column);
                                             assert_eq!(String::from("Int"), *type_var_ident);
                                         },
                                         _ => assert!(false),
                                     }
                                 },
+                                _ => assert!(false),
                             }
                             match &where_tuples[2] {
-                                WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
-                                    assert_eq!(8, pos.line);
+                                WhereTuple::Traits(type_param_ident, trait_names, type_exprs, pos) => {
+                                    assert_eq!(9, pos.line);
                                     assert_eq!(11, pos.column);
                                     assert_eq!(String::from("t3"), *type_param_ident);
                                     assert_eq!(1, trait_names.len());
@@ -1851,24 +1866,33 @@ f() -> (t1, t2, t3)
                                     assert_eq!(1, type_exprs.len());
                                     match &*type_exprs[0] {
                                         TypeExpr::Var(type_var_ident, pos) => {
-                                            assert_eq!(8, pos.line);
+                                            assert_eq!(9, pos.line);
                                             assert_eq!(19, pos.column);
                                             assert_eq!(String::from("Int"), *type_var_ident);
                                         },
                                         _ => assert!(false),
                                     }
                                 },
+                                _ => assert!(false),
+                            }
+                            match &where_tuples[3] {
+                                WhereTuple::Eq(type_param_idents, pos) => {
+                                    assert_eq!(10, pos.line);
+                                    assert_eq!(11, pos.column);
+                                    assert_eq!(vec![String::from("t1"), String::from("t2"), String::from("t3")], *type_param_idents);
+                                },
+                                _ => assert!(false),
                             }
                             match expr {
                                 Some(expr) => {
                                     match &**expr {
                                         Expr::App(expr, exprs, None, pos) => {
-                                            assert_eq!(8, pos.line);
-                                            assert_eq!(26, pos.column);
+                                            assert_eq!(10, pos.line);
+                                            assert_eq!(28, pos.column);
                                             match &**expr {
                                                 Expr::Var(var_ident, None, pos) => {
-                                                    assert_eq!(8, pos.line);
-                                                    assert_eq!(26, pos.column);
+                                                    assert_eq!(10, pos.line);
+                                                    assert_eq!(28, pos.column);
                                                     assert_eq!(String::from("g"), *var_ident);
                                                 },
                                                 _ => assert!(false),
@@ -8546,7 +8570,7 @@ trait T
                                     }
                                     assert_eq!(1, where_tuples.len());
                                     match &where_tuples[0] {
-                                        WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                        WhereTuple::Traits(type_param_ident, trait_names, type_exprs, pos) => {
                                             assert_eq!(3, pos.line);
                                             assert_eq!(17, pos.column);
                                             assert_eq!(String::from("t1"), *type_param_ident);
@@ -8554,6 +8578,7 @@ trait T
                                             assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
                                             assert_eq!(true, type_exprs.is_empty());
                                         },
+                                        _ => assert!(false),
                                     }
                                     match expr {
                                         Some(expr) => {
@@ -8592,7 +8617,7 @@ trait T
                                     }
                                     assert_eq!(1, where_tuples.len());
                                     match &where_tuples[0] {
-                                        WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                        WhereTuple::Traits(type_param_ident, trait_names, type_exprs, pos) => {
                                             assert_eq!(4, pos.line);
                                             assert_eq!(17, pos.column);
                                             assert_eq!(String::from("t1"), *type_param_ident);
@@ -8600,6 +8625,7 @@ trait T
                                             assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
                                             assert_eq!(true, type_exprs.is_empty());
                                         },
+                                        _ => assert!(false),
                                     }
                                     match expr {
                                         Some(expr) => {
@@ -8638,7 +8664,7 @@ trait T
                                     }
                                     assert_eq!(1, where_tuples.len());
                                     match &where_tuples[0] {
-                                        WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                        WhereTuple::Traits(type_param_ident, trait_names, type_exprs, pos) => {
                                             assert_eq!(5, pos.line);
                                             assert_eq!(25, pos.column);
                                             assert_eq!(String::from("t1"), *type_param_ident);
@@ -8646,6 +8672,7 @@ trait T
                                             assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
                                             assert_eq!(true, type_exprs.is_empty());
                                         },
+                                        _ => assert!(false),
                                     }
                                     match expr {
                                         Some(expr) => {
@@ -8684,7 +8711,7 @@ trait T
                                     }
                                     assert_eq!(1, where_tuples.len());
                                     match &where_tuples[0] {
-                                        WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                        WhereTuple::Traits(type_param_ident, trait_names, type_exprs, pos) => {
                                             assert_eq!(6, pos.line);
                                             assert_eq!(23, pos.column);
                                             assert_eq!(String::from("t1"), *type_param_ident);
@@ -8692,6 +8719,7 @@ trait T
                                             assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
                                             assert_eq!(true, type_exprs.is_empty());
                                         },
+                                        _ => assert!(false),
                                     }
                                     match expr {
                                         Some(expr) => {
@@ -8730,7 +8758,7 @@ trait T
                                     }
                                     assert_eq!(1, where_tuples.len());
                                     match &where_tuples[0] {
-                                        WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                        WhereTuple::Traits(type_param_ident, trait_names, type_exprs, pos) => {
                                             assert_eq!(7, pos.line);
                                             assert_eq!(24, pos.column);
                                             assert_eq!(String::from("t1"), *type_param_ident);
@@ -8738,6 +8766,7 @@ trait T
                                             assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
                                             assert_eq!(true, type_exprs.is_empty());
                                         },
+                                        _ => assert!(false),
                                     }
                                     match expr {
                                         Some(expr) => {
@@ -8776,7 +8805,7 @@ trait T
                                     }
                                     assert_eq!(1, where_tuples.len());
                                     match &where_tuples[0] {
-                                        WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                        WhereTuple::Traits(type_param_ident, trait_names, type_exprs, pos) => {
                                             assert_eq!(8, pos.line);
                                             assert_eq!(26, pos.column);
                                             assert_eq!(String::from("t1"), *type_param_ident);
@@ -8784,6 +8813,7 @@ trait T
                                             assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
                                             assert_eq!(true, type_exprs.is_empty());
                                         },
+                                        _ => assert!(false),
                                     }
                                     match expr {
                                         Some(expr) => {
@@ -8822,7 +8852,7 @@ trait T
                                     }
                                     assert_eq!(1, where_tuples.len());
                                     match &where_tuples[0] {
-                                        WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                        WhereTuple::Traits(type_param_ident, trait_names, type_exprs, pos) => {
                                             assert_eq!(9, pos.line);
                                             assert_eq!(17, pos.column);
                                             assert_eq!(String::from("t1"), *type_param_ident);
@@ -8830,6 +8860,7 @@ trait T
                                             assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
                                             assert_eq!(true, type_exprs.is_empty());
                                         },
+                                        _ => assert!(false),
                                     }
                                     assert_eq!(String::from("T"), *trait_ident);                                    
                                 },
@@ -8899,7 +8930,7 @@ trait T
                                             }
                                             assert_eq!(1, where_tuples.len());
                                             match &where_tuples[0] {
-                                                WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                                WhereTuple::Traits(type_param_ident, trait_names, type_exprs, pos) => {
                                                     assert_eq!(3, pos.line);
                                                     assert_eq!(21, pos.column);
                                                     assert_eq!(String::from("t1"), *type_param_ident);
@@ -8907,6 +8938,7 @@ trait T
                                                     assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
                                                     assert_eq!(true, type_exprs.is_empty());
                                                 },
+                                                _ => assert!(false),
                                             }
                                             match expr {
                                                 Some(expr) => {
@@ -8951,7 +8983,7 @@ trait T
                                             }
                                             assert_eq!(1, where_tuples.len());
                                             match &where_tuples[0] {
-                                                WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                                WhereTuple::Traits(type_param_ident, trait_names, type_exprs, pos) => {
                                                     assert_eq!(4, pos.line);
                                                     assert_eq!(21, pos.column);
                                                     assert_eq!(String::from("t1"), *type_param_ident);
@@ -8959,6 +8991,7 @@ trait T
                                                     assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
                                                     assert_eq!(true, type_exprs.is_empty());
                                                 },
+                                                _ => assert!(false),
                                             }
                                             match expr {
                                                 Some(expr) => {
@@ -9035,7 +9068,7 @@ trait T
                                             }
                                             assert_eq!(1, where_tuples.len());
                                             match &where_tuples[0] {
-                                                WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                                WhereTuple::Traits(type_param_ident, trait_names, type_exprs, pos) => {
                                                     assert_eq!(5, pos.line);
                                                     assert_eq!(33, pos.column);
                                                     assert_eq!(String::from("t1"), *type_param_ident);
@@ -9043,6 +9076,7 @@ trait T
                                                     assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
                                                     assert_eq!(true, type_exprs.is_empty());
                                                 },
+                                                _ => assert!(false),
                                             }
                                             match expr {
                                                 Some(expr) => {
@@ -9143,7 +9177,7 @@ trait T
                                             }
                                             assert_eq!(1, where_tuples.len());
                                             match &where_tuples[0] {
-                                                WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                                WhereTuple::Traits(type_param_ident, trait_names, type_exprs, pos) => {
                                                     assert_eq!(6, pos.line);
                                                     assert_eq!(40, pos.column);
                                                     assert_eq!(String::from("t1"), *type_param_ident);
@@ -9151,6 +9185,7 @@ trait T
                                                     assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
                                                     assert_eq!(true, type_exprs.is_empty());
                                                 },
+                                                _ => assert!(false),
                                             }
                                             match expr {
                                                 Some(expr) => {
@@ -9235,7 +9270,7 @@ trait T
                                             }
                                             assert_eq!(1, where_tuples.len());
                                             match &where_tuples[0] {
-                                                WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                                WhereTuple::Traits(type_param_ident, trait_names, type_exprs, pos) => {
                                                     assert_eq!(7, pos.line);
                                                     assert_eq!(33, pos.column);
                                                     assert_eq!(String::from("t1"), *type_param_ident);
@@ -9243,6 +9278,7 @@ trait T
                                                     assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
                                                     assert_eq!(true, type_exprs.is_empty());
                                                 },
+                                                _ => assert!(false),
                                             }
                                             match expr {
                                                 Some(expr) => {
@@ -9290,7 +9326,7 @@ trait T
                                             }
                                             assert_eq!(1, where_tuples.len());
                                             match &where_tuples[0] {
-                                                WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                                                WhereTuple::Traits(type_param_ident, trait_names, type_exprs, pos) => {
                                                     assert_eq!(8, pos.line);
                                                     assert_eq!(21, pos.column);
                                                     assert_eq!(String::from("t1"), *type_param_ident);
@@ -9298,6 +9334,7 @@ trait T
                                                     assert_eq!(TraitName::Name(String::from("T")), trait_names[0]);
                                                     assert_eq!(true, type_exprs.is_empty());
                                                 },
+                                                _ => assert!(false),
                                             }
                                         },
                                         _ => assert!(false),
@@ -10847,7 +10884,7 @@ fn test_parser_parse_where_parses_where_tuples()
         Ok(where_tuples) => {
             assert_eq!(2, where_tuples.len());
             match &where_tuples[0] {
-                WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                WhereTuple::Traits(type_param_ident, trait_names, type_exprs, pos) => {
                     assert_eq!(1, pos.line);
                     assert_eq!(1, pos.column);
                     assert_eq!(String::from("t1"), *type_param_ident);
@@ -10856,9 +10893,10 @@ fn test_parser_parse_where_parses_where_tuples()
                     assert_eq!(TraitName::Name(String::from("U")), trait_names[1]);
                     assert_eq!(true, type_exprs.is_empty());
                 },
+                _ => assert!(false),
             }
             match &where_tuples[1] {
-                WhereTuple(type_param_ident, trait_names, type_exprs, pos) => {
+                WhereTuple::Traits(type_param_ident, trait_names, type_exprs, pos) => {
                     assert_eq!(1, pos.line);
                     assert_eq!(12, pos.column);
                     assert_eq!(String::from("t2"), *type_param_ident);
@@ -10866,6 +10904,7 @@ fn test_parser_parse_where_parses_where_tuples()
                     assert_eq!(TraitName::Name(String::from("V")), trait_names[0]);
                     assert_eq!(true, type_exprs.is_empty());
                 },
+                _ => assert!(false),
             }
         },
         Err(_) => assert!(false),

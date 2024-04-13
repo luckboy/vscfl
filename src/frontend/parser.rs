@@ -757,6 +757,15 @@ impl<'a> Parser<'a>
     fn parse_args(&mut self, end_tokens: &[Token]) -> FrontendResult<Vec<Arg>>
     { self.parse_zero_or_more(&Token::Comma, end_tokens, Self::parse_arg) }
 
+    fn parse_var_ident(&mut self) -> FrontendResult<String>
+    {
+        match self.lexer.next_token()? {
+            (Token::Eof, pos) => Err(FrontendError::Message(pos, String::from("unexpected end of file"))),
+            (Token::VarIdent(ident), _) => Ok(ident),
+            (_, pos) => Err(FrontendError::Message(pos, String::from("unexpected token"))),
+        }
+    }
+    
     fn parse_where_tuple(&mut self) -> FrontendResult<WhereTuple>
     {
         match self.lexer.next_token()? {
@@ -784,7 +793,13 @@ impl<'a> Parser<'a>
                             },
                         };
                         self.lexer.set_single_greater(saved_single_greater_flag);
-                        Ok(WhereTuple(ident, trait_names, type_exprs, pos))
+                        Ok(WhereTuple::Traits(ident, trait_names, type_exprs, pos))
+                    },
+                    (Token::EqEq, _) => {
+                        let mut idents = vec![ident];
+                        let mut idents2 = self.parse_one_or_more_without_end_sep(&Token::EqEq, Self::parse_var_ident)?;
+                        idents.append(&mut idents2);
+                        Ok(WhereTuple::Eq(idents, pos))
                     },
                     (_, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected token"))),
                 }
