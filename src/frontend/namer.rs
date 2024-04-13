@@ -381,7 +381,7 @@ impl Namer
         Ok(())
     }
     
-    fn check_idents_for_type_args(&self, type_args: &[TypeArg], type_param_env: &mut Environment<()>, errs: &mut Vec<FrontendError>)
+    fn check_idents_for_type_args2(&self, type_args: &[TypeArg], type_param_env: &mut Environment<()>, errs: &mut Vec<FrontendError>)
     {
         let mut type_arg_idents: BTreeSet<String> = BTreeSet::new();
         for type_arg in type_args {
