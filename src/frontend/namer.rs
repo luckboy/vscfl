@@ -121,6 +121,43 @@ fn check_con_ident(ident: &String, pos: Pos, tree: &Tree, are_named_fields: bool
     }
 }
 
+fn check_trait_name(trait_name: &TraitName, pos: Pos, tree: &Tree, errs: &mut Vec<FrontendError>)
+{
+    match trait_name {
+        TraitName::Name(ident) => {
+            if !tree.traits.contains_key(ident) {
+                errs.push(FrontendError::Message(pos, format!("undefined trait {}", ident)));
+            }
+        },
+        _ => (),
+    }
+}
+
+fn check_type_name(type_name: &TypeName, pos: Pos, tree: &Tree, errs: &mut Vec<FrontendError>) -> bool
+{
+    match type_name {
+        TypeName::Name(ident) => {
+            match tree.type_vars.get(ident) {
+                Some(type_var) => {
+                    let type_var_r = type_var.borrow();
+                    match &*type_var_r {
+                        TypeVar::Builtin(_, _) | TypeVar::Data(_, _, _) => true,
+                        _ => {
+                            errs.push(FrontendError::Message(pos, format!("type variable {} isn't type", ident)));
+                            false
+                        },
+                    }
+                },
+                None => {
+                    errs.push(FrontendError::Message(pos, format!("undefined type {}", ident)));
+                    false
+                },
+            }
+        },
+        _ => true,
+    }
+}
+
 fn add_var_ident(ident: &String, pos: Pos, var_env: &mut Environment<()>, var_idents: &mut BTreeSet<String>, is_in_alt_pattern: bool, errs: &mut Vec<FrontendError>)
 {
     if !is_in_alt_pattern {
@@ -148,6 +185,7 @@ impl Namer
         let mut errs: Vec<FrontendError> = Vec::new();
         self.add_defs(tree, &mut errs)?;
         self.add_impls_for_defs(tree, &mut errs)?;
+        self.check_idents_for_defs(tree, &mut errs)?;
         if errs.is_empty() {
             Ok(())
         } else {
@@ -285,11 +323,13 @@ impl Namer
                             let mut trait_r = trait1.borrow_mut();
                             match &mut *trait_r {
                                 Trait(_, _, Some(trait_vars)) => {
-                                    match trait_vars.impls.get(type_name) {
-                                        Some(_) => errs.push(FrontendError::Message(pos.clone(), format!("already defined implementation {} for type {}", trait_ident, type_name))),
-                                        None => {
-                                            trait_vars.impls.insert(type_name.clone(), impl1.clone());
-                                        },
+                                    if check_type_name(type_name, pos.clone(), tree, errs) {
+                                        match trait_vars.impls.get(type_name) {
+                                            Some(_) => errs.push(FrontendError::Message(pos.clone(), format!("already defined implementation {} for type {}", trait_ident, type_name))),
+                                            None => {
+                                                trait_vars.impls.insert(type_name.clone(), impl1.clone());
+                                            },
+                                        }
                                     }
                                     match &mut *impl_r {
                                         Impl::Builtin(_, _, impl_vars) => {
@@ -381,7 +421,91 @@ impl Namer
         Ok(())
     }
     
-    fn check_idents_for_type_args2(&self, type_args: &[TypeArg], type_param_env: &mut Environment<()>, errs: &mut Vec<FrontendError>)
+    fn check_idents_for_defs(&self, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        for def in &tree.defs {
+            match &**def {
+                Def::Type(_, type_var, _) => {
+                    let type_var_r = type_var.borrow();
+                    self.check_idents_for_type_var(&*type_var_r, tree, errs)?;
+                },
+                Def::Var(_, var, _) => {
+                    let var_r = var.borrow();
+                    self.check_idents_for_var(&*var_r, tree, errs)?;
+                },
+                Def::Trait(_, trait1, _) => {
+                    let trait_r = trait1.borrow();
+                    match &*trait_r {
+                        Trait(_, trait_defs, _) => {
+                            for trait_def in trait_defs {
+                                match &**trait_def {
+                                    TraitDef(_, var, _) => {
+                                        let var_r = var.borrow();
+                                        self.check_idents_for_var(&*var_r, tree, errs)?;
+                                    },
+                                }
+                            }
+                        },
+                    }
+                },
+                Def::Impl(impl1, _) => {
+                    let impl_r = impl1.borrow();
+                    match &*impl_r {
+                        Impl::Builtin(_, _, _) => (),
+                        Impl::Impl(trait_ident, _, impl_defs, _) => {
+                            for impl_def in impl_defs {
+                                match &**impl_def {
+                                    ImplDef(impl_var_ident, impl_var, _) => {
+                                        let impl_var_r = impl_var.borrow();
+                                        self.check_idents_for_impl_var(&*impl_var_r, impl_var_ident, trait_ident, tree, errs)?;
+                                    },
+                                }
+                            }
+                        },
+                    }
+                },
+            }
+        }
+        Ok(())
+    }
+    
+    fn check_idents_for_type_var(&self, type_var: &TypeVar, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        match type_var {
+            TypeVar::Builtin(_, _) => (),
+            TypeVar::Data(type_args, cons, _) => {
+                let mut type_param_env: Environment<()> = Environment::new();
+                type_param_env.push_new_vars();
+                self.check_idents_for_type_args2(type_args.as_slice(), &mut type_param_env, errs)?;
+                for con in cons {
+                    let con_r = con.borrow();
+                    match &*con_r {
+                        Con::UnnamedField(_, field_type_exprs, _, _) => {
+                            for field_type_expr in field_type_exprs {
+                                self.check_idents_for_type_expr(&**field_type_expr, tree, &mut type_param_env, false, true, errs)?;
+                            }
+                        },
+                        Con::NamedField(_, type_expr_named_field_pairs, _, _, _) => {
+                            for type_expr_named_field_pair in type_expr_named_field_pairs {
+                                match type_expr_named_field_pair {
+                                    NamedFieldPair(_, field_type_expr, _) => self.check_idents_for_type_expr(&**field_type_expr, tree, &mut type_param_env, false, true, errs)?,
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            TypeVar::Synonym(type_args, type_expr, _) => {
+                let mut type_param_env: Environment<()> = Environment::new();
+                type_param_env.push_new_vars();
+                self.check_idents_for_type_args2(type_args.as_slice(), &mut type_param_env, errs)?;
+                self.check_idents_for_type_expr(&**type_expr, tree, &mut type_param_env, false, true, errs)?;
+            },
+        }
+        Ok(())
+    }
+    
+    fn check_idents_for_type_args2(&self, type_args: &[TypeArg], type_param_env: &mut Environment<()>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         let mut type_arg_idents: BTreeSet<String> = BTreeSet::new();
         for type_arg in type_args {
@@ -396,6 +520,7 @@ impl Namer
                 },
             }
         }
+        Ok(())
     }
     
     fn check_idents_for_named_field_pairs<T, F>(&self, named_field_pairs: &[NamedFieldPair<T>], pos: Pos, con: Rc<RefCell<Con>>, tree: &Tree, var_env: &mut Environment<()>, type_param_env: &mut Environment<()>, errs: &mut Vec<FrontendError>, mut f: F) -> FrontendResultWithErrors<()>
@@ -408,7 +533,7 @@ impl Namer
                 let mut count = 0usize;
                 for named_field_pair in named_field_pairs {
                     match named_field_pair {
-                        NamedFieldPair(field_ident, other, field_pos) => {
+                        NamedFieldPair(field_ident, _, field_pos) => {
                             if !field_idents.contains(field_ident) {
                                 if named_fields.field_indices.contains_key(field_ident) {
                                     field_idents.insert(field_ident.clone());
@@ -419,7 +544,6 @@ impl Namer
                             } else {
                                 errs.push(FrontendError::Message(field_pos.clone(), format!("already used field {}", field_ident)))
                             }
-                            f(self, &**other, tree, var_env, type_param_env, errs)?;
                         },
                     }
                 }
@@ -430,6 +554,11 @@ impl Namer
                 }
             },
             _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("unnamed field contructor or no named fields"))])),
+        }
+        for named_field_pair in named_field_pairs {
+            match named_field_pair {
+                NamedFieldPair(_, other, _) => f(self, &**other, tree, var_env, type_param_env, errs)?,
+            }
         }
         Ok(())
     }
@@ -468,6 +597,47 @@ impl Namer
         Ok(())
     }
 
+    fn check_idents_for_var(&self, var: &Var, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        match var {
+            Var::Builtin(_, _) => (),
+            Var::Var(_, type_expr, where_tuples, expr, _, _, _, _) => {
+                let mut var_env: Environment<()> = Environment::new();
+                let mut type_param_env: Environment<()> = Environment::new();
+                type_param_env.push_new_vars();
+                self.check_idents_for_type_expr(&**type_expr, tree, &mut type_param_env, true, true, errs)?;
+                for where_tuple in where_tuples {
+                    self.check_idents_for_where_tuple(where_tuple, tree, &mut type_param_env, errs)?;
+                }
+                match expr {
+                    Some(expr) => self.check_idents_for_expr(&**expr, tree, &mut var_env, &mut type_param_env, errs)?,
+                    None => (),
+                }
+            },
+            Var::Fun(fun, _, _) => {
+                match &**fun {
+                    Fun::Fun(_, args, ret_type_expr, where_tuples, body, _, _) => {
+                        let mut var_env: Environment<()> = Environment::new();
+                        let mut type_param_env: Environment<()> = Environment::new();
+                        var_env.push_new_vars();
+                        type_param_env.push_new_vars();
+                        self.check_idents_for_args(args.as_slice(), tree, &mut var_env, &mut type_param_env, true, errs)?;
+                        self.check_idents_for_type_expr(&**ret_type_expr, tree, &mut type_param_env, true, true, errs)?;
+                        for where_tuple in where_tuples {
+                            self.check_idents_for_where_tuple(where_tuple, tree, &mut type_param_env, errs)?;
+                        }
+                        match body {
+                            Some(body) => self.check_idents_for_expr(&**body, tree, &mut var_env, &mut type_param_env, errs)?,
+                            None => (),
+                        }
+                    },
+                    Fun::Con(_) => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("variable is contructor"))])),
+                }
+            },
+        }
+        Ok(())
+    }
+    
     fn check_idents_for_args(&self, args: &[Arg], tree: &Tree, var_env: &mut Environment<()>, type_param_env: &mut Environment<()>, are_errs: bool, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         let mut arg_idents: BTreeSet<String> = BTreeSet::new();
@@ -485,6 +655,27 @@ impl Namer
                     self.check_idents_for_type_expr(&**type_expr, tree, type_param_env, true, are_errs, errs)?;
                 },
             }
+        }
+        Ok(())
+    }
+
+    fn check_idents_for_where_tuple(&self, where_tuple: &WhereTuple, tree: &Tree, type_param_env: &mut Environment<()>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        match where_tuple {
+            WhereTuple::Traits(ident, trait_names, type_exprs, pos) => {
+                check_type_param_ident(ident, pos.clone(), type_param_env, true, errs);
+                for trait_name in trait_names {
+                    check_trait_name(trait_name, pos.clone(), &tree, errs);
+                }
+                for type_expr in type_exprs {
+                    self.check_idents_for_type_expr(&**type_expr, tree, type_param_env, false, true, errs)?;
+                }
+            }
+            WhereTuple::Eq(idents, pos) => {
+                for ident in idents {
+                    check_type_param_ident(ident, pos.clone(), type_param_env, true, errs);
+                }
+            },
         }
         Ok(())
     }
@@ -610,11 +801,11 @@ impl Namer
                         } else if patterns.len() > field_count {
                             errs.push(FrontendError::Message(pos.clone(), String::from("too many fields")));
                         }
-                        for pattern2 in patterns {
-                            self.check_idents_for_pattern(&**pattern2, tree, var_env, type_param_env, var_idents, is_in_alt_pattern, errs)?;
-                        }
                     },
                     None => (),
+                }
+                for pattern2 in patterns {
+                    self.check_idents_for_pattern(&**pattern2, tree, var_env, type_param_env, var_idents, is_in_alt_pattern, errs)?;
                 }
             },
             Pattern::NamedFieldCon(ident, pattern_named_field_pairs, _, pos) => {
@@ -677,6 +868,103 @@ impl Namer
                     match type_expr {
                         Some(type_expr) => self.check_idents_for_type_expr(&**type_expr, tree, type_param_env, false, true, errs)?,
                         None => (),
+                    }
+                },
+            }
+        }
+        Ok(())
+    }
+    
+    fn check_idents_for_impl_var(&self, impl_var: &ImplVar, impl_var_ident: &String, trait_ident: &String, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        match impl_var {
+            ImplVar::Builtin(_) => (),
+            ImplVar::Var(expr, _, _, _) => {
+                let mut var_env: Environment<()> = Environment::new();
+                let mut type_param_env: Environment<()> = Environment::new();
+                type_param_env.push_new_vars();
+                match tree.traits.get(trait_ident) {
+                    Some(trait1) => {
+                        let trait_r = trait1.borrow();
+                        match &*trait_r {
+                            Trait(_, _, Some(trait_vars)) => {
+                                match trait_vars.vars.get(impl_var_ident) {
+                                    Some(var) => {
+                                        let var_r = var.borrow();
+                                        match &*var_r {
+                                            Var::Builtin(_, _) => (),
+                                            Var::Var(_, type_expr, _, _, _, _, _, _) => self.check_idents_for_type_expr(&**type_expr, tree, &mut type_param_env, true, false, errs)?,
+                                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("isn't variable"))])),
+                                        }
+                                    },
+                                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no variable"))])),
+                                }
+                            },
+                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no trait variables"))])),
+                        }
+                    },
+                    _ => (),
+                }
+                self.check_idents_for_expr(&**expr, tree, &mut var_env, &mut type_param_env, errs)?;
+            },
+            ImplVar::Fun(fun, _) => {
+                match &**fun {
+                    ImplFun(impl_args, body, _, _) => {
+                        let mut var_env: Environment<()> = Environment::new();
+                        let mut type_param_env: Environment<()> = Environment::new();
+                        type_param_env.push_new_vars();
+                        match tree.traits.get(trait_ident) {
+                            Some(trait1) => {
+                                let trait_r = trait1.borrow();
+                                match &*trait_r {
+                                    Trait(_, _, Some(trait_vars)) => {
+                                        match trait_vars.vars.get(impl_var_ident) {
+                                            Some(var) => {
+                                                let var_r = var.borrow();
+                                                match &*var_r {
+                                                    Var::Builtin(_, _) => (),
+                                                    Var::Fun(fun, _, _) => {
+                                                        match &**fun {
+                                                            Fun::Fun(_, args, ret_type_expr, _, _, _, _) => {
+                                                                let mut tmp_var_env: Environment<()> = Environment::new();
+                                                                tmp_var_env.push_new_vars();
+                                                                self.check_idents_for_args(args.as_slice(), tree, &mut tmp_var_env, &mut type_param_env, false, errs)?;
+                                                                self.check_idents_for_type_expr(&**ret_type_expr, tree, &mut type_param_env, true, false, errs)?;
+                                                            },
+                                                            _ => (),
+                                                        }
+                                                    },
+                                                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("isn't variable"))])),
+                                                }
+                                            },
+                                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no variable"))])),
+                                        }
+                                    },
+                                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no trait variables"))])),
+                                }
+                            },
+                            _ => (),
+                        }
+                        self.check_idents_for_impl_args(impl_args.as_slice(), &mut var_env, errs)?;
+                        self.check_idents_for_expr(&**body, tree, &mut var_env, &mut type_param_env, errs)?;
+                    },
+                }
+            },
+        }
+        Ok(())
+    }
+
+    fn check_idents_for_impl_args(&self, impl_args: &[ImplArg], var_env: &mut Environment<()>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        let mut impl_arg_idents: BTreeSet<String> = BTreeSet::new();
+        for impl_arg in impl_args {
+            match impl_arg {
+                ImplArg(ident, _, pos) => {
+                    if !impl_arg_idents.contains(ident) {
+                        var_env.add_var(ident.clone(), ());
+                        impl_arg_idents.insert(ident.clone());
+                    } else {
+                        errs.push(FrontendError::Message(pos.clone(), format!("already defined argument {}", ident)));
                     }
                 },
             }
