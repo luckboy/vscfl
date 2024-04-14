@@ -70,18 +70,30 @@ impl<T: Clone> Environment<T>
         }
     }
     
-    pub fn restore_vars(&mut self, saved_var_stack_idx: usize) -> bool
+    pub fn swapt_saved_vars(&mut self) -> bool
     {
-        match self.saved_var_stack.get(saved_var_stack_idx) {
+        match self.saved_var_stack.last_mut() {
             Some((saved_vars, _)) => {
                 let mut is_success = true;
-                for ((ident, i), value) in saved_vars {
+                let mut keys_to_remove: Vec<(String, usize)> = Vec::new();
+                for ((ident, i), value) in &mut *saved_vars {
                     match self.stack.get_mut(*i) {
                         Some(vars) => {
+                            let value2 = match vars.get(ident) {
+                                Some(tmp_value) => Some(tmp_value.clone()),
+                                None => None,
+                            };
                             vars.insert(ident.clone(), value.clone());
+                            match value2 {
+                                Some(value2) => *value = value2,
+                                None => keys_to_remove.push((ident.clone(), *i)),
+                            }
                         },
                         None => is_success = false,
                     }
+                }
+                for key in &keys_to_remove {
+                    saved_vars.remove(key);
                 }
                 is_success
             },
