@@ -39,14 +39,16 @@ impl<T: Clone> Environment<T>
     {
         let mut values: BTreeMap<(String, usize), T> = BTreeMap::new();
         for i in saved_var_stack_idx..self.saved_var_stack.len() {
-            for (key, value) in &self.saved_var_stack[i] {
-                match values.get(key) {
-                    Some(value2) => {
-                        values.insert(key.clone(), f(value2, value));
-                    },
-                    None => {
-                        values.insert(key.clone(), value.clone());
-                    },
+            for (key @ (_, j), value) in &self.saved_var_stack[i] {
+                if *j < self.stack.len() {
+                    match values.get(key) {
+                        Some(value2) => {
+                            values.insert(key.clone(), f(value2, value));
+                        },
+                        None => {
+                            values.insert(key.clone(), value.clone());
+                        },
+                    }
                 }
             }
         }
