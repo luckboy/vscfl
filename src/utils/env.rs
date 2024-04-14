@@ -24,26 +24,52 @@ impl<T> Environment<T>
     pub fn pop_vars(&mut self)
     { self.stack.pop(); }
     
-    pub fn var(&self, ident: &String) -> Option<&T>
+    pub fn stack_len(&self) -> usize
+    { self.stack.len() }
+    
+    pub fn var_and_stack_index(&self, ident: &String) -> Option<(&T, usize)>
     {
-        for vars in self.stack.iter().rev() {
+        for (i, vars) in self.stack.iter().enumerate().rev() {
             match vars.get(ident) {
-                Some(value) => return Some(value),
+                Some(value) => return Some((value, i)),
                 None => (),
             }
         }
         None
     }
 
-    pub fn var_mut(&mut self, ident: &String) -> Option<&mut T>
+    pub fn var_mut_and_stack_index(&mut self, ident: &String) -> Option<(&mut T, usize)>
     {
-        for vars in self.stack.iter_mut().rev() {
+        for (i, vars) in self.stack.iter_mut().enumerate().rev() {
             match vars.get_mut(ident) {
-                Some(value) => return Some(value),
+                Some(value) => return Some((value, i)),
                 None => (),
             }
         }
         None
+    }
+
+    pub fn stack_index(&self, ident: &String) -> Option<usize>
+    { 
+        match self.var_and_stack_index(ident) {
+            Some((_, i)) => Some(i),
+            None => None,
+        }
+    }
+    
+    pub fn var(&self, ident: &String) -> Option<&T>
+    { 
+        match self.var_and_stack_index(ident) {
+            Some((value, _)) => Some(value),
+            None => None,
+        }
+    }
+    pub fn var_mut(&mut self, ident: &String) -> Option<&mut T>
+    { 
+        match self.var_mut_and_stack_index(ident) {
+            Some((value, _)) => Some(value),
+            None => None,
+        }
     }
     
     pub fn add_var(&mut self, ident: String, value: T) -> bool
