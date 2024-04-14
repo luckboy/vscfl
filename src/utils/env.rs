@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 pub struct Environment<T>
 {
     stack: Vec<BTreeMap<String, T>>,
-    saved_var_stack: Vec<BTreeMap<(String, usize), T>>,
+    saved_var_stack: Vec<(BTreeMap<(String, usize), T>, usize)>,
 }
 
 impl<T: Clone> Environment<T>
@@ -32,14 +32,14 @@ impl<T: Clone> Environment<T>
     { self.saved_var_stack.len() }
     
     pub fn push_saved_vars(&mut self)
-    { self.saved_var_stack.push(BTreeMap::new()); }
+    { self.saved_var_stack.push((BTreeMap::new(), self.stack.len())); }
 
     pub fn merge_and_pop_saved_var_vars<F>(&mut self, saved_var_stack_idx: usize, mut f: F)
         where F: FnMut(&T, &T) -> T
     {
         let mut values: BTreeMap<(String, usize), T> = BTreeMap::new();
         for i in saved_var_stack_idx..self.saved_var_stack.len() {
-            for (key @ (_, j), value) in &self.saved_var_stack[i] {
+            for (key @ (_, j), value) in &self.saved_var_stack[i].0 {
                 if *j < self.stack.len() {
                     match values.get(key) {
                         Some(value2) => {
@@ -73,7 +73,7 @@ impl<T: Clone> Environment<T>
     pub fn restore_vars(&mut self, saved_var_stack_idx: usize) -> bool
     {
         match self.saved_var_stack.get(saved_var_stack_idx) {
-            Some(saved_vars) => {
+            Some((saved_vars, _)) => {
                 let mut is_success = true;
                 for ((ident, i), value) in saved_vars {
                     match self.stack.get_mut(*i) {
@@ -106,8 +106,8 @@ impl<T: Clone> Environment<T>
             match vars.get_mut(ident) {
                 Some(value) => {
                     match self.saved_var_stack.last_mut() {
-                        Some(saved_vars) => {
-                            if !saved_vars.contains_key(&(ident.clone(), i)) {
+                        Some((saved_vars, n)) => {
+                            if i < *n && !saved_vars.contains_key(&(ident.clone(), i)) {
                                 saved_vars.insert((ident.clone(), i), value.clone());
                             }
                         },
@@ -162,9 +162,10 @@ impl<T: Clone> Environment<T>
                 match vars.remove(ident) {
                     Some(value) => {
                         match self.saved_var_stack.last_mut() {
-                            Some(saved_vars) => {
-                                if !saved_vars.contains_key(&(ident.clone(), self.stack.len() - 1)) {
-                                    saved_vars.insert((ident.clone(), self.stack.len() - 1), value);
+                            Some((saved_vars, n)) => {
+                                let i = self.stack.len() - 1;
+                                if i < *n && !saved_vars.contains_key(&(ident.clone(), i)) {
+                                    saved_vars.insert((ident.clone(), i), value);
                                 }
                             },
                             None => (),
