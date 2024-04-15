@@ -335,7 +335,7 @@ impl Namer
         Ok(())
     }
 
-    fn add_impls_for_defs(&self, tree: &mut Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn add_impls_for_defs(&self, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         for def in &tree.defs {
             match &**def {
