@@ -384,7 +384,19 @@ impl Namer
                                                                     (Var::Builtin(_, _), _) => is_impl_var = true,
                                                                     (_, ImplVar::Builtin(_)) => is_impl_var = true,
                                                                     (Var::Var(_, _, _, _, _, _, _, _), ImplVar::Var(_, _, _, _)) => is_impl_var = true,
-                                                                    (Var::Fun(_, _, _), ImplVar::Fun(_, _)) => is_impl_var = true,
+                                                                    (Var::Fun(fun, _, _), ImplVar::Fun(impl_fun, _)) => {
+                                                                        match (&**fun, &**impl_fun) {
+                                                                            (Fun::Fun(_, args, _, _, _, _, _), ImplFun(impl_args, _, _, _)) => {
+                                                                                if impl_args.len() < args.len() {
+                                                                                    errs.push(FrontendError::Message(impl_var_pos.clone(), String::from("too few arguments")));
+                                                                                } else if impl_args.len() > args.len() {
+                                                                                    errs.push(FrontendError::Message(impl_var_pos.clone(), String::from("too many arguments")));
+                                                                                }
+                                                                            },
+                                                                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("function is constuctor"))])),
+                                                                        }
+                                                                        is_impl_var = true
+                                                                    },
                                                                     (Var::Var(_, _, _, _, _, _, _, _), ImplVar::Fun(_, _)) => errs.push(FrontendError::Message(impl_var_pos.clone(), format!("function {} must be variable in implementation {}", impl_var_ident, trait_ident))),
                                                                     (Var::Fun(_, _, _), ImplVar::Var(_, _, _, _)) =>  errs.push(FrontendError::Message(impl_var_pos.clone(), format!("variable {} must be function in implementation {}", impl_var_ident, trait_ident))),
                                                                 }
@@ -923,7 +935,7 @@ impl Namer
                                         match &*var_r {
                                             Var::Builtin(_, _) => (),
                                             Var::Var(_, type_expr, _, _, _, _, _, _) => self.check_idents_for_type_expr(&**type_expr, tree, &mut type_param_env, true, false, errs)?,
-                                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("isn't variable"))])),
+                                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("variable is function"))])),
                                         }
                                     },
                                     None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no variable"))])),
