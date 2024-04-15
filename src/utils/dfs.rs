@@ -7,7 +7,7 @@
 //
 use std::collections::BTreeSet;
 
-pub fn dfs_with_error<T: Clone + Ord, U, E, F, G>(from: &T, data: &mut U, mut f: F, mut g: G) -> Result<(), E>
+pub fn dfs_with_result<T: Clone + Ord, U, E, F, G>(from: &T, data: &mut U, mut f: F, mut g: G) -> Result<(), E>
     where F: FnMut(&T, &BTreeSet<T>, &mut U) -> Result<Vec<T>, E>,
         G: FnMut(&T, &mut U) -> Result<(), E>
 {
@@ -52,4 +52,4 @@ pub fn dfs_with_error<T: Clone + Ord, U, E, F, G>(from: &T, data: &mut U, mut f:
 pub fn dfs<T: Clone + Ord, U, F, G>(from: &T, data: &mut U, mut f: F, mut g: G)
     where F: FnMut(&T, &BTreeSet<T>, &mut U) -> Vec<T>,
         G: FnMut(&T, &mut U)
-{ let _res: Result<(), ()> = dfs_with_error(from, data, |u, processed, data| Ok(f(u, processed, data)), |u, data| Ok(g(u, data))); }
+{ let _res: Result<(), ()> = dfs_with_result(from, data, |u, processed, data| Ok(f(u, processed, data)), |u, data| Ok(g(u, data))); }
