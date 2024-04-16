@@ -6,10 +6,15 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 //
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::cell::*;
+use std::error;
 use std::fmt;
 use std::rc::*;
+use disjoint::DisjointSet;
+use disjoint::DisjointSetVec;
+use disjoint::disjoint_set_vec;
 use crate::frontend::error::Pos;
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
@@ -87,7 +92,7 @@ pub enum TypeVar
 {
     Builtin(Option<TypeArgs>, Option<SharedFlag>),
     Data(Vec<TypeArg>, Vec<Rc<RefCell<Con>>>, Option<SharedFlag>),
-    Synonym(Vec<TypeArg>, Box<TypeExpr>, Option<TypeValue>),
+    Synonym(Vec<TypeArg>, Box<TypeExpr>, Option<Rc<TypeValue>>),
 }
 
 #[derive(Clone, Debug)]
@@ -299,10 +304,24 @@ pub struct ImplFun(pub Vec<ImplArg>, pub Box<Expr>, pub Option<LocalType>, pub O
 pub struct ImplArg(pub String, pub Option<LocalType>, pub Pos);
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub enum UniqFlag
+{
+    None,
+    Uniq,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum SharedFlag
 {
     None,
     Shared,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub enum DefinedFlag
+{
+    Undefined,
+    Defined,
 }
 
 #[derive(Clone, Debug)]
@@ -331,17 +350,387 @@ impl NamedFields
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct TypeValue;
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub enum TypeValueName
+{
+    Tuple,
+    Array(Option<usize>),
+    Fun,
+    Name(String),
+}
 
 #[derive(Clone, Debug)]
-pub struct Type;
+pub enum TypeValue
+{
+    Param(UniqFlag, LocalType),
+    Type(UniqFlag, TypeValueName, Vec<Rc<TypeValue>>),
+}
 
-#[derive(Copy, Clone, Debug)]
-pub struct LocalType;
+impl TypeValue
+{
+    pub fn uniq_flag(&self) -> UniqFlag
+    {
+        match self {
+            TypeValue::Param(uniq_flag, _) => *uniq_flag,
+            TypeValue::Type(uniq_flag, _, _) => *uniq_flag,
+        }
+    }
+    
+    pub fn set_uniq_flag(&mut self, uniq_flag: UniqFlag)
+    {
+        match self {
+            TypeValue::Param(uniq_flag2, _) => *uniq_flag2 = uniq_flag,
+            TypeValue::Type(uniq_flag2, _, _) => *uniq_flag2 = uniq_flag,
+        }
+    }
+    
+    pub fn substitute(&self, type_values: &[Rc<TypeValue>]) -> Result<Option<Rc<TypeValue>>, TypeValueError>
+    {
+        match self {
+            TypeValue::Param(UniqFlag::None, local_type) => {
+                match type_values.get(local_type.index()) {
+                    Some(type_value) => Ok(Some(type_value.clone())),
+                    None => Err(TypeValueError),
+                }
+            },
+            TypeValue::Param(UniqFlag::Uniq, local_type) => {
+                match type_values.get(local_type.index()) {
+                    Some(type_value) => {
+                        match &**type_value {
+                            TypeValue::Param(UniqFlag::None, local_type2) => Ok(Some(Rc::new(TypeValue::Param(UniqFlag::Uniq, *local_type2)))),
+                            TypeValue::Type(UniqFlag::None, name, args) => Ok(Some(Rc::new(TypeValue::Type(UniqFlag::Uniq, name.clone(), args.clone())))),
+                            _ => Ok(Some(type_value.clone())),
+                        }
+                    },
+                    None => Err(TypeValueError),
+                }
+            },
+            TypeValue::Type(uniq_flag, name, args) => {
+                let mut new_args: Vec<Rc<TypeValue>> = Vec::new();
+                let mut is_changed = false;
+                for arg in args {
+                    match arg.substitute(type_values)? {
+                        Some(new_arg) => {
+                            new_args.push(new_arg);
+                            is_changed = true;
+                        },
+                        None => new_args.push(arg.clone()),
+                    }
+                }
+                if is_changed {
+                    Ok(Some(Rc::new(TypeValue::Type(*uniq_flag, name.clone(), new_args))))
+                } else {
+                    Ok(None)
+                }
+            },
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct TypeValueError;
+
+impl error::Error for TypeValueError
+{}
+
+impl fmt::Display for TypeValueError
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+    { write!(f, "no type value for type parameter") }
+}
 
 #[derive(Clone, Debug)]
-pub struct LocalTypes;
+pub struct TypeParamEntry
+{
+    pub trait_names: BTreeSet<TraitName>,
+    pub type_values: Vec<Rc<TypeValue>>,
+    pub number: Option<usize>,
+    pub ident: Option<Rc<String>>,
+}
+
+impl TypeParamEntry
+{
+    pub fn new_with_number(num: usize) -> Self
+    {
+        TypeParamEntry {
+            trait_names: BTreeSet::new(),
+            type_values: Vec::new(),
+            number: Some(num),
+            ident: None,
+        }
+    }
+    
+    pub fn new_with_ident(ident: String) -> Self
+    {
+        let num = if ident.starts_with("t") {
+            match (&ident[1..]).parse::<usize>() {
+                Ok(n) => Some(n),
+                Err(_) => None
+            }
+        } else {
+            None
+        };
+        TypeParamEntry {
+            trait_names: BTreeSet::new(),
+            type_values: Vec::new(),
+            number: num,
+            ident: Some(Rc::new(ident)),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Type
+{
+    pub(crate) type_value: Rc<TypeValue>,
+    pub(crate) type_param_entries: Vec<Rc<RefCell<TypeParamEntry>>>,
+    pub(crate) eq_type_param_set: DisjointSet,
+}
+
+impl Type
+{
+    pub fn new(type_value: Rc<TypeValue>, type_param_idents: &[String]) -> Self
+    {
+        Type {
+            type_value,
+            type_param_entries: type_param_idents.iter().map(|s| Rc::new(RefCell::new(TypeParamEntry::new_with_ident(s.clone())))).collect(),
+            eq_type_param_set: DisjointSet::with_len(type_param_idents.len()),
+        }
+    }
+    
+    pub fn type_value(&self) -> &Rc<TypeValue>
+    { &self.type_value }
+    
+    pub fn type_param_entries(&self) -> &[Rc<RefCell<TypeParamEntry>>]
+    { self.type_param_entries.as_slice() }
+    
+    pub fn type_param_entry(&self, local_type: LocalType) -> Option<&Rc<RefCell<TypeParamEntry>>>
+    { self.type_param_entries.get(local_type.index()) }
+
+    pub fn eq_type_param_set(&self) -> &DisjointSet
+    { &self.eq_type_param_set }
+    
+    pub fn has_eq_type_params(&self, local_type1: LocalType, local_type2: LocalType) -> bool
+    { self.eq_type_param_set.is_joined(local_type1.index(), local_type2.index()) }
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub struct LocalType
+{
+    pub(crate) index: usize,
+}
+
+impl LocalType
+{
+    pub fn new(idx: usize) -> Self
+    { LocalType { index: idx, } }
+    
+    pub fn index(&self) -> usize
+    { self.index }
+}
+
+#[derive(Clone, Debug)]
+pub enum LocalTypeEntry
+{
+    Param(DefinedFlag, UniqFlag, Rc<RefCell<TypeParamEntry>>, LocalType),
+    Type(DefinedFlag, Rc<TypeValue>),
+}
+
+#[derive(Clone, Debug)]
+pub struct EqTypeParamEntry
+{
+    pub type_value_name: Option<TypeValueName>,
+}
+
+impl EqTypeParamEntry
+{
+    pub fn new() -> EqTypeParamEntry
+    { EqTypeParamEntry { type_value_name: None, } }
+}
+
+#[derive(Clone, Debug)]
+pub struct LocalTypes
+{
+    type_entries: DisjointSetVec<LocalTypeEntry>,
+    eq_type_param_entries: DisjointSetVec<EqTypeParamEntry>,
+    type_param_numbers: BTreeSet<usize>,
+    type_param_number_counter: usize,
+}
+
+impl LocalTypes
+{
+    pub fn new() -> Self
+    {
+        LocalTypes {
+            type_entries: DisjointSetVec::new(),
+            eq_type_param_entries: DisjointSetVec::new(),
+            type_param_numbers: BTreeSet::new(),
+            type_param_number_counter: 1,
+        }
+    }
+    
+    pub fn type_entries(&self) -> &DisjointSetVec<LocalTypeEntry>
+    { &self.type_entries }
+    
+    pub fn type_entry(&self, type_value: Rc<TypeValue>) -> Option<LocalTypeEntry>
+    {
+        match &*type_value {
+            TypeValue::Param(uniq_flag, local_type) => {
+                if local_type.index() < self.type_entries.len() {
+                    let root_idx = self.type_entries.root_of(local_type.index());
+                    match &self.type_entries[root_idx] {
+                        LocalTypeEntry::Param(defined_flag, uniq_flag2, type_param_entry, local_type) => {
+                            let new_uniq_flag = if *uniq_flag == UniqFlag::Uniq || *uniq_flag2 == UniqFlag::Uniq {
+                                UniqFlag::Uniq
+                            } else {
+                                UniqFlag::None
+                            };
+                            let eq_root_idx = self.eq_type_param_entries.root_of(local_type.index());
+                            match &self.eq_type_param_entries[eq_root_idx].type_value_name {
+                                Some(type_value_name) => {
+                                    let type_param_entry_r = type_param_entry.borrow();
+                                    Some(LocalTypeEntry::Type(*defined_flag, Rc::new(TypeValue::Type(*uniq_flag, type_value_name.clone(), type_param_entry_r.type_values.clone()))))
+                                },
+                                None => Some(LocalTypeEntry::Param(*defined_flag, new_uniq_flag, type_param_entry.clone(), *local_type))
+                            }
+                        },
+                        LocalTypeEntry::Type(_, type_value) => {
+                            match self.type_entry(type_value.clone()) {
+                                Some(LocalTypeEntry::Param(defined_flag, uniq_flag2, type_param_entry, local_type)) => {
+                                    let new_uniq_flag = if *uniq_flag == UniqFlag::Uniq || uniq_flag2 == UniqFlag::Uniq {
+                                        UniqFlag::Uniq
+                                    } else {
+                                        UniqFlag::None
+                                    };
+                                    Some(LocalTypeEntry::Param(defined_flag, new_uniq_flag, type_param_entry, local_type))
+                                },
+                                Some(type_entry) => Some(type_entry),
+                                None => None,
+                            }
+                        },
+                    }
+                } else {
+                    None
+                }
+            },
+            TypeValue::Type(_, _, _) => Some(LocalTypeEntry::Type(DefinedFlag::Undefined, type_value)),
+        }
+    }
+
+    pub fn eq_type_param_entries(&self) -> &DisjointSetVec<EqTypeParamEntry>
+    { &self.eq_type_param_entries }
+
+    pub fn has_eq_type_params(&self, local_type1: LocalType, local_type2: LocalType) -> bool
+    { self.eq_type_param_entries.is_joined(local_type1.index(), local_type2.index()) }
+    
+    fn set_defined_type_params_for_type(&mut self, typ: &Type)
+    {
+        self.type_entries = DisjointSetVec::new();
+        self.type_param_numbers = BTreeSet::new();
+        for type_param_entry in &typ.type_param_entries {
+            let tmp_local_type = LocalType::new(self.type_entries.len());
+            self.type_entries.push(LocalTypeEntry::Param(DefinedFlag::Defined, UniqFlag::None, type_param_entry.clone(), tmp_local_type));
+            let type_param_entry_r = type_param_entry.borrow();
+            match type_param_entry_r.number {
+                Some(num) => {
+                    self.type_param_numbers.insert(num);
+                },
+                None => (),
+            }
+        }
+        self.eq_type_param_entries = disjoint_set_vec![EqTypeParamEntry::new(); typ.eq_type_param_set.len()];
+        for i in 0..typ.eq_type_param_set.len() {
+            for j in (i + 1)..typ.eq_type_param_set.len() {
+                if typ.eq_type_param_set.is_joined(i, j) {
+                    self.eq_type_param_entries.join(i, j);
+                }
+            }
+        }
+    }
+    
+    pub fn set_defined_type(&mut self, typ: &Type) -> LocalType
+    {
+        self.set_defined_type_params_for_type(typ);
+        let local_type = LocalType::new(self.type_entries.len());
+        self.type_entries.push(LocalTypeEntry::Type(DefinedFlag::Defined, typ.type_value.clone()));
+        self.eq_type_param_entries.push(EqTypeParamEntry::new());
+        local_type
+    }
+    
+    pub fn set_defined_fun_types(&mut self, typ: &Type) -> Option<Vec<LocalType>>
+    {
+        match &*typ.type_value {
+            TypeValue::Type(_, TypeValueName::Fun, type_values) => {
+                self.set_defined_type_params_for_type(typ);
+                let mut local_types: Vec<LocalType> = Vec::new();
+                for type_value in type_values {
+                    let local_type = LocalType::new(self.type_entries.len());
+                    self.type_entries.push(LocalTypeEntry::Type(DefinedFlag::Defined, type_value.clone()));
+                    self.eq_type_param_entries.push(EqTypeParamEntry::new());
+                    local_types.push(local_type);
+                }
+                Some(local_types)
+            },
+            _ => None,
+        }
+    }
+    
+    pub fn set_type(&mut self, local_type: LocalType, typ: &Type) -> Result<bool, TypeValueError>
+    {
+        if local_type.index() < self.type_entries.len() {
+            let mut type_values: Vec<Rc<TypeValue>> = Vec::new();
+            let idx = self.type_entries.len();
+            for type_param_entry in &typ.type_param_entries {
+                let tmp_local_type = LocalType::new(self.type_entries.len());
+                type_values.push(Rc::new(TypeValue::Param(UniqFlag::None, tmp_local_type)));
+                self.type_entries.push(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry.clone(), tmp_local_type));
+                self.eq_type_param_entries.push(EqTypeParamEntry::new());
+            }
+            for i in idx..(idx + typ.eq_type_param_set.len()) {
+                for j in (i + 1)..(idx + typ.eq_type_param_set.len()) {
+                    if typ.eq_type_param_set.is_joined(i, j) {
+                        self.eq_type_param_entries.join(i, j);
+                    }
+                }
+            }
+            let root_idx = self.type_entries.root_of(local_type.index());
+            match typ.type_value.substitute(type_values.as_slice())? {
+                Some(new_type_value) => self.type_entries[root_idx] = LocalTypeEntry::Type(DefinedFlag::Undefined, new_type_value),
+                None => self.type_entries[root_idx] = LocalTypeEntry::Type(DefinedFlag::Undefined, typ.type_value.clone()),
+            }
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+    
+    fn set_new_value_for_type_param_number_counter(&mut self)
+    {
+        while self.type_param_numbers.contains(&self.type_param_number_counter) {
+            self.type_param_number_counter += 1;
+        }
+    }
+    
+    pub fn add_local_type(&mut self) -> LocalType
+    {
+        self.set_new_value_for_type_param_number_counter();
+        let local_type = LocalType::new(self.type_entries.len());
+        self.type_entries.push(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, Rc::new(RefCell::new(TypeParamEntry::new_with_number(self.type_param_number_counter))), local_type));
+        self.eq_type_param_entries.push(EqTypeParamEntry::new());
+        self.type_param_number_counter += 1;
+        local_type
+    }
+    
+    pub fn add_type_value(&mut self, type_value: Rc<TypeValue>) -> LocalType
+    {
+        self.set_new_value_for_type_param_number_counter();
+        let local_type = LocalType::new(self.type_entries.len());
+        self.type_entries.push(LocalTypeEntry::Type(DefinedFlag::Undefined, type_value));
+        self.eq_type_param_entries.push(EqTypeParamEntry::new());
+        self.type_param_number_counter += 1;
+        local_type
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct Value;
