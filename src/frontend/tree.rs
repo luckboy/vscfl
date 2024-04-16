@@ -482,9 +482,9 @@ impl TypeParamEntry
 #[derive(Clone, Debug)]
 pub struct Type
 {
-    pub(crate) type_value: Rc<TypeValue>,
-    pub(crate) type_param_entries: Vec<Rc<RefCell<TypeParamEntry>>>,
-    pub(crate) eq_type_param_set: DisjointSet,
+    type_value: Rc<TypeValue>,
+    type_param_entries: Vec<Rc<RefCell<TypeParamEntry>>>,
+    eq_type_param_set: DisjointSet,
 }
 
 impl Type
@@ -572,9 +572,35 @@ impl LocalTypes
     pub fn type_entries(&self) -> &DisjointSetVec<LocalTypeEntry>
     { &self.type_entries }
     
-    pub fn type_entry(&self, type_value: Rc<TypeValue>) -> Option<LocalTypeEntry>
+    pub fn type_entry(&self, local_type: LocalType) -> Option<&LocalTypeEntry>
     {
-        match &*type_value {
+        if local_type.index() < self.type_entries.len() {
+            let root_idx = self.type_entries.root_of(local_type.index());
+            Some(&self.type_entries[root_idx])
+        } else {
+            None
+        }
+    }
+        
+    pub fn eq_type_param_entries(&self) -> &DisjointSetVec<EqTypeParamEntry>
+    { &self.eq_type_param_entries }
+
+    pub fn eq_type_param_entry(&self, local_type: LocalType) -> Option<&EqTypeParamEntry>
+    {
+        if local_type.index() < self.eq_type_param_entries.len() {
+            let eq_root_idx = self.eq_type_param_entries.root_of(local_type.index());
+            Some(&self.eq_type_param_entries[eq_root_idx])
+        } else {
+            None
+        }
+    }
+    
+    pub fn has_eq_type_params(&self, local_type1: LocalType, local_type2: LocalType) -> bool
+    { self.eq_type_param_entries.is_joined(local_type1.index(), local_type2.index()) }
+    
+    pub fn type_entry_for_type_value(&self, type_value: &Rc<TypeValue>) -> Option<LocalTypeEntry>
+    {
+        match &**type_value {
             TypeValue::Param(uniq_flag, local_type) => {
                 if local_type.index() < self.type_entries.len() {
                     let root_idx = self.type_entries.root_of(local_type.index());
@@ -594,8 +620,8 @@ impl LocalTypes
                                 None => Some(LocalTypeEntry::Param(*defined_flag, new_uniq_flag, type_param_entry.clone(), *local_type))
                             }
                         },
-                        LocalTypeEntry::Type(_, type_value) => {
-                            match self.type_entry(type_value.clone()) {
+                        LocalTypeEntry::Type(_, type_value2) => {
+                            match self.type_entry_for_type_value(type_value2) {
                                 Some(LocalTypeEntry::Param(defined_flag, uniq_flag2, type_param_entry, local_type)) => {
                                     let new_uniq_flag = if *uniq_flag == UniqFlag::Uniq || uniq_flag2 == UniqFlag::Uniq {
                                         UniqFlag::Uniq
@@ -613,15 +639,9 @@ impl LocalTypes
                     None
                 }
             },
-            TypeValue::Type(_, _, _) => Some(LocalTypeEntry::Type(DefinedFlag::Undefined, type_value)),
+            TypeValue::Type(_, _, _) => Some(LocalTypeEntry::Type(DefinedFlag::Undefined, type_value.clone())),
         }
-    }
-
-    pub fn eq_type_param_entries(&self) -> &DisjointSetVec<EqTypeParamEntry>
-    { &self.eq_type_param_entries }
-
-    pub fn has_eq_type_params(&self, local_type1: LocalType, local_type2: LocalType) -> bool
-    { self.eq_type_param_entries.is_joined(local_type1.index(), local_type2.index()) }
+    }    
     
     fn set_defined_type_params_for_type(&mut self, typ: &Type)
     {
@@ -701,6 +721,24 @@ impl LocalTypes
             Ok(true)
         } else {
             Ok(false)
+        }
+    }
+
+    pub fn set_type_value(&mut self, local_type: LocalType, type_value: Rc<TypeValue>) -> bool
+    {
+        if local_type.index() < self.type_entries.len() {
+            let root_idx = self.type_entries.root_of(local_type.index());
+            match &*type_value {
+                TypeValue::Type(_, type_value_name, _) => {
+                    let eq_root_idx = self.eq_type_param_entries.root_of(local_type.index());
+                    self.eq_type_param_entries[eq_root_idx].type_value_name = Some(type_value_name.clone());
+                },
+                _ => (),
+            }
+            self.type_entries[root_idx] = LocalTypeEntry::Type(DefinedFlag::Undefined, type_value);
+            true
+        } else {
+            false
         }
     }
     
