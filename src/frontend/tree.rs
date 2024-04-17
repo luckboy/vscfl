@@ -436,6 +436,83 @@ impl TypeValue
             TypeValue::Type(_, TypeValueName::Name(ident), _) => Some(TypeName::Name(ident.clone())),
         }
     }
+    
+    fn add_to_string<F>(&self, s: &mut String, f: &mut F)
+        where F: FnMut(&Self, &mut String) -> Option<Self>
+    {
+        match f(self, s) {
+            Some(TypeValue::Param(uniq_flag, local_type)) => {
+                if uniq_flag == UniqFlag::Uniq {
+                    s.push_str("uniq ");
+                }
+                s.push_str(format!("{{local type: {}}}", local_type.index()).as_str());
+            },
+            Some(TypeValue::Type(uniq_flag, name, args)) => {
+                if uniq_flag == UniqFlag::Uniq {
+                    s.push_str("uniq ");
+                }
+                match name {
+                    TypeValueName::Tuple => {
+                        s.push('(');
+                        let mut is_first = true;
+                        for arg in &args {
+                            if !is_first {
+                                s.push_str(", ");
+                            }
+                            arg.add_to_string(s, f);
+                            is_first = false;
+                        }
+                        s.push(')');
+                    },
+                    TypeValueName::Array(len) => {
+                        s.push('[');
+                        args[0].add_to_string(s, f);
+                        s.push_str("; ");
+                        match len {
+                            Some(len) => s.push_str(format!("{}", len).as_str()),
+                            None => s.push('_'),
+                        }
+                        s.push(']');
+                    },
+                    TypeValueName::Fun => {
+                        s.push('(');
+                        let mut is_first = true;
+                        for arg in &args[0..(args.len() - 1)] {
+                            if !is_first {
+                                s.push_str(", ");
+                            }
+                            arg.add_to_string(s, f);
+                            is_first = false;
+                        }
+                        s.push_str(") -> ");
+                        args[args.len() - 1].add_to_string(s, f);                        
+                    },
+                    TypeValueName::Name(ident) => {
+                        s.push_str(ident.as_str());
+                        s.push('<');
+                        let mut is_first = true;
+                        for arg in &args {
+                            if !is_first {
+                                s.push_str(", ");
+                            }
+                            arg.add_to_string(s, f);
+                            is_first = false;
+                        }
+                        s.push('>');
+                    },
+                }
+            },
+            None => (),
+        }
+    }
+    
+    pub fn to_string<F>(&self, mut f: F) -> String
+        where F: FnMut(&Self, &mut String) -> Option<Self>
+    {
+        let mut s = String::new();
+        self.add_to_string(&mut s, &mut f);
+        s
+    }
 }
 
 #[derive(Debug)]
@@ -539,6 +616,44 @@ impl Type
         self.eq_type_param_set.join(local_type1.index(), local_type2.index());
         LocalType::new(self.eq_type_param_set.root_of(local_type1.index()))
     }
+    
+    pub fn to_string(&self) -> String
+    {
+        self.type_value.to_string(|type_value, s| {
+                match type_value {
+                    TypeValue::Param(uniq_flag, local_type) => {
+                        match self.type_param_entry(*local_type) {
+                            Some(type_param_entry) => {
+                                let type_param_entry_r = type_param_entry.borrow();
+                                if let Some(ident) = &type_param_entry_r.ident {
+                                    if *uniq_flag == UniqFlag::Uniq {
+                                        s.push_str("uniq ");
+                                    }
+                                    s.push_str(ident.as_str());
+                                    None
+                                } else if let Some(num) = &type_param_entry_r.number {
+                                    if *uniq_flag == UniqFlag::Uniq {
+                                        s.push_str("uniq ");
+                                    }
+                                    s.push_str(format!("t{}", *num).as_str());
+                                    None
+                                } else {
+                                    Some(type_value.clone())
+                                }
+                            },
+                            None => Some(type_value.clone()),
+                        }
+                    },
+                    _ => Some(type_value.clone()),
+                }
+        })
+    }
+}
+
+impl fmt::Display for Type
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+    { write!(f, "{}", self.to_string()) }
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
@@ -841,6 +956,56 @@ impl LocalTypes
         self.eq_type_param_entries.join(local_type1.index(), local_type2.index());
         (LocalType::new(self.type_entries.root_of(local_type1.index())), LocalType::new(self.eq_type_param_entries.root_of(local_type2.index())))
     }
+    
+    pub fn type_value_to_string(&self, type_value: &Rc<TypeValue>) -> String
+    {
+        type_value.to_string(|type_value, s| {
+                match self.type_entry_for_type_value(&Rc::new(type_value.clone())) {
+                    Some(LocalTypeEntry::Param(_, uniq_flag, type_param_entry, _)) => {
+                        let type_param_entry_r = type_param_entry.borrow();
+                        if let Some(ident) = &type_param_entry_r.ident {
+                            if uniq_flag == UniqFlag::Uniq {
+                                s.push_str("uniq ");
+                            }
+                            s.push_str(ident.as_str());
+                            None
+                        } else if let Some(num) = &type_param_entry_r.number {
+                            if uniq_flag == UniqFlag::Uniq {
+                                s.push_str("uniq ");
+                            }
+                            s.push_str(format!("t{}", *num).as_str());
+                            None
+                        } else {
+                            Some(type_value.clone())
+                        }
+                        
+                    },
+                    Some(LocalTypeEntry::Type(type_value2)) => Some((*type_value2).clone()),
+                    None => Some(type_value.clone()),
+                }
+        })
+    }
+    
+    pub fn local_type_to_string(&self, local_type: LocalType) -> String
+    { self.type_value_to_string(&Rc::new(TypeValue::Param(UniqFlag::None, local_type))) }
+}
+
+#[derive(Clone, Debug)]
+pub struct TypeValueWithLocalTypes<'a>(Rc<TypeValue>, &'a LocalTypes);
+
+impl<'a> fmt::Display for TypeValueWithLocalTypes<'a>
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+    { write!(f, "{}", self.1.type_value_to_string(&self.0)) }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct LocalTypeWithLocalTypes<'a>(LocalType, &'a LocalTypes);
+
+impl<'a> fmt::Display for LocalTypeWithLocalTypes<'a>
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+    { write!(f, "{}", self.1.local_type_to_string(self.0)) }
 }
 
 #[derive(Clone, Debug)]
