@@ -17,6 +17,7 @@ pub enum MismatchedTypeInfo
 {
     Param(LocalType, TraitName, LocalType),
     Type(TypeName, TraitName, LocalType),
+    Eq(LocalType, LocalType, LocalType),
 }
 
 #[derive(Clone)]
@@ -152,6 +153,20 @@ impl TypeMatcher
                     if !self.match_type_values_with_infos(type_value3, type_value4, tree, local_types, infos)? {
                         is_success = false;
                     }
+                }
+                match type_param_entry2_r.orig_local_type {
+                    Some(orig_local_type) => {
+                        for i in 0..local_types.orig_eq_type_param_set().len() {
+                            let local_type = LocalType::new(i);
+                            if !local_types.has_orig_eq_type_params(orig_local_type, local_type) {
+                                if local_types.has_eq_type_params(*local_type1, local_type) {
+                                    infos.push(MismatchedTypeInfo::Eq(*local_type1, local_type, orig_local_type));
+                                    is_success = false;
+                                }
+                            }
+                        }
+                    },
+                    None => return Err(FrontendError::Internal(String::from("no original local type"))),
                 }
                 if !is_success {
                     return Ok(false);

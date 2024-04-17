@@ -534,6 +534,7 @@ pub struct TypeParamEntry
     pub type_values: Vec<Rc<TypeValue>>,
     pub number: Option<usize>,
     pub ident: Option<Rc<String>>,
+    pub orig_local_type: Option<LocalType>,
 }
 
 impl TypeParamEntry
@@ -545,6 +546,7 @@ impl TypeParamEntry
             type_values: Vec::new(),
             number: None,
             ident: None,
+            orig_local_type: None,
         }
     }
 
@@ -555,6 +557,7 @@ impl TypeParamEntry
             type_values: Vec::new(),
             number: Some(num),
             ident: None,
+            orig_local_type: None,
         }
     }
     
@@ -573,6 +576,7 @@ impl TypeParamEntry
             type_values: Vec::new(),
             number: num,
             ident: Some(Rc::new(ident)),
+            orig_local_type: None,
         }
     }
 }
@@ -695,6 +699,7 @@ pub struct LocalTypes
 {
     type_entries: DisjointSetVec<LocalTypeEntry>,
     eq_type_param_entries: DisjointSetVec<EqTypeParamEntry>,
+    orig_eq_type_param_set: DisjointSet,
     type_param_numbers: BTreeSet<usize>,
     type_param_number_counter: usize,
 }
@@ -706,6 +711,7 @@ impl LocalTypes
         LocalTypes {
             type_entries: DisjointSetVec::new(),
             eq_type_param_entries: DisjointSetVec::new(),
+            orig_eq_type_param_set: DisjointSet::new(),
             type_param_numbers: BTreeSet::new(),
             type_param_number_counter: 1,
         }
@@ -739,6 +745,12 @@ impl LocalTypes
     
     pub fn has_eq_type_params(&self, local_type1: LocalType, local_type2: LocalType) -> bool
     { self.eq_type_param_entries.is_joined(local_type1.index(), local_type2.index()) }
+
+    pub fn orig_eq_type_param_set(&self) -> &DisjointSet
+    { &self.orig_eq_type_param_set }
+    
+    pub fn has_orig_eq_type_params(&self, local_type1: LocalType, local_type2: LocalType) -> bool
+    { self.orig_eq_type_param_set.is_joined(local_type1.index(), local_type2.index()) }
     
     pub fn type_entry_for_type_value(&self, type_value: &Rc<TypeValue>) -> Option<LocalTypeEntry>
     {
@@ -808,6 +820,7 @@ impl LocalTypes
                 }
             }
         }
+        self.orig_eq_type_param_set = typ.eq_type_param_set.clone();
     }
     
     pub fn set_defined_type(&mut self, typ: &Type) -> LocalType
