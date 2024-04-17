@@ -512,6 +512,12 @@ impl Type
     
     pub fn has_eq_type_params(&self, local_type1: LocalType, local_type2: LocalType) -> bool
     { self.eq_type_param_set.is_joined(local_type1.index(), local_type2.index()) }
+
+    pub fn set_eq_type_params(&mut self, local_type1: LocalType, local_type2: LocalType) -> LocalType
+    {
+        self.eq_type_param_set.join(local_type1.index(), local_type2.index());
+        LocalType::new(self.eq_type_param_set.root_of(local_type1.index()))
+    }
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
@@ -533,7 +539,7 @@ impl LocalType
 pub enum LocalTypeEntry
 {
     Param(DefinedFlag, UniqFlag, Rc<RefCell<TypeParamEntry>>, LocalType),
-    Type(DefinedFlag, Rc<TypeValue>),
+    Type(Rc<TypeValue>),
 }
 
 #[derive(Clone, Debug)]
@@ -615,12 +621,12 @@ impl LocalTypes
                             match &self.eq_type_param_entries[eq_root_idx].type_value_name {
                                 Some(type_value_name) => {
                                     let type_param_entry_r = type_param_entry.borrow();
-                                    Some(LocalTypeEntry::Type(*defined_flag, Rc::new(TypeValue::Type(*uniq_flag, type_value_name.clone(), type_param_entry_r.type_values.clone()))))
+                                    Some(LocalTypeEntry::Type(Rc::new(TypeValue::Type(*uniq_flag, type_value_name.clone(), type_param_entry_r.type_values.clone()))))
                                 },
                                 None => Some(LocalTypeEntry::Param(*defined_flag, new_uniq_flag, type_param_entry.clone(), *local_type))
                             }
                         },
-                        LocalTypeEntry::Type(_, type_value2) => {
+                        LocalTypeEntry::Type(type_value2) => {
                             match self.type_entry_for_type_value(type_value2) {
                                 Some(LocalTypeEntry::Param(defined_flag, uniq_flag2, type_param_entry, local_type)) => {
                                     let new_uniq_flag = if *uniq_flag == UniqFlag::Uniq || uniq_flag2 == UniqFlag::Uniq {
@@ -639,7 +645,7 @@ impl LocalTypes
                     None
                 }
             },
-            TypeValue::Type(_, _, _) => Some(LocalTypeEntry::Type(DefinedFlag::Undefined, type_value.clone())),
+            TypeValue::Type(_, _, _) => Some(LocalTypeEntry::Type(type_value.clone())),
         }
     }    
     
@@ -672,7 +678,7 @@ impl LocalTypes
     {
         self.set_defined_type_params_for_type(typ);
         let local_type = LocalType::new(self.type_entries.len());
-        self.type_entries.push(LocalTypeEntry::Type(DefinedFlag::Defined, typ.type_value.clone()));
+        self.type_entries.push(LocalTypeEntry::Type(typ.type_value.clone()));
         self.eq_type_param_entries.push(EqTypeParamEntry::new());
         local_type
     }
@@ -685,7 +691,7 @@ impl LocalTypes
                 let mut local_types: Vec<LocalType> = Vec::new();
                 for type_value in type_values {
                     let local_type = LocalType::new(self.type_entries.len());
-                    self.type_entries.push(LocalTypeEntry::Type(DefinedFlag::Defined, type_value.clone()));
+                    self.type_entries.push(LocalTypeEntry::Type(type_value.clone()));
                     self.eq_type_param_entries.push(EqTypeParamEntry::new());
                     local_types.push(local_type);
                 }
@@ -695,16 +701,29 @@ impl LocalTypes
         }
     }
     
+    fn set_new_value_for_type_param_number_counter(&mut self)
+    {
+        while self.type_param_numbers.contains(&self.type_param_number_counter) {
+            self.type_param_number_counter += 1;
+        }
+    }    
+    
     pub fn set_type(&mut self, local_type: LocalType, typ: &Type) -> Result<bool, TypeValueError>
     {
         if local_type.index() < self.type_entries.len() {
             let mut type_values: Vec<Rc<TypeValue>> = Vec::new();
             let idx = self.type_entries.len();
             for type_param_entry in &typ.type_param_entries {
+                self.set_new_value_for_type_param_number_counter();
                 let tmp_local_type = LocalType::new(self.type_entries.len());
                 type_values.push(Rc::new(TypeValue::Param(UniqFlag::None, tmp_local_type)));
-                self.type_entries.push(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry.clone(), tmp_local_type));
+                let type_param_entry_r = type_param_entry.borrow();
+                let mut new_type_param_entry = type_param_entry_r.clone();
+                new_type_param_entry.number = Some(self.type_param_number_counter);
+                new_type_param_entry.ident = None;
+                self.type_entries.push(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, Rc::new(RefCell::new(new_type_param_entry)), tmp_local_type));
                 self.eq_type_param_entries.push(EqTypeParamEntry::new());
+                self.type_param_number_counter += 1;
             }
             for i in idx..(idx + typ.eq_type_param_set.len()) {
                 for j in (i + 1)..(idx + typ.eq_type_param_set.len()) {
@@ -715,8 +734,8 @@ impl LocalTypes
             }
             let root_idx = self.type_entries.root_of(local_type.index());
             match typ.type_value.substitute(type_values.as_slice())? {
-                Some(new_type_value) => self.type_entries[root_idx] = LocalTypeEntry::Type(DefinedFlag::Undefined, new_type_value),
-                None => self.type_entries[root_idx] = LocalTypeEntry::Type(DefinedFlag::Undefined, typ.type_value.clone()),
+                Some(new_type_value) => self.type_entries[root_idx] = LocalTypeEntry::Type(new_type_value),
+                None => self.type_entries[root_idx] = LocalTypeEntry::Type(typ.type_value.clone()),
             }
             Ok(true)
         } else {
@@ -724,6 +743,17 @@ impl LocalTypes
         }
     }
 
+    pub fn set_type_param_entry(&mut self, local_type: LocalType, type_param_entry: Rc<RefCell<TypeParamEntry>>) -> bool
+    {
+        if local_type.index() < self.type_entries.len() {
+            let root_idx = self.type_entries.root_of(local_type.index());
+            self.type_entries[root_idx] = LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, LocalType::new(root_idx));
+            true
+        } else {
+            false
+        }
+    }
+    
     pub fn set_type_value(&mut self, local_type: LocalType, type_value: Rc<TypeValue>) -> bool
     {
         if local_type.index() < self.type_entries.len() {
@@ -735,25 +765,40 @@ impl LocalTypes
                 },
                 _ => (),
             }
-            self.type_entries[root_idx] = LocalTypeEntry::Type(DefinedFlag::Undefined, type_value);
+            self.type_entries[root_idx] = LocalTypeEntry::Type(type_value);
             true
         } else {
             false
         }
     }
     
-    fn set_new_value_for_type_param_number_counter(&mut self)
+    pub fn set_shared_for_type_param(&mut self, local_type: LocalType) -> bool
     {
-        while self.type_param_numbers.contains(&self.type_param_number_counter) {
-            self.type_param_number_counter += 1;
+        if local_type.index() < self.type_entries.len() {
+            let root_idx = self.type_entries.root_of(local_type.index());
+            match &self.type_entries[root_idx] {
+                LocalTypeEntry::Param(_, _, type_param_entry, _) => {
+                    let mut type_param_entry_r = type_param_entry.borrow_mut();
+                    type_param_entry_r.trait_names.insert(TraitName::Shared);
+                    true
+                },
+                _ => false,
+            }
+        } else {
+            false
         }
     }
     
-    pub fn add_local_type(&mut self) -> LocalType
+    pub fn add_type_param(&mut self, type_param_entry: Rc<RefCell<TypeParamEntry>>) -> LocalType
     {
         self.set_new_value_for_type_param_number_counter();
         let local_type = LocalType::new(self.type_entries.len());
-        self.type_entries.push(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, Rc::new(RefCell::new(TypeParamEntry::new_with_number(self.type_param_number_counter))), local_type));
+        {
+            let mut type_param_entry_r = type_param_entry.borrow_mut();
+            type_param_entry_r.number = Some(self.type_param_number_counter);
+            type_param_entry_r.ident = None;
+        }
+        self.type_entries.push(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type));
         self.eq_type_param_entries.push(EqTypeParamEntry::new());
         self.type_param_number_counter += 1;
         local_type
@@ -763,10 +808,17 @@ impl LocalTypes
     {
         self.set_new_value_for_type_param_number_counter();
         let local_type = LocalType::new(self.type_entries.len());
-        self.type_entries.push(LocalTypeEntry::Type(DefinedFlag::Undefined, type_value));
+        self.type_entries.push(LocalTypeEntry::Type(type_value));
         self.eq_type_param_entries.push(EqTypeParamEntry::new());
         self.type_param_number_counter += 1;
         local_type
+    }
+    
+    pub fn join_local_types(&mut self, local_type1: LocalType, local_type2: LocalType) -> (LocalType, LocalType)
+    {
+        self.type_entries.join(local_type1.index(), local_type2.index());
+        self.eq_type_param_entries.join(local_type1.index(), local_type2.index());
+        (LocalType::new(self.type_entries.root_of(local_type1.index())), LocalType::new(self.eq_type_param_entries.root_of(local_type2.index())))
     }
 }
 
