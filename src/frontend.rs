@@ -10,3 +10,4 @@ pub mod lexer;
 pub mod namer;
 pub mod parser;
 pub mod tree;
+pub mod type_matcher;

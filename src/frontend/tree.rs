@@ -5,10 +5,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 //
+use std::cell::*;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
-use std::cell::*;
 use std::error;
 use std::fmt;
 use std::rc::*;
@@ -425,6 +425,17 @@ impl TypeValue
             },
         }
     }
+
+    pub fn type_name(&self) -> Option<TypeName>
+    {
+        match self {
+            TypeValue::Param(_, _) => None,
+            TypeValue::Type(_, TypeValueName::Tuple, args) => Some(TypeName::Tuple(args.len())),
+            TypeValue::Type(_, TypeValueName::Array(len), _) => Some(TypeName::Array(*len)),
+            TypeValue::Type(_, TypeValueName::Fun, args) => Some(TypeName::Fun(args.len() - 1)),
+            TypeValue::Type(_, TypeValueName::Name(ident), _) => Some(TypeName::Name(ident.clone())),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -450,6 +461,16 @@ pub struct TypeParamEntry
 
 impl TypeParamEntry
 {
+    pub fn new() -> Self
+    {
+        TypeParamEntry {
+            trait_names: BTreeSet::new(),
+            type_values: Vec::new(),
+            number: None,
+            ident: None,
+        }
+    }
+
     pub fn new_with_number(num: usize) -> Self
     {
         TypeParamEntry {
@@ -743,11 +764,11 @@ impl LocalTypes
         }
     }
 
-    pub fn set_type_param_entry(&mut self, local_type: LocalType, type_param_entry: Rc<RefCell<TypeParamEntry>>) -> bool
+    pub fn set_type_param_entry(&mut self, local_type: LocalType, type_param_entry: Rc<RefCell<TypeParamEntry>>, defined_flag: DefinedFlag) -> bool
     {
         if local_type.index() < self.type_entries.len() {
             let root_idx = self.type_entries.root_of(local_type.index());
-            self.type_entries[root_idx] = LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, LocalType::new(root_idx));
+            self.type_entries[root_idx] = LocalTypeEntry::Param(defined_flag, UniqFlag::None, type_param_entry, LocalType::new(root_idx));
             true
         } else {
             false
