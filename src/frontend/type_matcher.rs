@@ -139,14 +139,20 @@ impl TypeMatcher
                 }
                 let type_param_entry1_r = type_param_entry1.borrow();
                 let type_param_entry2_r = type_param_entry2.borrow();
-                if type_param_entry1_r.type_values.len() != type_param_entry2_r.type_values.len() {
-                    return Ok(false);
+                let mut are_type_values = true;
+                if (type_param_entry1_r.trait_names.is_empty() || (type_param_entry1_r.trait_names.len() == 1 && type_param_entry1_r.trait_names.contains(&TraitName::Shared))) && type_param_entry1_r.type_values.is_empty() {
+                    are_type_values = false;
                 }
                 let mut is_success = true;
-                for trait_name in &type_param_entry1_r.trait_names {
-                    if !type_param_entry2_r.trait_names.contains(trait_name) {
-                        infos.push(MismatchedTypeInfo::Param(*local_type2, trait_name.clone(), *local_type1)); 
-                        is_success = false;
+                if are_type_values {
+                    if type_param_entry1_r.type_values.len() != type_param_entry2_r.type_values.len() {
+                        return Ok(false);
+                    }
+                    for trait_name in &type_param_entry1_r.trait_names {
+                        if !type_param_entry2_r.trait_names.contains(trait_name) {
+                            infos.push(MismatchedTypeInfo::Param(*local_type2, trait_name.clone(), *local_type1)); 
+                            is_success = false;
+                        }
                     }
                 }
                 for (type_value3, type_value4) in type_param_entry1_r.type_values.iter().zip(type_param_entry2_r.type_values.iter()) {
