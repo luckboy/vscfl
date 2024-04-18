@@ -354,7 +354,7 @@ pub struct TypeArgs;
 #[derive(Clone, Debug)]
 pub struct NamedFields
 {
-    pub(crate) field_indices: BTreeMap<String, usize>,
+    field_indices: BTreeMap<String, usize>,
 }
 
 impl NamedFields
@@ -372,6 +372,9 @@ impl NamedFields
            None => None,
        }
     }
+    
+    pub fn set_field_index(&mut self, ident: String, field_idx: usize)
+    { self.field_indices.insert(ident, field_idx); }
 }
 
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]

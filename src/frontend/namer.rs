@@ -262,7 +262,7 @@ impl Namer
                                                             if !field_idents.contains(field_ident) {
                                                                 match named_fields {
                                                                     Some(named_fields) => {
-                                                                        named_fields.field_indices.insert(field_ident.clone(), field_idx);
+                                                                        named_fields.set_field_index(field_ident.clone(), field_idx);
                                                                     },
                                                                     None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no named fields"))])),
                                                                 }
@@ -574,7 +574,7 @@ impl Namer
                     match named_field_pair {
                         NamedFieldPair(field_ident, _, field_pos) => {
                             if !field_idents.contains(field_ident) {
-                                if named_fields.field_indices.contains_key(field_ident) {
+                                if named_fields.field_index(field_ident).is_some() {
                                     field_idents.insert(field_ident.clone());
                                     count += 1;
                                 } else {
@@ -586,9 +586,9 @@ impl Namer
                         },
                     }
                 }
-                if count < named_fields.field_indices.len() {
+                if count < named_fields.field_indices().len() {
                     errs.push(FrontendError::Message(pos.clone(), String::from("too few fields")))
-                } else if count > named_fields.field_indices.len() {
+                } else if count > named_fields.field_indices().len() {
                     errs.push(FrontendError::Message(pos.clone(), String::from("too many fields")))
                 }
             },
