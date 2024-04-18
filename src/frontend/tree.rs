@@ -58,24 +58,36 @@ impl Tree
     
     pub fn defs(&self) -> &[Box<Def>]
     { self.defs.as_slice() }
+ 
+    pub fn add_def(&mut self, def: Def)
+    { self.defs.push(Box::new(def)); }
     
     pub fn type_vars(&self) -> &HashMap<String, Rc<RefCell<TypeVar>>>
     { &self.type_vars }
     
     pub fn type_var(&self, ident: &String) -> Option<&Rc<RefCell<TypeVar>>>
     { self.type_vars.get(ident) }
+
+    pub fn set_type_var(&mut self, ident: String, type_var: Rc<RefCell<TypeVar>>)
+    { self.type_vars.insert(ident, type_var); }
     
     pub fn vars(&self) -> &HashMap<String, Rc<RefCell<Var>>>
     { &self.vars }
 
     pub fn var(&self, ident: &String) -> Option<&Rc<RefCell<Var>>>
     { self.vars.get(ident) }
+
+    pub fn set_var(&mut self, ident: String, var: Rc<RefCell<Var>>)
+    { self.vars.insert(ident, var); }
     
     pub fn traits(&self) -> &HashMap<String, Rc<RefCell<Trait>>>
     { &self.traits }
     
     pub fn trait1(&self, ident: &String) -> Option<&Rc<RefCell<Trait>>>
     { self.traits.get(ident) }
+
+    pub fn set_trait(&mut self, ident: String, trait1: Rc<RefCell<Trait>>)
+    { self.traits.insert(ident, trait1); }
 }
 
 #[derive(Clone, Debug)]
