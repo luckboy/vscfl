@@ -315,7 +315,7 @@ impl Namer
                                                         *trait_vars = Some(Box::new(TraitVars::new()));
                                                         match trait_vars {
                                                             Some(trait_vars) => {
-                                                                trait_vars.vars.insert(var_ident.clone(), var.clone());
+                                                                trait_vars.set_var(var_ident.clone(), var.clone());
                                                             },
                                                             None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no trait variables"))])),
                                                         }
@@ -351,20 +351,20 @@ impl Namer
                             match &mut *trait_r {
                                 Trait(_, _, Some(trait_vars)) => {
                                     if check_type_name(type_name, pos.clone(), tree, errs) {
-                                        match trait_vars.impls.get(type_name) {
+                                        match trait_vars.impl1(type_name) {
                                             Some(_) => errs.push(FrontendError::Message(pos.clone(), format!("already defined implementation {} for type {}", trait_ident, type_name))),
                                             None => {
-                                                trait_vars.impls.insert(type_name.clone(), impl1.clone());
+                                                trait_vars.set_impl(type_name.clone(), impl1.clone());
                                             },
                                         }
                                     }
                                     match &mut *impl_r {
                                         Impl::Builtin(_, _, impl_vars) => {
                                             *impl_vars = Some(Box::new(ImplVars::new()));
-                                            for trait_var_ident in trait_vars.vars.keys() {
+                                            for trait_var_ident in trait_vars.vars().keys() {
                                                 match impl_vars {
                                                     Some(impl_vars) => {
-                                                        impl_vars.vars.insert(trait_var_ident.clone(), Rc::new(RefCell::new(ImplVar::Builtin(None))));
+                                                        impl_vars.set_var(trait_var_ident.clone(), Rc::new(RefCell::new(ImplVar::Builtin(None))));
                                                     },
                                                     None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no implementation variables"))])),
                                                 }
@@ -375,7 +375,7 @@ impl Namer
                                             for impl_def in impl_defs {
                                                 match &**impl_def {
                                                     ImplDef(impl_var_ident, impl_var, impl_var_pos) => {
-                                                        match trait_vars.vars.get(impl_var_ident) {
+                                                        match trait_vars.var(impl_var_ident) {
                                                             Some(trait_var) => {
                                                                 let trait_var_r = trait_var.borrow();
                                                                 let impl_var_r = impl_var.borrow();
@@ -403,7 +403,7 @@ impl Namer
                                                                 if is_impl_var {
                                                                     match impl_vars {
                                                                         Some(impl_vars) => {
-                                                                            impl_vars.vars.insert(impl_var_ident.clone(), impl_var.clone());
+                                                                            impl_vars.set_var(impl_var_ident.clone(), impl_var.clone());
                                                                         },
                                                                         None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no implementation variables"))])),
                                                                     }
@@ -414,13 +414,13 @@ impl Namer
                                                     },
                                                 }
                                             }
-                                            for (trait_var_ident, trait_var) in &trait_vars.vars {
+                                            for (trait_var_ident, trait_var) in trait_vars.vars() {
                                                 let trait_var_r = trait_var.borrow();
                                                 match &*trait_var_r {
                                                     Var::Var(_, _, _, None, _, _, _, _) => {
                                                         match impl_vars {
                                                             Some(impl_vars) => {
-                                                                if !impl_vars.vars.contains_key(trait_var_ident) {
+                                                                if impl_vars.var(trait_var_ident).is_none() {
                                                                     errs.push(FrontendError::Message(pos.clone(), format!("undefined required variable {} in implementation {}", trait_var_ident, trait_ident)));
                                                                 }
                                                             },
@@ -432,7 +432,7 @@ impl Namer
                                                             Fun::Fun(_, _, _, _, None, _, _) => {
                                                                 match impl_vars {
                                                                     Some(impl_vars) => {
-                                                                        if !impl_vars.vars.contains_key(trait_var_ident) {
+                                                                        if impl_vars.var(trait_var_ident).is_none() {
                                                                             errs.push(FrontendError::Message(pos.clone(), format!("undefined required function {} in implementation {}", trait_var_ident, trait_ident)));
                                                                         }
                                                                     },
@@ -929,7 +929,7 @@ impl Namer
                         let trait_r = trait1.borrow();
                         match &*trait_r {
                             Trait(_, _, Some(trait_vars)) => {
-                                match trait_vars.vars.get(impl_var_ident) {
+                                match trait_vars.var(impl_var_ident) {
                                     Some(var) => {
                                         let var_r = var.borrow();
                                         match &*var_r {
@@ -959,7 +959,7 @@ impl Namer
                                 let trait_r = trait1.borrow();
                                 match &*trait_r {
                                     Trait(_, _, Some(trait_vars)) => {
-                                        match trait_vars.vars.get(impl_var_ident) {
+                                        match trait_vars.var(impl_var_ident) {
                                             Some(var) => {
                                                 let var_r = var.borrow();
                                                 match &*var_r {

@@ -1035,8 +1035,8 @@ pub struct Value;
 #[derive(Clone, Debug)]
 pub struct TraitVars
 {
-    pub(crate) impls: BTreeMap<TypeName, Rc<RefCell<Impl>>>,
-    pub(crate) vars: BTreeMap<String, Rc<RefCell<Var>>>,
+    impls: BTreeMap<TypeName, Rc<RefCell<Impl>>>,
+    vars: BTreeMap<String, Rc<RefCell<Var>>>,
 }
 
 impl TraitVars
@@ -1049,18 +1049,24 @@ impl TraitVars
     
     pub fn impl1(&self, type_name: &TypeName) -> Option<&Rc<RefCell<Impl>>>
     { self.impls.get(type_name) }
+
+    pub fn set_impl(&mut self, type_name: TypeName, impl1: Rc<RefCell<Impl>>)
+    { self.impls.insert(type_name, impl1); } 
     
     pub fn vars(&self) -> &BTreeMap<String, Rc<RefCell<Var>>>
     { &self.vars }
     
     pub fn var(&self, ident: &String) -> Option<&Rc<RefCell<Var>>>
     { self.vars.get(ident) }
+
+    pub fn set_var(&mut self, ident: String, var: Rc<RefCell<Var>>)
+    { self.vars.insert(ident, var); } 
 }
 
 #[derive(Clone, Debug)]
 pub struct ImplVars
 {
-    pub(crate) vars: BTreeMap<String, Rc<RefCell<ImplVar>>>,
+    vars: BTreeMap<String, Rc<RefCell<ImplVar>>>,
 }
 
 impl ImplVars
@@ -1073,4 +1079,7 @@ impl ImplVars
     
     pub fn var(&self, ident: &String) -> Option<&Rc<RefCell<ImplVar>>>
     { self.vars.get(ident) }
+
+    pub fn set_var(&mut self, ident: String, var: Rc<RefCell<ImplVar>>)
+    { self.vars.insert(ident, var); }
 }
