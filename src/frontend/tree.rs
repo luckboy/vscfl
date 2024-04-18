@@ -1016,7 +1016,7 @@ impl LocalTypes
 }
 
 #[derive(Clone, Debug)]
-pub struct TypeValueWithLocalTypes<'a>(Rc<TypeValue>, &'a LocalTypes);
+pub struct TypeValueWithLocalTypes<'a>(pub Rc<TypeValue>, pub  &'a LocalTypes);
 
 impl<'a> fmt::Display for TypeValueWithLocalTypes<'a>
 {
@@ -1025,7 +1025,7 @@ impl<'a> fmt::Display for TypeValueWithLocalTypes<'a>
 }
 
 #[derive(Copy, Clone, Debug)]
-pub struct LocalTypeWithLocalTypes<'a>(LocalType, &'a LocalTypes);
+pub struct LocalTypeWithLocalTypes<'a>(pub LocalType, pub &'a LocalTypes);
 
 impl<'a> fmt::Display for LocalTypeWithLocalTypes<'a>
 {

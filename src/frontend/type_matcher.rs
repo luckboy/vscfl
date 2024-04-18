@@ -8,6 +8,7 @@
 use std::cell::*;
 use std::cmp::min;
 use std::collections::BTreeSet;
+use std::fmt;
 use std::rc::*;
 use crate::frontend::error::*;
 use crate::frontend::tree::*;
@@ -19,6 +20,28 @@ pub enum MismatchedTypeInfo
     Type(TypeName, TraitName, LocalType),
     Eq(LocalType, LocalType, LocalType),
 }
+
+#[derive(Clone)]
+pub struct MismatchedTypeInfoWidthLocalTypes<'a, 'b>(pub &'a MismatchedTypeInfo, pub &'b LocalTypes);
+
+impl<'a, 'b> fmt::Display for MismatchedTypeInfoWidthLocalTypes<'a, 'b>
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+    {
+        match self.0 {
+            MismatchedTypeInfo::Param(local_type1, trait_name, local_type2) => {
+                write!(f, "type parameter {} hasn't trait {} that is required by type parameter {}", LocalTypeWithLocalTypes(*local_type1, self.1), trait_name, LocalTypeWithLocalTypes(*local_type2, self.1))
+            },
+            MismatchedTypeInfo::Type(type_name, trait_name, local_type) => {
+                write!(f, "type {} hasn't implemented trait {} that is required by type parameter {}", type_name, trait_name, LocalTypeWithLocalTypes(*local_type, self.1))
+            },
+            MismatchedTypeInfo::Eq(local_type1, local_type2, local_type3) => {
+                write!(f, "type parameter {} is equal to type parameter {} that mustn't be equal to type parameter {}", LocalTypeWithLocalTypes(*local_type1, self.1), LocalTypeWithLocalTypes(*local_type2, self.1), LocalTypeWithLocalTypes(*local_type3, self.1))
+            },
+        }
+    }
+}
+
 
 #[derive(Clone)]
 pub enum TypeMatcherResult
