@@ -546,7 +546,6 @@ pub struct TypeParamEntry
     pub type_values: Vec<Rc<TypeValue>>,
     pub number: Option<usize>,
     pub ident: Option<Rc<String>>,
-    pub orig_local_type: Option<LocalType>,
 }
 
 impl TypeParamEntry
@@ -558,7 +557,6 @@ impl TypeParamEntry
             type_values: Vec::new(),
             number: None,
             ident: None,
-            orig_local_type: None,
         }
     }
 
@@ -569,7 +567,6 @@ impl TypeParamEntry
             type_values: Vec::new(),
             number: Some(num),
             ident: None,
-            orig_local_type: None,
         }
     }
     
@@ -588,7 +585,6 @@ impl TypeParamEntry
             type_values: Vec::new(),
             number: num,
             ident: Some(Rc::new(ident)),
-            orig_local_type: None,
         }
     }
 }
