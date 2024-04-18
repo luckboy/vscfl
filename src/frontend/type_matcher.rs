@@ -21,7 +21,7 @@ pub enum MismatchedTypeInfo
     Eq(LocalType, LocalType, LocalType),
     SharedClosure(LocalType),
     NoClosure(LocalType, LocalType),
-    InNonUniqLambda(LocalType),
+    InNonUniqLambda,
 }
 
 #[derive(Clone)]
@@ -47,8 +47,8 @@ impl<'a, 'b> fmt::Display for MismatchedTypeInfoWidthLocalTypes<'a, 'b>
             MismatchedTypeInfo::NoClosure(local_type1, local_type2) => {
                 write!(f, "closure variable of type {} isn't in function of type parameter {}", LocalTypeWithLocalTypes(*local_type1, self.1), LocalTypeWithLocalTypes(*local_type2, self.1))
             },
-            MismatchedTypeInfo::InNonUniqLambda(local_type) => {
-                write!(f, "type parameter {} mustn't be unique type in non-unique lambda", LocalTypeWithLocalTypes(*local_type, self.1))
+            MismatchedTypeInfo::InNonUniqLambda => {
+                write!(f, "closure variable type parameter mustn't be unique type in non-unique lambda")
             },
         }
     }
@@ -346,7 +346,7 @@ impl TypeMatcher
                             }
                         }
                         if local_types.has_in_non_uniq_lambda(*local_type1) && shared_flag == SharedFlag::None {
-                            infos.push(MismatchedTypeInfo::InNonUniqLambda(*local_type1));
+                            infos.push(MismatchedTypeInfo::InNonUniqLambda);
                             is_success = false;
                         }
                         if !is_success {
