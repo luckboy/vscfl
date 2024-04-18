@@ -266,7 +266,7 @@ impl TypeMatcher
                     TypeValue::Param(_, _) => Err(FrontendError::Internal(String::from("type parameter in local type entry"))),
                     TypeValue::Type(uniq_flag2, type_value_name2, type_values2) => {
                         if *uniq_flag1 == UniqFlag::Uniq && *uniq_flag2 == UniqFlag::None {
-                            return Ok(false)
+                            return Ok(false);
                         }
                         let type_param_entry1_r = type_param_entry1.borrow();
                         if type_param_entry1_r.type_values.len() != type_values2.len() {
