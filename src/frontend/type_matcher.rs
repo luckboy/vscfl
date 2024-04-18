@@ -21,6 +21,7 @@ pub enum MismatchedTypeInfo
     Eq(LocalType, LocalType, LocalType),
     SharedClosure(LocalType),
     NoClosure(LocalType, LocalType),
+    InNonUniqLambda(LocalType),
 }
 
 #[derive(Clone)]
@@ -45,6 +46,9 @@ impl<'a, 'b> fmt::Display for MismatchedTypeInfoWidthLocalTypes<'a, 'b>
             },
             MismatchedTypeInfo::NoClosure(local_type1, local_type2) => {
                 write!(f, "closure variable of type {} isn't in function of type parameter {}", LocalTypeWithLocalTypes(*local_type1, self.1), LocalTypeWithLocalTypes(*local_type2, self.1))
+            },
+            MismatchedTypeInfo::InNonUniqLambda(local_type) => {
+                write!(f, "type parameter {} mustn't be unique type in non-unique lambda", LocalTypeWithLocalTypes(*local_type, self.1))
             },
         }
     }
@@ -209,8 +213,10 @@ impl TypeMatcher
                 new_type_param_entry.type_values = new_type_values;
                 new_type_param_entry.closure_local_types = new_closure_local_types;
                 new_type_param_entry.number = new_number;
+                let is_in_non_uniq_lambda = local_types.has_in_non_uniq_lambda(*local_type1) | local_types.has_in_non_uniq_lambda(*local_type2);
                 let root_local_type = local_types.join_local_types(*local_type1, *local_type2).0;
                 local_types.set_type_param_entry(root_local_type, Rc::new(RefCell::new(new_type_param_entry)), DefinedFlag::Undefined);
+                local_types.set_in_non_uniq_lambda(root_local_type, is_in_non_uniq_lambda);
                 Ok(true)
             },
             (LocalTypeEntry::Param(DefinedFlag::Undefined, uniq_flag1, type_param_entry1, local_type1), LocalTypeEntry::Param(DefinedFlag::Defined, uniq_flag2, type_param_entry2, local_type2)) => {
@@ -257,8 +263,10 @@ impl TypeMatcher
                 if !is_success {
                     return Ok(false);
                 }
+                let is_in_non_uniq_lambda = local_types.has_in_non_uniq_lambda(*local_type1) | local_types.has_in_non_uniq_lambda(*local_type2);
                 let root_local_type = local_types.join_local_types(*local_type1, *local_type2).0;
                 local_types.set_type_param_entry(root_local_type, type_param_entry2.clone(), DefinedFlag::Undefined);
+                local_types.set_in_non_uniq_lambda(root_local_type, is_in_non_uniq_lambda);
                 Ok(true)
             },
             (LocalTypeEntry::Param(DefinedFlag::Undefined, uniq_flag1, type_param_entry1, local_type1), LocalTypeEntry::Type(type_value2)) => {
@@ -336,6 +344,10 @@ impl TypeMatcher
                                     is_success = false;
                                 }
                             }
+                        }
+                        if local_types.has_in_non_uniq_lambda(*local_type1) && shared_flag == SharedFlag::None {
+                            infos.push(MismatchedTypeInfo::InNonUniqLambda(*local_type1));
+                            is_success = false;
                         }
                         if !is_success {
                             return Ok(false);
