@@ -153,6 +153,18 @@ pub enum TraitName
     Name(String),
 }
 
+impl fmt::Display for TraitName
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+    {
+        match self {
+            TraitName::Shared => write!(f, "shared"),
+            TraitName::Fun => write!(f, "->"),
+            TraitName::Name(ident) => write!(f, "{}", ident),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct TypeParam(pub String, pub Pos);
 
