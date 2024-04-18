@@ -607,6 +607,7 @@ pub struct TypeParamEntry
 {
     pub trait_names: BTreeSet<TraitName>,
     pub type_values: Vec<Rc<TypeValue>>,
+    pub closure_local_types: BTreeSet<LocalType>,
     pub number: Option<usize>,
     pub ident: Option<String>,
 }
@@ -618,6 +619,7 @@ impl TypeParamEntry
         TypeParamEntry {
             trait_names: BTreeSet::new(),
             type_values: Vec::new(),
+            closure_local_types: BTreeSet::new(),
             number: None,
             ident: None,
         }
@@ -628,6 +630,7 @@ impl TypeParamEntry
         TypeParamEntry {
             trait_names: BTreeSet::new(),
             type_values: Vec::new(),
+            closure_local_types: BTreeSet::new(),
             number: Some(num),
             ident: None,
         }
@@ -646,6 +649,7 @@ impl TypeParamEntry
         TypeParamEntry {
             trait_names: BTreeSet::new(),
             type_values: Vec::new(),
+            closure_local_types: BTreeSet::new(),
             number: num,
             ident: Some(ident),
         }
@@ -992,7 +996,7 @@ impl LocalTypes
         }
     }
     
-    pub fn set_shared_for_type_param(&mut self, local_type: LocalType) -> bool
+    pub fn set_shared_for_type_param(&self, local_type: LocalType) -> bool
     {
         if local_type.index() < self.type_entries.len() {
             let root_idx = self.type_entries.root_of(local_type.index());

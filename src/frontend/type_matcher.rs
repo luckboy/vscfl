@@ -19,6 +19,8 @@ pub enum MismatchedTypeInfo
     Param(LocalType, TraitName, LocalType),
     Type(TypeName, TraitName, LocalType),
     Eq(LocalType, LocalType, LocalType),
+    SharedClosure(LocalType),
+    NoClosure(LocalType, LocalType),
 }
 
 #[derive(Clone)]
@@ -37,6 +39,12 @@ impl<'a, 'b> fmt::Display for MismatchedTypeInfoWidthLocalTypes<'a, 'b>
             },
             MismatchedTypeInfo::Eq(local_type1, local_type2, local_type3) => {
                 write!(f, "type parameter {} is equal to type parameter {} that mustn't be equal to type parameter {}", LocalTypeWithLocalTypes(*local_type1, self.1), LocalTypeWithLocalTypes(*local_type2, self.1), LocalTypeWithLocalTypes(*local_type3, self.1))
+            },
+            MismatchedTypeInfo::SharedClosure(local_type) => {
+                write!(f, "closure variable type {} mustn't shared", LocalTypeWithLocalTypes(*local_type, self.1))
+            },
+            MismatchedTypeInfo::NoClosure(local_type1, local_type2) => {
+                write!(f, "closure variable of type {} isn't in function of type parameter {}", LocalTypeWithLocalTypes(*local_type1, self.1), LocalTypeWithLocalTypes(*local_type2, self.1))
             },
         }
     }
@@ -102,7 +110,36 @@ impl TypeMatcher
                 }
                 
             },
-            _ => Err(FrontendError::Internal(String::from("no local type entry"))),
+            None => Err(FrontendError::Internal(String::from("no local type entry"))),
+        }
+    }
+    
+    fn set_shared_for_local_type(&self, local_type: LocalType, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<bool>
+    {
+        let type_value = Rc::new(TypeValue::Param(UniqFlag::None, local_type));
+        match local_types.type_entry_for_type_value(&type_value) {
+            Some(LocalTypeEntry::Param(defined_flag, UniqFlag::None, type_param_entry, _)) => {
+                let mut type_param_entry_r = type_param_entry.borrow_mut();
+                if !type_param_entry_r.trait_names.contains(&TraitName::Shared) {
+                    if defined_flag == DefinedFlag::Undefined { 
+                        type_param_entry_r.trait_names.insert(TraitName::Shared);
+                    } else {
+                        return Ok(false);
+                    }
+                }
+                Ok(true)
+            },
+            Some(LocalTypeEntry::Param(_, UniqFlag::Uniq, _, _)) => {
+                Ok(false)
+            },
+            Some(LocalTypeEntry::Type(type_value)) => {
+                let shared_flag = self.shared_flag_for_type_value(&type_value, tree, local_types)?;
+                if shared_flag == SharedFlag::None {
+                    return Ok(false);
+                }
+                Ok(true)
+            },
+            None=> Err(FrontendError::Internal(String::from("no local type entry"))),
         }
     }
     
@@ -125,19 +162,34 @@ impl TypeMatcher
                 if (type_param_entry1_r.trait_names.is_empty() || (type_param_entry1_r.trait_names.len() == 1 && type_param_entry1_r.trait_names.contains(&TraitName::Shared))) && type_param_entry2_r.type_values.is_empty() {
                     are_type_values = false;
                 }
+                let mut is_success = true;
                 if are_type_values {
                     if type_param_entry1_r.trait_names.len() != type_param_entry2_r.trait_names.len() {
                         return Ok(false);
                     }
-                    let mut is_success = true;
                     for (type_value3, type_value4) in type_param_entry1_r.type_values.iter().zip(type_param_entry2_r.type_values.iter()) {
                         if !self.match_type_values_with_infos(type_value3, type_value4, tree, local_types, infos)? {
                             is_success = false;
                         }
                     }
-                    if !is_success {
-                        return Ok(false);
+                }
+                if !type_param_entry1_r.trait_names.contains(&TraitName::Shared) && type_param_entry2_r.trait_names.contains(&TraitName::Shared) {
+                    for closure_local_type in &type_param_entry1_r.closure_local_types {
+                        if !self.set_shared_for_local_type(*closure_local_type, tree, local_types)? {
+                            infos.push(MismatchedTypeInfo::SharedClosure(*closure_local_type));
+                            is_success = false;
+                        }
                     }
+                } else if type_param_entry1_r.trait_names.contains(&TraitName::Shared) && !type_param_entry2_r.trait_names.contains(&TraitName::Shared) {
+                    for closure_local_type in &type_param_entry2_r.closure_local_types {
+                        if !self.set_shared_for_local_type(*closure_local_type, tree, local_types)? {
+                            infos.push(MismatchedTypeInfo::SharedClosure(*closure_local_type));
+                            is_success = false;
+                        }
+                    }
+                }  
+                if !is_success {
+                    return Ok(false);
                 }
                 let new_trait_names: BTreeSet<TraitName> = type_param_entry1_r.trait_names.union(&type_param_entry2_r.trait_names).map(|e| e.clone()).collect();
                 let new_type_values = if type_param_entry1_r.type_values.len() > type_param_entry2_r.type_values.len() {
@@ -145,6 +197,7 @@ impl TypeMatcher
                 } else {
                     type_param_entry2_r.type_values.clone()
                 };
+                let new_closure_local_types: BTreeSet<LocalType> = type_param_entry1_r.closure_local_types.union(&type_param_entry2_r.closure_local_types).map(|e| e.clone()).collect();
                 let new_number = match (type_param_entry1_r.number, type_param_entry2_r.number) {
                     (Some(num1), Some(num2)) => Some(min(num1, num2)),
                     (Some(num1), None) => Some(num1),
@@ -154,6 +207,7 @@ impl TypeMatcher
                 let mut new_type_param_entry = TypeParamEntry::new();
                 new_type_param_entry.trait_names = new_trait_names;
                 new_type_param_entry.type_values = new_type_values;
+                new_type_param_entry.closure_local_types = new_closure_local_types;
                 new_type_param_entry.number = new_number;
                 let root_local_type = local_types.join_local_types(*local_type1, *local_type2).0;
                 local_types.set_type_param_entry(root_local_type, Rc::new(RefCell::new(new_type_param_entry)), DefinedFlag::Undefined);
@@ -195,6 +249,11 @@ impl TypeMatcher
                         }
                     }
                 }
+                for closure_local_type in &type_param_entry1_r.closure_local_types {
+                    if !type_param_entry2_r.closure_local_types.contains(closure_local_type) {
+                        infos.push(MismatchedTypeInfo::NoClosure(*closure_local_type, *local_type2));
+                    }
+                }
                 if !is_success {
                     return Ok(false);
                 }
@@ -214,6 +273,7 @@ impl TypeMatcher
                             return Ok(false);
                         }
                         let mut is_success = true;
+                        let shared_flag = self.shared_flag_for_type_value(type_value2, tree, local_types)?;
                         for trait_name in &type_param_entry1_r.trait_names {
                             let type_name = match type_value2.type_name() {
                                 Some(tmp_type_name) => tmp_type_name,
@@ -221,7 +281,6 @@ impl TypeMatcher
                             };
                             match trait_name {
                                 TraitName::Shared => {
-                                    let shared_flag = self.shared_flag_for_type_value(type_value2, tree, local_types)?;
                                     if shared_flag == SharedFlag::None {
                                         infos.push(MismatchedTypeInfo::Type(type_name, trait_name.clone(), *local_type1));
                                         is_success = false;
@@ -268,6 +327,14 @@ impl TypeMatcher
                         for (type_value3, type_value4) in type_param_entry1_r.type_values.iter().zip(type_values2.iter()) {
                             if !self.match_type_values_with_infos(type_value3, type_value4, tree, local_types, infos)? {
                                 is_success = false;
+                            }
+                        }
+                        if !type_param_entry1_r.trait_names.contains(&TraitName::Shared) && shared_flag == SharedFlag::Shared {
+                            for closure_local_type in &type_param_entry1_r.closure_local_types {
+                                if !self.set_shared_for_local_type(*closure_local_type, tree, local_types)? {
+                                    infos.push(MismatchedTypeInfo::SharedClosure(*closure_local_type));
+                                    is_success = false;
+                                }
                             }
                         }
                         if !is_success {
