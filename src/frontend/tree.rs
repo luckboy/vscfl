@@ -545,7 +545,7 @@ pub struct TypeParamEntry
     pub trait_names: BTreeSet<TraitName>,
     pub type_values: Vec<Rc<TypeValue>>,
     pub number: Option<usize>,
-    pub ident: Option<Rc<String>>,
+    pub ident: Option<String>,
 }
 
 impl TypeParamEntry
@@ -584,7 +584,7 @@ impl TypeParamEntry
             trait_names: BTreeSet::new(),
             type_values: Vec::new(),
             number: num,
-            ident: Some(Rc::new(ident)),
+            ident: Some(ident),
         }
     }
 }
