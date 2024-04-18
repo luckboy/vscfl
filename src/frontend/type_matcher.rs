@@ -81,7 +81,7 @@ impl TypeMatcher
                                     Some(type_var) => {
                                         let type_var_r = type_var.borrow();
                                         match &*type_var_r {
-                                            TypeVar::Builtin(_, Some(tmp_shared_flag)) => *tmp_shared_flag,
+                                            TypeVar::Builtin(_, _, Some(tmp_shared_flag)) => *tmp_shared_flag,
                                             TypeVar::Data(_, _, Some(tmp_shared_flag)) => *tmp_shared_flag,
                                             _ => return Err(FrontendError::Internal(String::from("type variable isn't type or type hasn't shared flag"))),
                                         }

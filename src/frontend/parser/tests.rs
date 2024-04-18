@@ -86,7 +86,7 @@ builtin type T;
             assert_eq!(String::from("T"), *ident);
             let type_var_r = type_var.borrow();
             match &*type_var_r {
-                TypeVar::Builtin(None, None) => assert!(true),
+                TypeVar::Builtin(None, None, None) => assert!(true),
                 _ => assert!(false),
             }
         },

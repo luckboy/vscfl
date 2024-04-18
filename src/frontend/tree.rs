@@ -102,7 +102,7 @@ pub enum Def
 #[derive(Clone, Debug)]
 pub enum TypeVar
 {
-    Builtin(Option<TypeArgs>, Option<SharedFlag>),
+    Builtin(Option<Box<TypeArgs>>, Option<Box<Fields>>, Option<SharedFlag>),
     Data(Vec<TypeArg>, Vec<Rc<RefCell<Con>>>, Option<SharedFlag>),
     Synonym(Vec<TypeArg>, Box<TypeExpr>, Option<Rc<TypeValue>>),
 }
@@ -349,7 +349,52 @@ pub enum DefinedFlag
 }
 
 #[derive(Clone, Debug)]
-pub struct TypeArgs;
+pub struct TypeArgs
+{
+    args: Vec<String>,
+}
+
+impl TypeArgs
+{
+    pub fn new(args: Vec<String>) -> Self
+    { TypeArgs { args, } }
+
+    pub fn args(&self) -> &[String]
+    { self.args.as_slice() }
+    
+    pub fn add_arg(&mut self, ident: String)
+    { self.args.push(ident); }
+}
+
+#[derive(Clone, Debug)]
+pub struct Fields
+{
+    field_count: usize,
+    field_indices: BTreeMap<String, usize>,
+}
+
+impl Fields
+{
+    pub fn new(field_count: usize) -> Self
+    { Fields { field_count, field_indices: BTreeMap::new(), } }
+
+    pub fn field_count(&self) -> usize
+    { self.field_count }
+    
+    pub fn field_indices(&self) -> &BTreeMap<String, usize>
+    { &self.field_indices }
+    
+    pub fn field_index(&self, ident: &String) -> Option<usize>
+    {
+       match self.field_indices.get(ident) {
+           Some(i) => Some(*i),
+           None => None,
+       }
+    }
+    
+    pub fn set_field_index(&mut self, ident: String, field_idx: usize)
+    { self.field_indices.insert(ident, field_idx); }
+}
 
 #[derive(Clone, Debug)]
 pub struct NamedFields
@@ -686,7 +731,7 @@ impl fmt::Display for Type
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct LocalType
 {
-    pub(crate) index: usize,
+    index: usize,
 }
 
 impl LocalType

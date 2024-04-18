@@ -15,7 +15,7 @@ use crate::utils::env::*;
 fn add_error_for_type_var(ident: &str, pos: Pos, defined_type_var: &TypeVar, errs: &mut Vec<FrontendError>)
 {
     match defined_type_var {
-        TypeVar::Builtin(_, _) => errs.push(FrontendError::Message(pos, format!("already defined built-in type {}", ident))),
+        TypeVar::Builtin(_, _, _) => errs.push(FrontendError::Message(pos, format!("already defined built-in type {}", ident))),
         TypeVar::Data(_, _, _) => errs.push(FrontendError::Message(pos, format!("already defined type {}", ident))),
         TypeVar::Synonym(_, _, _) => errs.push(FrontendError::Message(pos, format!("already defined type synonym {}", ident))),
     }
@@ -141,7 +141,7 @@ fn check_type_name(type_name: &TypeName, pos: Pos, tree: &Tree, errs: &mut Vec<F
                 Some(type_var) => {
                     let type_var_r = type_var.borrow();
                     match &*type_var_r {
-                        TypeVar::Builtin(_, _) | TypeVar::Data(_, _, _) => true,
+                        TypeVar::Builtin(_, _, _) | TypeVar::Data(_, _, _) => true,
                         _ => {
                             errs.push(FrontendError::Message(pos, format!("type variable {} isn't type", ident)));
                             false
@@ -511,7 +511,7 @@ impl Namer
     fn check_idents_for_type_var(&self, type_var: &TypeVar, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         match type_var {
-            TypeVar::Builtin(_, _) => (),
+            TypeVar::Builtin(_, _, _) => (),
             TypeVar::Data(type_args, cons, _) => {
                 let mut type_param_env: Environment<()> = Environment::new();
                 type_param_env.push_new_vars();
