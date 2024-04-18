@@ -356,8 +356,8 @@ pub struct TypeArgs
 
 impl TypeArgs
 {
-    pub fn new(args: Vec<String>) -> Self
-    { TypeArgs { args, } }
+    pub fn new() -> Self
+    { TypeArgs { args: Vec::new(), } }
 
     pub fn args(&self) -> &[String]
     { self.args.as_slice() }
@@ -369,17 +369,20 @@ impl TypeArgs
 #[derive(Clone, Debug)]
 pub struct Fields
 {
-    field_count: usize,
+    field_type_values: Vec<Rc<TypeValue>>,
     field_indices: BTreeMap<String, usize>,
 }
 
 impl Fields
 {
-    pub fn new(field_count: usize) -> Self
-    { Fields { field_count, field_indices: BTreeMap::new(), } }
+    pub fn new() -> Self
+    { Fields { field_type_values: Vec::new(), field_indices: BTreeMap::new(), } }
 
-    pub fn field_count(&self) -> usize
-    { self.field_count }
+    pub fn field_type_values(&self) -> &[Rc<TypeValue>]
+    { self.field_type_values.as_slice() }
+
+    pub fn add_field_type_value(&mut self, type_value: Rc<TypeValue>)
+    { self.field_type_values.push(type_value); }
     
     pub fn field_indices(&self) -> &BTreeMap<String, usize>
     { &self.field_indices }
