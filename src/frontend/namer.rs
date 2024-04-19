@@ -217,7 +217,7 @@ impl Namer
                 },
             }
         }
-        self.check_idents_for_type_expr(type_expr, tree, &mut type_param_env, true, true, &mut errs)?;
+        self.check_idents_for_type_expr(type_expr, tree, &mut type_param_env, false, true, &mut errs)?;
         if errs.is_empty() {
             Ok(())
         } else {
