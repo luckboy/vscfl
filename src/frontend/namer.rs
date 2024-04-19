@@ -204,11 +204,32 @@ impl Namer
             Err(FrontendErrors::new(errs))
         }
     }
-    
-    pub fn check_idents_for_type(&self, type_expr: &TypeExpr, where_tuples: &[WhereTuple], tree: &Tree) -> FrontendResultWithErrors<()>
+
+    pub fn check_idents_for_type_with_type_args(&self, type_expr: &TypeExpr, type_args: &[TypeArg], tree: &Tree) -> FrontendResultWithErrors<()>
     {
         let mut errs: Vec<FrontendError> = Vec::new();
         let mut type_param_env: Environment<()> = Environment::new();
+        type_param_env.push_new_vars();
+        for type_arg in type_args {
+            match type_arg {
+                TypeArg(ident, _) => {
+                    type_param_env.add_var(ident.clone(), ());
+                },
+            }
+        }
+        self.check_idents_for_type_expr(type_expr, tree, &mut type_param_env, true, true, &mut errs)?;
+        if errs.is_empty() {
+            Ok(())
+        } else {
+            Err(FrontendErrors::new(errs))
+        }
+    }    
+    
+    pub fn check_idents_for_type_with_where(&self, type_expr: &TypeExpr, where_tuples: &[WhereTuple], tree: &Tree) -> FrontendResultWithErrors<()>
+    {
+        let mut errs: Vec<FrontendError> = Vec::new();
+        let mut type_param_env: Environment<()> = Environment::new();
+        type_param_env.push_new_vars();
         self.check_idents_for_type_expr(type_expr, tree, &mut type_param_env, true, true, &mut errs)?;
         for where_tuple in where_tuples {
             self.check_idents_for_where_tuple(where_tuple, tree, &mut type_param_env, &mut errs)?;

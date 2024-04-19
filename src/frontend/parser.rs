@@ -109,7 +109,7 @@ impl<'a> Parser<'a>
 
     pub fn parse_where(&mut self) -> FrontendResult<Vec<WhereTuple>>
     {
-        let where_tuples = self.parse_one_or_more_where_tuples(&[Token::Eof])?;
+        let where_tuples = self.parse_where_tuples(&[Token::Eof])?;
         match self.lexer.next_token()? {
             (Token::Eof, _) => Ok(where_tuples),
             (_, pos) => Err(FrontendError::Message(pos, String::from("unexpected token"))),
@@ -800,6 +800,9 @@ impl<'a> Parser<'a>
         }
     }
     
+    fn parse_where_tuples(&mut self, end_tokens: &[Token]) -> FrontendResult<Vec<WhereTuple>>
+    { self.parse_zero_or_more(&Token::Comma, end_tokens, Self::parse_where_tuple) }
+
     fn parse_one_or_more_where_tuples(&mut self, end_tokens: &[Token]) -> FrontendResult<Vec<WhereTuple>>
     { self.parse_one_or_more(&Token::Comma, end_tokens, Self::parse_where_tuple) }
 
