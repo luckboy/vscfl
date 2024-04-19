@@ -160,8 +160,9 @@ impl TypeMatcher
                 if *uniq_flag1 != *uniq_flag2 {
                     return Ok(None);
                 }
+                let uniq_flag = *uniq_flag1;
                 if *local_type1 == *local_type2 {
-                    let shared_flag = self.shared_flag_for_type_value(&Rc::new(TypeValue::Param(*uniq_flag1, *local_type1)), None, tree, local_types)?;
+                    let shared_flag = self.shared_flag_for_type_value(&Rc::new(TypeValue::Param(uniq_flag, *local_type1)), None, tree, local_types)?;
                     return Ok(Some(shared_flag));
                 }
                 let type_param_entry1_r = type_param_entry1.borrow();
@@ -224,13 +225,14 @@ impl TypeMatcher
                 let (root_local_type, eq_root_local_type) = local_types.join_local_types(*local_type1, *local_type2);
                 local_types.set_type_param_entry(root_local_type, Rc::new(RefCell::new(new_type_param_entry)), DefinedFlag::Undefined);
                 local_types.set_in_non_uniq_lambda(eq_root_local_type, is_in_non_uniq_lambda);
-                let shared_flag = self.shared_flag_for_type_value(&Rc::new(TypeValue::Param(*uniq_flag1, *local_type1)), None, tree, local_types)?;
+                let shared_flag = self.shared_flag_for_type_value(&Rc::new(TypeValue::Param(uniq_flag, root_local_type)), None, tree, local_types)?;
                 Ok(Some(shared_flag))
             },
             (LocalTypeEntry::Param(DefinedFlag::Undefined, uniq_flag1, type_param_entry1, local_type1), LocalTypeEntry::Param(DefinedFlag::Defined, uniq_flag2, type_param_entry2, local_type2)) => {
                 if *uniq_flag1 != *uniq_flag2 {
                     return Ok(None);
                 }
+                let uniq_flag = *uniq_flag1;
                 let type_param_entry1_r = type_param_entry1.borrow();
                 let type_param_entry2_r = type_param_entry2.borrow();
                 let mut are_type_values = true;
@@ -275,7 +277,7 @@ impl TypeMatcher
                 let (root_local_type, eq_root_local_type) = local_types.join_local_types(*local_type1, *local_type2);
                 local_types.set_type_param_entry(root_local_type, type_param_entry2.clone(), DefinedFlag::Undefined);
                 local_types.set_in_non_uniq_lambda(eq_root_local_type, is_in_non_uniq_lambda);
-                let shared_flag = self.shared_flag_for_type_value(&Rc::new(TypeValue::Param(*uniq_flag1, *local_type1)), None, tree, local_types)?;
+                let shared_flag = self.shared_flag_for_type_value(&Rc::new(TypeValue::Param(uniq_flag, root_local_type)), None, tree, local_types)?;
                 Ok(Some(shared_flag))
             },
             (LocalTypeEntry::Param(DefinedFlag::Undefined, uniq_flag1, type_param_entry1, local_type1), LocalTypeEntry::Type(type_value2)) => {
@@ -414,7 +416,8 @@ impl TypeMatcher
                         if shared_flag1 != shared_flag2 {
                             return Ok(None);
                         }
-                        Ok(Some(shared_flag1))
+                        let shared_flag = shared_flag1;
+                        Ok(Some(shared_flag))
                     },
                     _ => Err(FrontendError::Internal(String::from("type parameter in local type entry"))),
                 }
