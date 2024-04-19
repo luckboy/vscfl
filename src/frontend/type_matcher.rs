@@ -70,7 +70,7 @@ impl TypeMatcher
     pub fn new() -> Self
     { TypeMatcher {} }
     
-    fn shared_flag_for_type_value(&self, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<SharedFlag>
+    fn shared_flag_for_type_value(&self, type_value: &Rc<TypeValue>, arg_shared_flag: Option<SharedFlag>, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<SharedFlag>
     {
         match local_types.type_entry_for_type_value(type_value) {
             Some(LocalTypeEntry::Param(_, UniqFlag::None, type_param_entry, _)) => {
@@ -103,10 +103,16 @@ impl TypeMatcher
                             },
                             _ => SharedFlag::Shared,
                         };
-                        for type_value in type_values {
-                            if self.shared_flag_for_type_value(type_value, tree, local_types)? == SharedFlag::None {
-                                shared_flag = SharedFlag::None;
-                            }
+                        match arg_shared_flag {
+                            Some(SharedFlag::None) => shared_flag = SharedFlag::None,
+                            Some(SharedFlag::Shared) => (), 
+                            None => {
+                                for type_value in type_values {
+                                    if self.shared_flag_for_type_value(type_value, None, tree, local_types)? == SharedFlag::None {
+                                        shared_flag = SharedFlag::None;
+                                    }
+                                }
+                            },
                         }
                         Ok(shared_flag)
                     },
@@ -137,7 +143,7 @@ impl TypeMatcher
                 Ok(false)
             },
             Some(LocalTypeEntry::Type(type_value)) => {
-                let shared_flag = self.shared_flag_for_type_value(&type_value, tree, local_types)?;
+                let shared_flag = self.shared_flag_for_type_value(&type_value, None, tree, local_types)?;
                 if shared_flag == SharedFlag::None {
                     return Ok(false);
                 }
@@ -147,15 +153,17 @@ impl TypeMatcher
         }
     }
     
-    fn match_local_type_entries_with_infos(&self, local_type_entry1: &LocalTypeEntry, local_type_entry2: &LocalTypeEntry, tree: &Tree, local_types: &mut LocalTypes, infos: &mut Vec<MismatchedTypeInfo>) -> FrontendResult<bool>
+    fn match_local_type_entries_with_infos(&self, local_type_entry1: &LocalTypeEntry, local_type_entry2: &LocalTypeEntry, tree: &Tree, local_types: &mut LocalTypes, infos: &mut Vec<MismatchedTypeInfo>) -> FrontendResult<Option<(SharedFlag, SharedFlag)>>
     {
         match (local_type_entry1, local_type_entry2) {
             (LocalTypeEntry::Param(DefinedFlag::Undefined, uniq_flag1, type_param_entry1, local_type1), LocalTypeEntry::Param(DefinedFlag::Undefined, uniq_flag2, type_param_entry2, local_type2)) => {
                 if *uniq_flag1 != *uniq_flag2 {
-                    return Ok(false);
+                    return Ok(None);
                 }
+                let shared_flag1 = self.shared_flag_for_type_value(&Rc::new(TypeValue::Param(*uniq_flag1, *local_type1)), None, tree, local_types)?;
+                let shared_flag2 = self.shared_flag_for_type_value(&Rc::new(TypeValue::Param(*uniq_flag2, *local_type2)), None, tree, local_types)?;
                 if *local_type1 == *local_type2 {
-                    return Ok(true);
+                    return Ok(Some((shared_flag1, shared_flag2)));
                 }
                 let type_param_entry1_r = type_param_entry1.borrow();
                 let type_param_entry2_r = type_param_entry2.borrow();
@@ -169,10 +177,10 @@ impl TypeMatcher
                 let mut is_success = true;
                 if are_type_values {
                     if type_param_entry1_r.trait_names.len() != type_param_entry2_r.trait_names.len() {
-                        return Ok(false);
+                        return Ok(None);
                     }
                     for (type_value3, type_value4) in type_param_entry1_r.type_values.iter().zip(type_param_entry2_r.type_values.iter()) {
-                        if !self.match_type_values_with_infos(type_value3, type_value4, tree, local_types, infos)? {
+                        if self.match_type_values_with_infos(type_value3, type_value4, tree, local_types, infos)?.is_none() {
                             is_success = false;
                         }
                     }
@@ -193,7 +201,7 @@ impl TypeMatcher
                     }
                 }  
                 if !is_success {
-                    return Ok(false);
+                    return Ok(None);
                 }
                 let new_trait_names: BTreeSet<TraitName> = type_param_entry1_r.trait_names.union(&type_param_entry2_r.trait_names).map(|e| e.clone()).collect();
                 let new_type_values = if type_param_entry1_r.type_values.len() > type_param_entry2_r.type_values.len() {
@@ -217,12 +225,14 @@ impl TypeMatcher
                 let (root_local_type, eq_root_local_type) = local_types.join_local_types(*local_type1, *local_type2);
                 local_types.set_type_param_entry(root_local_type, Rc::new(RefCell::new(new_type_param_entry)), DefinedFlag::Undefined);
                 local_types.set_in_non_uniq_lambda(eq_root_local_type, is_in_non_uniq_lambda);
-                Ok(true)
+                Ok(Some((shared_flag1, shared_flag2)))
             },
             (LocalTypeEntry::Param(DefinedFlag::Undefined, uniq_flag1, type_param_entry1, local_type1), LocalTypeEntry::Param(DefinedFlag::Defined, uniq_flag2, type_param_entry2, local_type2)) => {
                 if *uniq_flag1 != *uniq_flag2 {
-                    return Ok(false);
+                    return Ok(None);
                 }
+                let shared_flag1 = self.shared_flag_for_type_value(&Rc::new(TypeValue::Param(*uniq_flag1, *local_type1)), None, tree, local_types)?;
+                let shared_flag2 = self.shared_flag_for_type_value(&Rc::new(TypeValue::Param(*uniq_flag2, *local_type2)), None, tree, local_types)?;
                 let type_param_entry1_r = type_param_entry1.borrow();
                 let type_param_entry2_r = type_param_entry2.borrow();
                 let mut are_type_values = true;
@@ -232,17 +242,17 @@ impl TypeMatcher
                 let mut is_success = true;
                 if are_type_values {
                     if type_param_entry1_r.type_values.len() != type_param_entry2_r.type_values.len() {
-                        return Ok(false);
+                        return Ok(None);
                     }
-                    for trait_name in &type_param_entry1_r.trait_names {
-                        if !type_param_entry2_r.trait_names.contains(trait_name) {
-                            infos.push(MismatchedTypeInfo::Param(*local_type2, trait_name.clone(), *local_type1)); 
+                    for (type_value3, type_value4) in type_param_entry1_r.type_values.iter().zip(type_param_entry2_r.type_values.iter()) {
+                        if self.match_type_values_with_infos(type_value3, type_value4, tree, local_types, infos)?.is_none() {
                             is_success = false;
                         }
                     }
                 }
-                for (type_value3, type_value4) in type_param_entry1_r.type_values.iter().zip(type_param_entry2_r.type_values.iter()) {
-                    if !self.match_type_values_with_infos(type_value3, type_value4, tree, local_types, infos)? {
+                for trait_name in &type_param_entry1_r.trait_names {
+                    if !type_param_entry2_r.trait_names.contains(trait_name) {
+                        infos.push(MismatchedTypeInfo::Param(*local_type2, trait_name.clone(), *local_type1)); 
                         is_success = false;
                     }
                 }
@@ -261,27 +271,39 @@ impl TypeMatcher
                     }
                 }
                 if !is_success {
-                    return Ok(false);
+                    return Ok(None);
                 }
                 let is_in_non_uniq_lambda = local_types.has_in_non_uniq_lambda(*local_type1) | local_types.has_in_non_uniq_lambda(*local_type2);
                 let (root_local_type, eq_root_local_type) = local_types.join_local_types(*local_type1, *local_type2);
                 local_types.set_type_param_entry(root_local_type, type_param_entry2.clone(), DefinedFlag::Undefined);
                 local_types.set_in_non_uniq_lambda(eq_root_local_type, is_in_non_uniq_lambda);
-                Ok(true)
+                Ok(Some((shared_flag1, shared_flag2)))
             },
             (LocalTypeEntry::Param(DefinedFlag::Undefined, uniq_flag1, type_param_entry1, local_type1), LocalTypeEntry::Type(type_value2)) => {
                 match &**type_value2 {
                     TypeValue::Param(_, _) => Err(FrontendError::Internal(String::from("type parameter in local type entry"))),
                     TypeValue::Type(uniq_flag2, type_value_name2, type_values2) => {
                         if *uniq_flag1 == UniqFlag::Uniq && *uniq_flag2 == UniqFlag::None {
-                            return Ok(false);
+                            return Ok(None);
                         }
+                        let shared_flag1 = self.shared_flag_for_type_value(&Rc::new(TypeValue::Param(*uniq_flag1, *local_type1)), None, tree, local_types)?;
                         let type_param_entry1_r = type_param_entry1.borrow();
                         if type_param_entry1_r.type_values.len() != type_values2.len() {
-                            return Ok(false);
+                            return Ok(None);
                         }
                         let mut is_success = true;
-                        let shared_flag = self.shared_flag_for_type_value(type_value2, tree, local_types)?;
+                        let mut arg_shared_flag2 = SharedFlag::Shared;
+                        for (type_value3, type_value4) in type_param_entry1_r.type_values.iter().zip(type_values2.iter()) {
+                            match self.match_type_values_with_infos(type_value3, type_value4, tree, local_types, infos)? {
+                                Some((_, tmp_shared_flag2)) => {
+                                    if tmp_shared_flag2 == SharedFlag::None {
+                                        arg_shared_flag2 = SharedFlag::None;
+                                    }
+                                },
+                                None => is_success = false,
+                            }
+                        }
+                        let shared_flag2 = self.shared_flag_for_type_value(type_value2, Some(arg_shared_flag2), tree, local_types)?;
                         for trait_name in &type_param_entry1_r.trait_names {
                             let type_name = match type_value2.type_name() {
                                 Some(tmp_type_name) => tmp_type_name,
@@ -289,7 +311,7 @@ impl TypeMatcher
                             };
                             match trait_name {
                                 TraitName::Shared => {
-                                    if shared_flag == SharedFlag::None {
+                                    if shared_flag2 == SharedFlag::None {
                                         infos.push(MismatchedTypeInfo::Type(type_name, trait_name.clone(), *local_type1));
                                         is_success = false;
                                     }
@@ -332,12 +354,7 @@ impl TypeMatcher
                                 },
                             }
                         }
-                        for (type_value3, type_value4) in type_param_entry1_r.type_values.iter().zip(type_values2.iter()) {
-                            if !self.match_type_values_with_infos(type_value3, type_value4, tree, local_types, infos)? {
-                                is_success = false;
-                            }
-                        }
-                        if !type_param_entry1_r.trait_names.contains(&TraitName::Shared) && shared_flag == SharedFlag::Shared {
+                        if !type_param_entry1_r.trait_names.contains(&TraitName::Shared) && shared_flag2 == SharedFlag::Shared {
                             for closure_local_type in &type_param_entry1_r.closure_local_types {
                                 if !self.set_shared_for_local_type(*closure_local_type, tree, local_types)? {
                                     infos.push(MismatchedTypeInfo::SharedClosure(*closure_local_type));
@@ -345,15 +362,15 @@ impl TypeMatcher
                                 }
                             }
                         }
-                        if local_types.has_in_non_uniq_lambda(*local_type1) && shared_flag == SharedFlag::None {
+                        if local_types.has_in_non_uniq_lambda(*local_type1) && shared_flag2 == SharedFlag::None {
                             infos.push(MismatchedTypeInfo::InNonUniqLambda);
                             is_success = false;
                         }
                         if !is_success {
-                            return Ok(false);
+                            return Ok(None);
                         }
                         local_types.set_type_value(*local_type1, type_value2.clone());
-                        Ok(true)
+                        Ok(Some((shared_flag1, shared_flag2)))
                     },
                 }
             },
@@ -362,9 +379,11 @@ impl TypeMatcher
             },
             (LocalTypeEntry::Param(DefinedFlag::Defined, uniq_flag1, _, local_type1), LocalTypeEntry::Param(DefinedFlag::Defined, uniq_flag2, _, local_type2)) => {
                 if *uniq_flag1 != *uniq_flag2 || *local_type1 != *local_type2 {
-                    return Ok(false);
+                    return Ok(None);
                 }
-                Ok(true)
+                let shared_flag1 = self.shared_flag_for_type_value(&Rc::new(TypeValue::Param(*uniq_flag1, *local_type1)), None, tree, local_types)?;
+                let shared_flag2 = self.shared_flag_for_type_value(&Rc::new(TypeValue::Param(*uniq_flag2, *local_type2)), None, tree, local_types)?;
+                Ok(Some((shared_flag1, shared_flag2)))
             },
             (LocalTypeEntry::Type(_), LocalTypeEntry::Param(DefinedFlag::Undefined, _, _, _)) => {
                 self.match_local_type_entries_with_infos(local_type_entry2, local_type_entry1, tree, local_types, infos)
@@ -373,35 +392,45 @@ impl TypeMatcher
                 match (&**type_value1, &**type_value2) {
                     (TypeValue::Type(_, type_value_name1, type_values1), TypeValue::Type(_, type_value_name2, type_values2)) => {
                         if type_values1.len() != type_values2.len() {
-                            return Ok(false);
-                        }
-                        let shared_flag1 = self.shared_flag_for_type_value(type_value1, tree, local_types)?;
-                        let shared_flag2 = self.shared_flag_for_type_value(type_value2, tree, local_types)?;
-                        if shared_flag1 != shared_flag2 {
-                            return Ok(false);
+                            return Ok(None);
                         }
                         if type_value_name1 != type_value_name2 {
-                            return Ok(false);
+                            return Ok(None);
                         }
                         let mut is_success = true;
+                        let mut arg_shared_flag1 = SharedFlag::Shared;
+                        let mut arg_shared_flag2 = SharedFlag::Shared;
                         for (type_value3, type_value4) in type_values1.iter().zip(type_values2.iter()) {
-                            if !self.match_type_values_with_infos(type_value3, type_value4, tree, local_types, infos)? {
-                                is_success = false;
+                            match  self.match_type_values_with_infos(type_value3, type_value4, tree, local_types, infos)? {
+                                Some((tmp_shared_flag1, tmp_shared_flag2)) => {
+                                    if tmp_shared_flag1 == SharedFlag::None {
+                                        arg_shared_flag1 = SharedFlag::None;
+                                    }
+                                    if tmp_shared_flag2 == SharedFlag::None {
+                                        arg_shared_flag2 = SharedFlag::None;
+                                    }
+                                },
+                                None => is_success = false,
                             }
                         }
                         if !is_success {
-                            return Ok(false);
+                            return Ok(None);
                         }
-                        Ok(true)
+                        let shared_flag1 = self.shared_flag_for_type_value(type_value1, Some(arg_shared_flag1), tree, local_types)?;
+                        let shared_flag2 = self.shared_flag_for_type_value(type_value2, Some(arg_shared_flag2), tree, local_types)?;
+                        if shared_flag1 != shared_flag2 {
+                            return Ok(None);
+                        }
+                        Ok(Some((shared_flag1, shared_flag2)))
                     },
                     _ => Err(FrontendError::Internal(String::from("type parameter in local type entry"))),
                 }
             }
-            _ => Ok(false),
+            _ => Ok(None),
         }
     }
 
-    fn match_type_values_with_infos(&self, type_value1: &Rc<TypeValue>, type_value2: &Rc<TypeValue>, tree: &Tree, local_types: &mut LocalTypes, infos: &mut Vec<MismatchedTypeInfo>) -> FrontendResult<bool>
+    fn match_type_values_with_infos(&self, type_value1: &Rc<TypeValue>, type_value2: &Rc<TypeValue>, tree: &Tree, local_types: &mut LocalTypes, infos: &mut Vec<MismatchedTypeInfo>) -> FrontendResult<Option<(SharedFlag, SharedFlag)>>
     {
         let local_type_entry1 = local_types.type_entry_for_type_value(type_value1);
         let local_type_entry2 = local_types.type_entry_for_type_value(type_value2);
@@ -415,8 +444,8 @@ impl TypeMatcher
     {
         let mut infos: Vec<MismatchedTypeInfo> = Vec::new();
         match self.match_type_values_with_infos(type_value1, type_value2, tree, local_types, &mut infos) {
-            Ok(true) => Ok(TypeMatcherResult::Matched),
-            Ok(false) => Ok(TypeMatcherResult::Mismatched(infos)),
+            Ok(Some(_)) => Ok(TypeMatcherResult::Matched),
+            Ok(None) => Ok(TypeMatcherResult::Mismatched(infos)),
             Err(err) => Err(err),
         }
     }
