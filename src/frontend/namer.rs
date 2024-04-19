@@ -336,7 +336,7 @@ impl Namer
                                                         *trait_vars = Some(Box::new(TraitVars::new()));
                                                         match trait_vars {
                                                             Some(trait_vars) => {
-                                                                trait_vars.set_var(var_ident.clone(), var.clone());
+                                                                trait_vars.add_var(var_ident.clone(), var.clone());
                                                             },
                                                             None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no trait variables"))])),
                                                         }
@@ -375,7 +375,7 @@ impl Namer
                                         match trait_vars.impl1(type_name) {
                                             Some(_) => errs.push(FrontendError::Message(pos.clone(), format!("already defined implementation {} for type {}", trait_ident, type_name))),
                                             None => {
-                                                trait_vars.set_impl(type_name.clone(), impl1.clone());
+                                                trait_vars.add_impl(type_name.clone(), impl1.clone());
                                             },
                                         }
                                     }
@@ -385,7 +385,7 @@ impl Namer
                                             for trait_var_ident in trait_vars.vars().keys() {
                                                 match impl_vars {
                                                     Some(impl_vars) => {
-                                                        impl_vars.set_var(trait_var_ident.clone(), Rc::new(RefCell::new(ImplVar::Builtin(None))));
+                                                        impl_vars.add_var(trait_var_ident.clone(), Rc::new(RefCell::new(ImplVar::Builtin(None))));
                                                     },
                                                     None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no implementation variables"))])),
                                                 }
@@ -424,7 +424,7 @@ impl Namer
                                                                 if is_impl_var {
                                                                     match impl_vars {
                                                                         Some(impl_vars) => {
-                                                                            impl_vars.set_var(impl_var_ident.clone(), impl_var.clone());
+                                                                            impl_vars.add_var(impl_var_ident.clone(), impl_var.clone());
                                                                         },
                                                                         None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no implementation variables"))])),
                                                                     }

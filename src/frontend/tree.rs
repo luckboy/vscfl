@@ -68,7 +68,7 @@ impl Tree
     pub fn type_var(&self, ident: &String) -> Option<&Rc<RefCell<TypeVar>>>
     { self.type_vars.get(ident) }
 
-    pub fn set_type_var(&mut self, ident: String, type_var: Rc<RefCell<TypeVar>>)
+    pub fn add_type_var(&mut self, ident: String, type_var: Rc<RefCell<TypeVar>>)
     { self.type_vars.insert(ident, type_var); }
     
     pub fn vars(&self) -> &HashMap<String, Rc<RefCell<Var>>>
@@ -77,7 +77,7 @@ impl Tree
     pub fn var(&self, ident: &String) -> Option<&Rc<RefCell<Var>>>
     { self.vars.get(ident) }
 
-    pub fn set_var(&mut self, ident: String, var: Rc<RefCell<Var>>)
+    pub fn add_var(&mut self, ident: String, var: Rc<RefCell<Var>>)
     { self.vars.insert(ident, var); }
     
     pub fn traits(&self) -> &HashMap<String, Rc<RefCell<Trait>>>
@@ -86,7 +86,7 @@ impl Tree
     pub fn trait1(&self, ident: &String) -> Option<&Rc<RefCell<Trait>>>
     { self.traits.get(ident) }
 
-    pub fn set_trait(&mut self, ident: String, trait1: Rc<RefCell<Trait>>)
+    pub fn add_trait(&mut self, ident: String, trait1: Rc<RefCell<Trait>>)
     { self.traits.insert(ident, trait1); }
 }
 
@@ -1139,7 +1139,7 @@ impl TraitVars
     pub fn impl1(&self, type_name: &TypeName) -> Option<&Rc<RefCell<Impl>>>
     { self.impls.get(type_name) }
 
-    pub fn set_impl(&mut self, type_name: TypeName, impl1: Rc<RefCell<Impl>>)
+    pub fn add_impl(&mut self, type_name: TypeName, impl1: Rc<RefCell<Impl>>)
     { self.impls.insert(type_name, impl1); } 
     
     pub fn vars(&self) -> &BTreeMap<String, Rc<RefCell<Var>>>
@@ -1148,7 +1148,7 @@ impl TraitVars
     pub fn var(&self, ident: &String) -> Option<&Rc<RefCell<Var>>>
     { self.vars.get(ident) }
 
-    pub fn set_var(&mut self, ident: String, var: Rc<RefCell<Var>>)
+    pub fn add_var(&mut self, ident: String, var: Rc<RefCell<Var>>)
     { self.vars.insert(ident, var); } 
 }
 
@@ -1169,6 +1169,6 @@ impl ImplVars
     pub fn var(&self, ident: &String) -> Option<&Rc<RefCell<ImplVar>>>
     { self.vars.get(ident) }
 
-    pub fn set_var(&mut self, ident: String, var: Rc<RefCell<ImplVar>>)
+    pub fn add_var(&mut self, ident: String, var: Rc<RefCell<ImplVar>>)
     { self.vars.insert(ident, var); }
 }
