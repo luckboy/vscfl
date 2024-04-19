@@ -214,9 +214,9 @@ impl TypeMatcher
                 new_type_param_entry.closure_local_types = new_closure_local_types;
                 new_type_param_entry.number = new_number;
                 let is_in_non_uniq_lambda = local_types.has_in_non_uniq_lambda(*local_type1) | local_types.has_in_non_uniq_lambda(*local_type2);
-                let root_local_type = local_types.join_local_types(*local_type1, *local_type2).0;
+                let (root_local_type, eq_root_local_type) = local_types.join_local_types(*local_type1, *local_type2);
                 local_types.set_type_param_entry(root_local_type, Rc::new(RefCell::new(new_type_param_entry)), DefinedFlag::Undefined);
-                local_types.set_in_non_uniq_lambda(root_local_type, is_in_non_uniq_lambda);
+                local_types.set_in_non_uniq_lambda(eq_root_local_type, is_in_non_uniq_lambda);
                 Ok(true)
             },
             (LocalTypeEntry::Param(DefinedFlag::Undefined, uniq_flag1, type_param_entry1, local_type1), LocalTypeEntry::Param(DefinedFlag::Defined, uniq_flag2, type_param_entry2, local_type2)) => {
@@ -264,9 +264,9 @@ impl TypeMatcher
                     return Ok(false);
                 }
                 let is_in_non_uniq_lambda = local_types.has_in_non_uniq_lambda(*local_type1) | local_types.has_in_non_uniq_lambda(*local_type2);
-                let root_local_type = local_types.join_local_types(*local_type1, *local_type2).0;
+                let (root_local_type, eq_root_local_type) = local_types.join_local_types(*local_type1, *local_type2);
                 local_types.set_type_param_entry(root_local_type, type_param_entry2.clone(), DefinedFlag::Undefined);
-                local_types.set_in_non_uniq_lambda(root_local_type, is_in_non_uniq_lambda);
+                local_types.set_in_non_uniq_lambda(eq_root_local_type, is_in_non_uniq_lambda);
                 Ok(true)
             },
             (LocalTypeEntry::Param(DefinedFlag::Undefined, uniq_flag1, type_param_entry1, local_type1), LocalTypeEntry::Type(type_value2)) => {
