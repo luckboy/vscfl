@@ -81,7 +81,7 @@ impl TypeMatcher
                     Ok((UniqFlag::None, SharedFlag::None))
                 }
             },
-            Some(LocalTypeEntry::Param(_, UniqFlag::Uniq, _, _)) => Ok((UniqFlag::None, SharedFlag::None)),
+            Some(LocalTypeEntry::Param(_, UniqFlag::Uniq, _, _)) => Ok((UniqFlag::Uniq, SharedFlag::None)),
             Some(LocalTypeEntry::Type(type_value)) => {
                 match &*type_value {
                     TypeValue::Param(_, _) => Err(FrontendError::Internal(String::from("type parameter in local type entry"))),
