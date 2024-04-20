@@ -184,7 +184,7 @@ impl Namer
     {
         let mut errs: Vec<FrontendError> = Vec::new();
         self.add_defs(tree, &mut errs)?;
-        self.add_impls_for_defs(tree, &mut errs)?;
+        self.add_impls_for_impl_defs(tree, &mut errs)?;
         self.check_idents_for_defs(tree, &mut errs)?;
         if errs.is_empty() {
             Ok(())
@@ -352,7 +352,7 @@ impl Namer
         Ok(())
     }
 
-    fn add_impls_for_defs(&self, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn add_impls_for_impl_defs(&self, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         for def in &tree.defs {
             match &**def {
