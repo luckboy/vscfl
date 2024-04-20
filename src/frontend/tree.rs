@@ -351,19 +351,19 @@ pub enum DefinedFlag
 #[derive(Clone, Debug)]
 pub struct TypeArgs
 {
-    args: Vec<String>,
+    type_arg_idents: Vec<String>,
 }
 
 impl TypeArgs
 {
     pub fn new() -> Self
-    { TypeArgs { args: Vec::new(), } }
+    { TypeArgs { type_arg_idents: Vec::new(), } }
 
-    pub fn args(&self) -> &[String]
-    { self.args.as_slice() }
+    pub fn type_arg_idents(&self) -> &[String]
+    { self.type_arg_idents.as_slice() }
     
-    pub fn add_arg(&mut self, ident: String)
-    { self.args.push(ident); }
+    pub fn add_type_arg_ident(&mut self, ident: String)
+    { self.type_arg_idents.push(ident); }
 }
 
 #[derive(Clone, Debug)]

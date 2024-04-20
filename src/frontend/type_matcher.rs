@@ -70,7 +70,7 @@ impl TypeMatcher
     pub fn new() -> Self
     { TypeMatcher {} }
     
-    fn uniq_flag_and_shared_flag_for_type_value2(&self, type_value: &Rc<TypeValue>, arg_shared_flag: Option<SharedFlag>, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<(UniqFlag, SharedFlag)>
+    fn uniq_flag_and_shared_flag_for_type_value2(&self, type_value: &Rc<TypeValue>, type_arg_shared_flag: Option<SharedFlag>, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<(UniqFlag, SharedFlag)>
     {
         match local_types.type_entry_for_type_value(type_value) {
             Some(LocalTypeEntry::Param(_, UniqFlag::None, type_param_entry, _)) => {
@@ -103,7 +103,7 @@ impl TypeMatcher
                             },
                             _ => SharedFlag::Shared,
                         };
-                        match arg_shared_flag {
+                        match type_arg_shared_flag {
                             Some(SharedFlag::None) => shared_flag = SharedFlag::None,
                             Some(SharedFlag::Shared) => (), 
                             None => {
@@ -130,9 +130,9 @@ impl TypeMatcher
         }
     }
 
-    fn shared_flag_for_type_value2(&self, type_value: &Rc<TypeValue>, arg_shared_flag: Option<SharedFlag>, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<SharedFlag>
+    fn shared_flag_for_type_value2(&self, type_value: &Rc<TypeValue>, type_arg_shared_flag: Option<SharedFlag>, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<SharedFlag>
     {
-        match self.uniq_flag_and_shared_flag_for_type_value2(type_value, arg_shared_flag, tree, local_types) {
+        match self.uniq_flag_and_shared_flag_for_type_value2(type_value, type_arg_shared_flag, tree, local_types) {
             Ok((_, shared_flag)) => Ok(shared_flag),
             Err(err) => Err(err),
         }
@@ -306,18 +306,18 @@ impl TypeMatcher
                             return Ok(None);
                         }
                         let mut is_success = true;
-                        let mut arg_shared_flag = SharedFlag::Shared;
+                        let mut type_arg_shared_flag = SharedFlag::Shared;
                         for (type_value3, type_value4) in type_param_entry1_r.type_values.iter().zip(type_values2.iter()) {
                             match self.match_type_values_with_infos(type_value3, type_value4, tree, local_types, infos)? {
                                 Some(tmp_shared_flag) => {
                                     if tmp_shared_flag == SharedFlag::None {
-                                        arg_shared_flag = SharedFlag::None;
+                                        type_arg_shared_flag = SharedFlag::None;
                                     }
                                 },
                                 None => is_success = false,
                             }
                         }
-                        let shared_flag = self.shared_flag_for_type_value2(type_value2, Some(arg_shared_flag), tree, local_types)?;
+                        let shared_flag = self.shared_flag_for_type_value2(type_value2, Some(type_arg_shared_flag), tree, local_types)?;
                         for trait_name in &type_param_entry1_r.trait_names {
                             let type_name = match type_value2.type_name() {
                                 Some(tmp_type_name) => tmp_type_name,
@@ -411,12 +411,12 @@ impl TypeMatcher
                             return Ok(None);
                         }
                         let mut is_success = true;
-                        let mut arg_shared_flag = SharedFlag::Shared;
+                        let mut type_arg_shared_flag = SharedFlag::Shared;
                         for (type_value3, type_value4) in type_values1.iter().zip(type_values2.iter()) {
                             match  self.match_type_values_with_infos(type_value3, type_value4, tree, local_types, infos)? {
                                 Some(tmp_shared_flag) => {
                                     if tmp_shared_flag == SharedFlag::None {
-                                        arg_shared_flag = SharedFlag::None;
+                                        type_arg_shared_flag = SharedFlag::None;
                                     }
                                 },
                                 None => is_success = false,
@@ -425,8 +425,8 @@ impl TypeMatcher
                         if !is_success {
                             return Ok(None);
                         }
-                        let shared_flag1 = self.shared_flag_for_type_value2(type_value1, Some(arg_shared_flag), tree, local_types)?;
-                        let shared_flag2 = self.shared_flag_for_type_value2(type_value2, Some(arg_shared_flag), tree, local_types)?;
+                        let shared_flag1 = self.shared_flag_for_type_value2(type_value1, Some(type_arg_shared_flag), tree, local_types)?;
+                        let shared_flag2 = self.shared_flag_for_type_value2(type_value2, Some(type_arg_shared_flag), tree, local_types)?;
                         if shared_flag1 != shared_flag2 {
                             return Ok(None);
                         }
