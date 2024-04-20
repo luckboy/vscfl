@@ -860,7 +860,34 @@ impl LocalTypes
                                     };
                                     Some(LocalTypeEntry::Param(defined_flag, new_uniq_flag, type_param_entry, local_type))
                                 },
-                                Some(type_entry) => Some(type_entry),
+                                Some(LocalTypeEntry::Type(type_value3)) => {
+                                    match &*type_value3 {
+                                        TypeValue::Param(uniq_flag2, local_type2) => {
+                                            let new_uniq_flag = if *uniq_flag == UniqFlag::Uniq || *uniq_flag2 == UniqFlag::Uniq {
+                                                UniqFlag::Uniq
+                                            } else {
+                                                UniqFlag::None
+                                            };
+                                            if new_uniq_flag != *uniq_flag2 {
+                                                Some(LocalTypeEntry::Type(Rc::new(TypeValue::Param(new_uniq_flag, *local_type2))))
+                                            } else {
+                                                Some(LocalTypeEntry::Type(type_value3))
+                                            }
+                                        },
+                                        TypeValue::Type(uniq_flag2, type_value_name, type_values) => {
+                                            let new_uniq_flag = if *uniq_flag == UniqFlag::Uniq || *uniq_flag2 == UniqFlag::Uniq {
+                                                UniqFlag::Uniq
+                                            } else {
+                                                UniqFlag::None
+                                            };
+                                            if new_uniq_flag != *uniq_flag2 {
+                                                Some(LocalTypeEntry::Type(Rc::new(TypeValue::Type(new_uniq_flag, type_value_name.clone(), type_values.clone()))))
+                                            } else {
+                                                Some(LocalTypeEntry::Type(type_value3))
+                                            }
+                                        },
+                                    }
+                                },
                                 None => None,
                             }
                         },
