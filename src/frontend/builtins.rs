@@ -14,7 +14,19 @@ pub struct BuiltinTypeVar
 {
     pub type_arg_source: String,
     pub field_type_sources: Vec<String>,
-    pub filed_indices: Vec<(String, usize)>,
+    pub field_indices: Vec<(String, usize)>,
+}
+
+impl BuiltinTypeVar
+{
+    pub fn new(type_arg_src: String, field_type_srcs: Vec<String>, field_idxs: Vec<(String, usize)>) -> Self
+    {
+        BuiltinTypeVar {
+            type_arg_source: type_arg_src,
+            field_type_sources: field_type_srcs,
+            field_indices: field_idxs,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -22,6 +34,12 @@ pub struct BuiltinVar
 {
     pub type_source: String,
     pub where_source: String,
+}
+
+impl BuiltinVar
+{
+    pub fn new(type_src: String, where_src: String) -> Self
+    { BuiltinVar { type_source: type_src, where_source: where_src, } }
 }
 
 #[derive(Clone, Debug)]

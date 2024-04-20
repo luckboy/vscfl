@@ -205,17 +205,13 @@ impl Namer
         }
     }
 
-    pub fn check_idents_for_type_with_type_args(&self, type_expr: &TypeExpr, type_args: &[TypeArg], tree: &Tree) -> FrontendResultWithErrors<()>
+    pub fn check_idents_for_type_with_type_args(&self, type_expr: &TypeExpr, type_arg_idents: &[String], tree: &Tree) -> FrontendResultWithErrors<()>
     {
         let mut errs: Vec<FrontendError> = Vec::new();
         let mut type_param_env: Environment<()> = Environment::new();
         type_param_env.push_new_vars();
-        for type_arg in type_args {
-            match type_arg {
-                TypeArg(ident, _) => {
-                    type_param_env.add_var(ident.clone(), ());
-                },
-            }
+        for type_arg_ident in type_arg_idents {
+            type_param_env.add_var(type_arg_ident.clone(), ());
         }
         self.check_idents_for_type_expr(type_expr, tree, &mut type_param_env, false, true, &mut errs)?;
         if errs.is_empty() {
