@@ -507,7 +507,13 @@ impl TypeValue
             TypeValue::Param(_, _) => None,
             TypeValue::Type(_, TypeValueName::Tuple, args) => Some(TypeName::Tuple(args.len())),
             TypeValue::Type(_, TypeValueName::Array(len), _) => Some(TypeName::Array(*len)),
-            TypeValue::Type(_, TypeValueName::Fun, args) => Some(TypeName::Fun(args.len() - 1)),
+            TypeValue::Type(_, TypeValueName::Fun, args) => {
+                if args.len() >= 1 {
+                    Some(TypeName::Fun(args.len() - 1))
+                } else {
+                    None
+                }
+            },
             TypeValue::Type(_, TypeValueName::Name(ident), _) => Some(TypeName::Name(ident.clone())),
         }
     }
