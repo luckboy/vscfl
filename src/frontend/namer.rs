@@ -1030,3 +1030,27 @@ impl Namer
         Ok(())
     }
 }
+
+pub fn check_idents(tree: &mut Tree) -> FrontendResultWithErrors<()>
+{
+    let namer = Namer::new();
+    namer.check_idents(tree)
+}
+
+pub fn check_idents_for_type_args(type_args: &[TypeArg]) -> FrontendResultWithErrors<()>
+{
+    let namer = Namer::new();
+    namer.check_idents_for_type_args(type_args)
+}
+
+pub fn check_idents_for_type_with_type_args(type_expr: &TypeExpr, type_arg_idents: &[String], tree: &Tree) -> FrontendResultWithErrors<()>
+{
+    let namer = Namer::new();
+    namer.check_idents_for_type_with_type_args(type_expr, type_arg_idents, tree)
+}
+
+pub fn check_idents_for_type_with_where(type_expr: &TypeExpr, where_tuples: &[WhereTuple], tree: &Tree) -> FrontendResultWithErrors<()>
+{
+    let namer = Namer::new();
+    namer.check_idents_for_type_with_where(type_expr, where_tuples, tree)
+}

@@ -6,6 +6,8 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 //
 use std::cell::*;
+use std::fs::*;
+use std::io::*;
 use std::rc::*;
 use crate::frontend::error::*;
 use crate::frontend::lexer::*;
@@ -1905,6 +1907,122 @@ impl<'a> Parser<'a>
     fn parse_impl_args(&mut self, end_tokens: &[Token]) -> FrontendResult<Vec<ImplArg>>
     { self.parse_zero_or_more(&Token::Comma, end_tokens, Self::parse_impl_arg) }
 }
+
+pub fn parse_from_stream_with_path(path: &str, r: &mut dyn BufRead, tree: &mut Tree) -> FrontendResult<()>
+{
+    let mut parser = Parser::new(Lexer::new(String::from(path), r));
+    parser.parse(tree)
+}
+
+pub fn parse_from_stream(r: &mut dyn BufRead, tree: &mut Tree) -> FrontendResult<()>
+{ parse_from_stream_with_path("(stream)", r, tree) }
+
+pub fn parse_from_file(path: &str, tree: &mut Tree) -> FrontendResult<()>
+{
+    match File::open(path) {
+        Ok(f) => {
+            let mut r = BufReader::new(f);
+            parse_from_stream_with_path(path, &mut r, tree)
+        },
+        Err(err) => Err(FrontendError::Io(String::from(path), err)),
+    }
+}
+
+pub fn parse_with_path(path: &str, src: &str, tree: &mut Tree) -> FrontendResult<()>
+{
+    let mut cursor = Cursor::new(src.as_bytes());
+    parse_from_stream_with_path(path, &mut cursor, tree)
+}
+
+pub fn parse(src: &str, tree: &mut Tree) -> FrontendResult<()>
+{ parse_with_path("(string)", src, tree) }
+
+pub fn parse_type_args_from_stream_with_path(path: &str, r: &mut dyn BufRead) -> FrontendResult<Vec<TypeArg>>
+{
+    let mut parser = Parser::new(Lexer::new(String::from(path), r));
+    parser.parse_type_args()
+}
+
+pub fn parse_type_args_from_stream(r: &mut dyn BufRead) -> FrontendResult<Vec<TypeArg>>
+{ parse_type_args_from_stream_with_path("(stream)", r) }
+
+pub fn parse_type_args_from_file(path: &str) -> FrontendResult<Vec<TypeArg>>
+{
+    match File::open(path) {
+        Ok(f) => {
+            let mut r = BufReader::new(f);
+            parse_type_args_from_stream_with_path(path, &mut r)
+        },
+        Err(err) => Err(FrontendError::Io(String::from(path), err)),
+    }
+}
+
+pub fn parse_type_args_with_path(path: &str, src: &str) -> FrontendResult<Vec<TypeArg>>
+{
+    let mut cursor = Cursor::new(src.as_bytes());
+    parse_type_args_from_stream_with_path(path, &mut cursor)
+}
+
+pub fn parse_type_args(src: &str) -> FrontendResult<Vec<TypeArg>>
+{ parse_type_args_with_path("(string)", src) }
+
+pub fn parse_type_from_stream_with_path(path: &str, r: &mut dyn BufRead) -> FrontendResult<TypeExpr>
+{
+    let mut parser = Parser::new(Lexer::new(String::from(path), r));
+    parser.parse_type()
+}
+
+pub fn parse_type_from_stream(r: &mut dyn BufRead) -> FrontendResult<TypeExpr>
+{ parse_type_from_stream_with_path("(stream)", r) }
+
+pub fn parse_type_from_file(path: &str) -> FrontendResult<TypeExpr>
+{
+    match File::open(path) {
+        Ok(f) => {
+            let mut r = BufReader::new(f);
+            parse_type_from_stream_with_path(path, &mut r)
+        },
+        Err(err) => Err(FrontendError::Io(String::from(path), err)),
+    }
+}
+
+pub fn parse_type_with_path(path: &str, src: &str) -> FrontendResult<TypeExpr>
+{
+    let mut cursor = Cursor::new(src.as_bytes());
+    parse_type_from_stream_with_path(path, &mut cursor)
+}
+
+pub fn parse_type(src: &str) -> FrontendResult<TypeExpr>
+{ parse_type_with_path("(string)", src) }
+
+pub fn parse_where_from_stream_with_path(path: &str, r: &mut dyn BufRead) -> FrontendResult<Vec<WhereTuple>>
+{
+    let mut parser = Parser::new(Lexer::new(String::from(path), r));
+    parser.parse_where()
+}
+
+pub fn parse_where_from_stream(r: &mut dyn BufRead) -> FrontendResult<Vec<WhereTuple>>
+{ parse_where_from_stream_with_path("(stream)", r) }
+
+pub fn parse_where_from_file(path: &str) -> FrontendResult<Vec<WhereTuple>>
+{
+    match File::open(path) {
+        Ok(f) => {
+            let mut r = BufReader::new(f);
+            parse_where_from_stream_with_path(path, &mut r)
+        },
+        Err(err) => Err(FrontendError::Io(String::from(path), err)),
+    }
+}
+
+pub fn parse_where_with_path(path: &str, src: &str) -> FrontendResult<Vec<WhereTuple>>
+{
+    let mut cursor = Cursor::new(src.as_bytes());
+    parse_where_from_stream_with_path(path, &mut cursor)
+}
+
+pub fn parse_where(src: &str) -> FrontendResult<Vec<WhereTuple>>
+{ parse_where_with_path("(string)", src) }
 
 #[cfg(test)]
 mod tests;
