@@ -130,6 +130,14 @@ impl TypeMatcher
         }
     }
 
+    fn uniq_flag_for_type_value2(&self, type_value: &Rc<TypeValue>, type_arg_shared_flag: Option<SharedFlag>, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<UniqFlag>
+    {
+        match self.uniq_flag_and_shared_flag_for_type_value2(type_value, type_arg_shared_flag, tree, local_types) {
+            Ok((uniq_flag, _)) => Ok(uniq_flag),
+            Err(err) => Err(err),
+        }
+    }
+    
     fn shared_flag_for_type_value2(&self, type_value: &Rc<TypeValue>, type_arg_shared_flag: Option<SharedFlag>, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<SharedFlag>
     {
         match self.uniq_flag_and_shared_flag_for_type_value2(type_value, type_arg_shared_flag, tree, local_types) {
@@ -137,7 +145,7 @@ impl TypeMatcher
             Err(err) => Err(err),
         }
     }
-    
+
     fn set_shared_for_local_type(&self, local_type: LocalType, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<bool>
     {
         let type_value = Rc::new(TypeValue::Param(UniqFlag::None, local_type));
@@ -457,6 +465,15 @@ impl TypeMatcher
     {
         let type_value = Rc::new(TypeValue::Param(UniqFlag::None, local_type));
         self.uniq_flag_and_shared_flag_for_type_value(&type_value, tree, local_types)
+    }
+
+    pub fn uniq_flag_for_type_value(&self, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<UniqFlag>
+    { self.uniq_flag_for_type_value2(type_value, None, tree, local_types) }
+    
+    pub fn uniq_flag(&self, local_type: LocalType, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<UniqFlag>
+    {
+        let type_value = Rc::new(TypeValue::Param(UniqFlag::None, local_type));
+        self.uniq_flag_for_type_value(&type_value, tree, local_types)
     }
 
     pub fn shared_flag_for_type_value(&self, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<SharedFlag>
