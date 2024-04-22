@@ -1078,7 +1078,6 @@ impl LocalTypes
         let local_type = LocalType::new(self.type_entries.len());
         self.type_entries.push(LocalTypeEntry::Type(type_value));
         self.eq_type_param_entries.push(EqTypeParamEntry::new());
-        self.type_param_number_counter += 1;
         local_type
     }
     
