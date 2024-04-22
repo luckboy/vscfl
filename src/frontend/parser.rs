@@ -873,7 +873,7 @@ impl<'a> Parser<'a>
                         let expr_named_field_pairs = self.parse_named_field_pairs(&[Token::RBrace], Self::parse_expr)?;
                         match self.lexer.next_token()? {
                             (Token::Eof, pos3) => Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
-                            (Token::RBrace, _) => Ok(Box::new(Expr::NamedFieldConApp(ident, expr_named_field_pairs, None, pos))),
+                            (Token::RBrace, _) => Ok(Box::new(Expr::NamedFieldConApp(ident, expr_named_field_pairs, None, None, pos))),
                             (_, pos3) => Err(FrontendError::Message(pos3, String::from("unclosed brace"))),
                         }
                     },
@@ -1460,7 +1460,7 @@ impl<'a> Parser<'a>
                         let patterns = self.parse_patterns(&[Token::RParen])?;
                         match self.lexer.next_token()? {
                             (Token::Eof, pos3) => Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
-                            (Token::RParen, _) => Ok(Box::new(Pattern::UnnamedFieldCon(ident, patterns, None, pos))),
+                            (Token::RParen, _) => Ok(Box::new(Pattern::UnnamedFieldCon(ident, patterns, None, None, pos))),
                             (_, pos3) => Err(FrontendError::Message(pos3, String::from("unclosed parenthesis"))),
                         }
                     },
@@ -1468,7 +1468,7 @@ impl<'a> Parser<'a>
                         let pattern_named_field_pairs = self.parse_named_field_pairs(&[Token::RBrace], Self::parse_pattern)?;
                         match self.lexer.next_token()? {
                             (Token::Eof, pos3) => Err(FrontendError::Message(pos3, String::from("unexpected end of file"))),
-                            (Token::RBrace, _) => Ok(Box::new(Pattern::NamedFieldCon(ident, pattern_named_field_pairs, None, pos))),
+                            (Token::RBrace, _) => Ok(Box::new(Pattern::NamedFieldCon(ident, pattern_named_field_pairs, None, None, pos))),
                             (_, pos3) => Err(FrontendError::Message(pos3, String::from("unclosed brace"))),
                         }
                     },

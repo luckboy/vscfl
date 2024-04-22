@@ -2195,7 +2195,7 @@ c: Int =
                                     match &cases[0] {
                                         Case(pattern, expr) => {
                                             match &**pattern {
-                                                Pattern::UnnamedFieldCon(con_ident, patterns, None, pos) => {
+                                                Pattern::UnnamedFieldCon(con_ident, patterns, None, None, pos) => {
                                                     assert_eq!(8, pos.line);
                                                     assert_eq!(9, pos.column);
                                                     assert_eq!(String::from("Some"), *con_ident);
@@ -6139,7 +6139,7 @@ h: () = printf(\"%d\\n\", 2);
                     match expr {
                         Some(expr) => {
                             match &**expr {
-                                Expr::NamedFieldConApp(con_ident, expr_named_field_pairs, None, pos) => {
+                                Expr::NamedFieldConApp(con_ident, expr_named_field_pairs, None, None, pos) => {
                                     assert_eq!(7, pos.line);
                                     assert_eq!(8, pos.column);
                                     assert_eq!(String::from("C"), *con_ident);
@@ -6310,7 +6310,7 @@ a: Int =
                                                     assert_eq!(9, pos.column);
                                                     assert_eq!(2, patterns.len());
                                                     match &*patterns[0] {
-                                                        Pattern::UnnamedFieldCon(con_ident, patterns, None, pos) => {
+                                                        Pattern::UnnamedFieldCon(con_ident, patterns, None, None, pos) => {
                                                             assert_eq!(3, pos.line);
                                                             assert_eq!(9, pos.column);
                                                             assert_eq!(String::from("C"), *con_ident);
@@ -6319,7 +6319,7 @@ a: Int =
                                                         _ => assert!(false),
                                                     }
                                                     match &*patterns[1] {
-                                                        Pattern::UnnamedFieldCon(con_ident, patterns, None, pos) => {
+                                                        Pattern::UnnamedFieldCon(con_ident, patterns, None, None, pos) => {
                                                             assert_eq!(3, pos.line);
                                                             assert_eq!(15, pos.column);
                                                             assert_eq!(String::from("D"), *con_ident);
@@ -6438,7 +6438,7 @@ a: Int =
                                                             assert_eq!(14, pos.column);
                                                             assert_eq!(2, patterns.len());
                                                             match &*patterns[0] {
-                                                                Pattern::UnnamedFieldCon(con_ident, patterns, None, pos) => {
+                                                                Pattern::UnnamedFieldCon(con_ident, patterns, None, None, pos) => {
                                                                     assert_eq!(3, pos.line);
                                                                     assert_eq!(14, pos.column);
                                                                     assert_eq!(String::from("C"), *con_ident);
@@ -6447,7 +6447,7 @@ a: Int =
                                                                 _ => assert!(false),
                                                             }
                                                             match &*patterns[1] {
-                                                                Pattern::UnnamedFieldCon(con_ident, patterns, None, pos) => {
+                                                                Pattern::UnnamedFieldCon(con_ident, patterns, None, None, pos) => {
                                                                     assert_eq!(3, pos.line);
                                                                     assert_eq!(20, pos.column);
                                                                     assert_eq!(String::from("D"), *con_ident);
@@ -6560,7 +6560,7 @@ a: Int =
                                     match &cases[4] {
                                         Case(pattern, expr) => {
                                             match &**pattern {
-                                                Pattern::UnnamedFieldCon(con_ident, patterns, None, pos) => {
+                                                Pattern::UnnamedFieldCon(con_ident, patterns, None, None, pos) => {
                                                     assert_eq!(7, pos.line);
                                                     assert_eq!(9, pos.column);
                                                     assert_eq!(String::from("C"), *con_ident);
@@ -6584,7 +6584,7 @@ a: Int =
                                     match &cases[5] {
                                         Case(pattern, expr) => {
                                             match &**pattern {
-                                                Pattern::UnnamedFieldCon(con_ident, patterns, None, pos) => {
+                                                Pattern::UnnamedFieldCon(con_ident, patterns, None, None, pos) => {
                                                     assert_eq!(8, pos.line);
                                                     assert_eq!(9, pos.column);
                                                     assert_eq!(String::from("E"), *con_ident);
@@ -6630,7 +6630,7 @@ a: Int =
                                     match &cases[6] {
                                         Case(pattern, expr) => {
                                             match &**pattern {
-                                                Pattern::NamedFieldCon(con_ident, pattern_named_field_pairs, None, pos) => {
+                                                Pattern::NamedFieldCon(con_ident, pattern_named_field_pairs, None, None, pos) => {
                                                     assert_eq!(9, pos.line);
                                                     assert_eq!(9, pos.column);
                                                     assert_eq!(String::from("C"), *con_ident);
@@ -6654,7 +6654,7 @@ a: Int =
                                     match &cases[7] {
                                         Case(pattern, expr) => {
                                             match &**pattern {
-                                                Pattern::NamedFieldCon(con_ident, pattern_named_field_pairs, None, pos) => {
+                                                Pattern::NamedFieldCon(con_ident, pattern_named_field_pairs, None, None, pos) => {
                                                     assert_eq!(10, pos.line);
                                                     assert_eq!(9, pos.column);
                                                     assert_eq!(String::from("E"), *con_ident);
@@ -6834,7 +6834,7 @@ a: Int =
                                                     assert_eq!(9, pos.column);
                                                     assert_eq!(String::from("y"), *var_ident);
                                                     match &**pattern {
-                                                        Pattern::UnnamedFieldCon(con_ident, patterns, None, pos) => {
+                                                        Pattern::UnnamedFieldCon(con_ident, patterns, None, None, pos) => {
                                                             assert_eq!(16, pos.line);
                                                             assert_eq!(13, pos.column);
                                                             assert_eq!(String::from("C"), *con_ident);
@@ -6866,7 +6866,7 @@ a: Int =
                                                     assert_eq!(17, pos.column);
                                                     assert_eq!(String::from("y"), *var_ident);
                                                     match &**pattern {
-                                                        Pattern::UnnamedFieldCon(con_ident, patterns, None, pos) => {
+                                                        Pattern::UnnamedFieldCon(con_ident, patterns, None, None, pos) => {
                                                             assert_eq!(17, pos.line);
                                                             assert_eq!(21, pos.column);
                                                             assert_eq!(String::from("C"), *con_ident);
@@ -6898,7 +6898,7 @@ a: Int =
                                                     assert_eq!(15, pos.column);
                                                     assert_eq!(String::from("y"), *var_ident);
                                                     match &**pattern {
-                                                        Pattern::UnnamedFieldCon(con_ident, patterns, None, pos) => {
+                                                        Pattern::UnnamedFieldCon(con_ident, patterns, None, None, pos) => {
                                                             assert_eq!(18, pos.line);
                                                             assert_eq!(19, pos.column);
                                                             assert_eq!(String::from("C"), *con_ident);
@@ -6930,7 +6930,7 @@ a: Int =
                                                     assert_eq!(16, pos.column);
                                                     assert_eq!(String::from("y"), *var_ident);
                                                     match &**pattern {
-                                                        Pattern::UnnamedFieldCon(con_ident, patterns, None, pos) => {
+                                                        Pattern::UnnamedFieldCon(con_ident, patterns, None, None, pos) => {
                                                             assert_eq!(19, pos.line);
                                                             assert_eq!(20, pos.column);
                                                             assert_eq!(String::from("C"), *con_ident);
@@ -6962,7 +6962,7 @@ a: Int =
                                                     assert_eq!(18, pos.column);
                                                     assert_eq!(String::from("y"), *var_ident);
                                                     match &**pattern {
-                                                        Pattern::UnnamedFieldCon(con_ident, patterns, None, pos) => {
+                                                        Pattern::UnnamedFieldCon(con_ident, patterns, None, None, pos) => {
                                                             assert_eq!(20, pos.line);
                                                             assert_eq!(22, pos.column);
                                                             assert_eq!(String::from("C"), *con_ident);

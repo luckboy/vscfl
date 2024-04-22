@@ -753,7 +753,7 @@ impl Namer
                 var_env.pop_vars();
             },
             Expr::Var(ident, _, pos) => check_var_ident(ident, pos.clone(), tree, var_env, errs),
-            Expr::NamedFieldConApp(ident, expr_named_field_pairs, _, pos) => {
+            Expr::NamedFieldConApp(ident, expr_named_field_pairs, _, _, pos) => {
                 match check_con_ident(ident, pos.clone(), tree, true, errs) {
                     Some(con) => self.check_idents_for_named_field_pairs(expr_named_field_pairs.as_slice(), pos.clone(), con, tree, var_env, type_param_env, errs, Self::check_idents_for_expr)?,
                     None => (),
@@ -846,7 +846,7 @@ impl Namer
                 self.check_idents_for_type_expr(&**type_expr, tree, type_param_env, false, true, errs)?;
             },
             Pattern::Const(ident, _, pos) => check_const_ident(ident, pos.clone(), tree, errs),
-            Pattern::UnnamedFieldCon(ident, patterns, _, pos) => {
+            Pattern::UnnamedFieldCon(ident, patterns, _, _, pos) => {
                 match check_con_ident(ident, pos.clone(), tree, false, errs) {
                     Some(con) => {
                         let con_r = con.borrow();
@@ -866,7 +866,7 @@ impl Namer
                     self.check_idents_for_pattern(&**pattern2, tree, var_env, type_param_env, var_idents, is_in_alt_pattern, errs)?;
                 }
             },
-            Pattern::NamedFieldCon(ident, pattern_named_field_pairs, _, pos) => {
+            Pattern::NamedFieldCon(ident, pattern_named_field_pairs, _, _, pos) => {
                 match check_con_ident(ident, pos.clone(), tree, true, errs) {
                     Some(con) => {
                         self.check_idents_for_named_field_pairs(pattern_named_field_pairs.as_slice(), pos.clone(), con, tree, var_env, type_param_env, errs, |namer, pattern, tree, var_env, type_param_env, errs| {
