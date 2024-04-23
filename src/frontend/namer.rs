@@ -227,9 +227,7 @@ impl Namer
         let mut type_param_env: Environment<()> = Environment::new();
         type_param_env.push_new_vars();
         self.check_idents_for_type_expr(type_expr, tree, &mut type_param_env, true, true, &mut errs)?;
-        for where_tuple in where_tuples {
-            self.check_idents_for_where_tuple(where_tuple, tree, &mut type_param_env, &mut errs)?;
-        }
+        self.check_idents_for_where_tuples(where_tuples, tree, &mut type_param_env, &mut errs)?;
         if errs.is_empty() {
             Ok(())
         } else {
@@ -662,9 +660,7 @@ impl Namer
                 let mut type_param_env: Environment<()> = Environment::new();
                 type_param_env.push_new_vars();
                 self.check_idents_for_type_expr(&**type_expr, tree, &mut type_param_env, true, true, errs)?;
-                for where_tuple in where_tuples {
-                    self.check_idents_for_where_tuple(where_tuple, tree, &mut type_param_env, errs)?;
-                }
+                self.check_idents_for_where_tuples(where_tuples.as_slice(), tree, &mut type_param_env, errs)?;
                 match expr {
                     Some(expr) => self.check_idents_for_expr(&**expr, tree, &mut var_env, &mut type_param_env, errs)?,
                     None => (),
@@ -679,9 +675,7 @@ impl Namer
                         type_param_env.push_new_vars();
                         self.check_idents_for_args(args.as_slice(), tree, &mut var_env, &mut type_param_env, true, errs)?;
                         self.check_idents_for_type_expr(&**ret_type_expr, tree, &mut type_param_env, true, true, errs)?;
-                        for where_tuple in where_tuples {
-                            self.check_idents_for_where_tuple(where_tuple, tree, &mut type_param_env, errs)?;
-                        }
+                        self.check_idents_for_where_tuples(where_tuples.as_slice(), tree, &mut type_param_env, errs)?;
                         match body {
                             Some(body) => self.check_idents_for_expr(&**body, tree, &mut var_env, &mut type_param_env, errs)?,
                             None => (),
@@ -715,25 +709,33 @@ impl Namer
         Ok(())
     }
 
-    fn check_idents_for_where_tuple(&self, where_tuple: &WhereTuple, tree: &Tree, type_param_env: &mut Environment<()>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn check_idents_for_where_tuples(&self, where_tuples: &[WhereTuple], tree: &Tree, type_param_env: &mut Environment<()>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
-        match where_tuple {
-            WhereTuple::Traits(ident, trait_names, type_exprs, pos) => {
-                check_type_param_ident(ident, pos.clone(), type_param_env, true, errs);
-                for trait_name in trait_names {
-                    check_trait_name(trait_name, pos.clone(), &tree, errs);
-                }
-                for type_expr in type_exprs {
-                    self.check_idents_for_type_expr(&**type_expr, tree, type_param_env, false, true, errs)?;
-                }
-            }
-            WhereTuple::Eq(type_params) => {
-                for type_param in type_params {
-                    match type_param {
-                        TypeParam(ident, pos) => check_type_param_ident(ident, pos.clone(), type_param_env, true, errs),
+        let mut where_tuple_idents: BTreeSet<String> = BTreeSet::new();
+        for where_tuple in where_tuples {
+            match where_tuple {
+                WhereTuple::Traits(ident, trait_names, type_exprs, pos) => {
+                    check_type_param_ident(ident, pos.clone(), type_param_env, true, errs);
+                    if !where_tuple_idents.contains(ident) {
+                        where_tuple_idents.insert(ident.clone());
+                    } else {
+                        errs.push(FrontendError::Message(pos.clone(), format!("already defined traits for type parameter {}", ident)));
+                    }
+                    for trait_name in trait_names {
+                        check_trait_name(trait_name, pos.clone(), &tree, errs);
+                    }
+                    for type_expr in type_exprs {
+                        self.check_idents_for_type_expr(&**type_expr, tree, type_param_env, false, true, errs)?;
                     }
                 }
-            },
+                WhereTuple::Eq(type_params) => {
+                    for type_param in type_params {
+                        match type_param {
+                            TypeParam(ident, pos) => check_type_param_ident(ident, pos.clone(), type_param_env, true, errs),
+                        }
+                    }
+                },
+            }
         }
         Ok(())
     }
