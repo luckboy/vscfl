@@ -15,16 +15,18 @@ pub struct BuiltinTypeVar
     pub type_arg_source: String,
     pub field_type_sources: Vec<String>,
     pub field_indices: Vec<(String, usize)>,
+    pub shared_flag: SharedFlag,
 }
 
 impl BuiltinTypeVar
 {
-    pub fn new(type_arg_src: String, field_type_srcs: Vec<String>, field_idxs: Vec<(String, usize)>) -> Self
+    pub fn new(type_arg_src: String, field_type_srcs: Vec<String>, field_idxs: Vec<(String, usize)>, shared_flag: SharedFlag) -> Self
     {
         BuiltinTypeVar {
             type_arg_source: type_arg_src,
             field_type_sources: field_type_srcs,
             field_indices: field_idxs,
+            shared_flag,
         }
     }
 }
