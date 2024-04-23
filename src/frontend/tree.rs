@@ -429,8 +429,8 @@ impl NamedFields
 pub enum TypeValueName
 {
     Tuple,
-    Array(Option<usize>),
     Fun,
+    Array(Option<usize>),
     Name(String),
 }
 
@@ -506,7 +506,6 @@ impl TypeValue
         match self {
             TypeValue::Param(_, _) => None,
             TypeValue::Type(_, TypeValueName::Tuple, args) => Some(TypeName::Tuple(args.len())),
-            TypeValue::Type(_, TypeValueName::Array(len), _) => Some(TypeName::Array(*len)),
             TypeValue::Type(_, TypeValueName::Fun, args) => {
                 if args.len() >= 1 {
                     Some(TypeName::Fun(args.len() - 1))
@@ -514,6 +513,7 @@ impl TypeValue
                     None
                 }
             },
+            TypeValue::Type(_, TypeValueName::Array(len), _) => Some(TypeName::Array(*len)),
             TypeValue::Type(_, TypeValueName::Name(ident), _) => Some(TypeName::Name(ident.clone())),
         }
     }

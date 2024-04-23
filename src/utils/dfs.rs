@@ -7,13 +7,15 @@
 //
 use std::collections::BTreeSet;
 
-pub fn dfs_with_result<T: Clone + Ord, U, E, F, G>(from: &T, data: &mut U, mut f: F, mut g: G) -> Result<(), E>
+pub fn dfs_with_result<T: Clone + Ord, U, E, F, G>(from: &T, visited: &mut BTreeSet<T>, data: &mut U, mut f: F, mut g: G) -> Result<(), E>
     where F: FnMut(&T, &BTreeSet<T>, &mut U) -> Result<Vec<T>, E>,
         G: FnMut(&T, &mut U) -> Result<(), E>
 {
     let mut stack: Vec<(T, Vec<T>)> = Vec::new();
-    let mut visited: BTreeSet<T> = BTreeSet::new();
     let mut processed: BTreeSet<T> = BTreeSet::new();
+    if visited.contains(from) {
+        return Ok(());
+    }
     processed.insert(from.clone());
     let mut tmp_neighbors = f(from, &processed, data)?;
     tmp_neighbors.reverse();
@@ -49,7 +51,7 @@ pub fn dfs_with_result<T: Clone + Ord, U, E, F, G>(from: &T, data: &mut U, mut f
     Ok(())
 }
 
-pub fn dfs<T: Clone + Ord, U, F, G>(from: &T, data: &mut U, mut f: F, mut g: G)
+pub fn dfs<T: Clone + Ord, U, F, G>(from: &T, visited: &mut BTreeSet<T>, data: &mut U, mut f: F, mut g: G)
     where F: FnMut(&T, &BTreeSet<T>, &mut U) -> Vec<T>,
         G: FnMut(&T, &mut U)
-{ let _res: Result<(), ()> = dfs_with_result(from, data, |u, processed, data| Ok(f(u, processed, data)), |u, data| Ok(g(u, data))); }
+{ let _res: Result<(), ()> = dfs_with_result(from, visited, data, |u, processed, data| Ok(f(u, processed, data)), |u, data| Ok(g(u, data))); }
