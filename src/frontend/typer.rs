@@ -22,7 +22,7 @@ fn add_type_synonym_ident_for_type_var(ident: &String, pos: Pos, tree: &Tree, id
         Some(type_var) => {
             let type_var_r = type_var.borrow();
             match &*type_var_r {
-                TypeVar::Synonym(_, _, Some(type_value)) => Ok(()),
+                TypeVar::Synonym(_, _, Some(_)) => Ok(()),
                 TypeVar::Synonym(_, _, None) => {
                     if !processed_idents.contains(ident) {
                         idents.push(ident.clone());
