@@ -58,6 +58,12 @@ impl FrontendErrors
 {
     pub fn new(errors: Vec<FrontendError>) -> Self
     { FrontendErrors { errors, } }
+    
+    pub fn errors(&self) -> &[FrontendError]
+    { &self.errors }
+    
+    pub fn append_to(&mut self, errs: &mut Vec<FrontendError>)
+    { errs.append(&mut self.errors); }
 }
 
 impl error::Error for FrontendErrors

@@ -11,10 +11,34 @@ use std::rc::*;
 use crate::frontend::builtins::*;
 use crate::frontend::error::*;
 use crate::frontend::namer::*;
+use crate::frontend::parser::*;
 use crate::frontend::tree::*;
 use crate::frontend::type_matcher::*;
 use crate::utils::dfs::*;
 use crate::utils::env::*;
+
+fn add_error(err: FrontendError, errs2: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+{
+    match err {
+        FrontendError::Internal(msg) => return Err(FrontendErrors::new(vec![FrontendError::Internal(msg.clone())])),
+        _ => {
+            errs2.push(err);
+            Ok(())
+        },
+    }
+}
+
+fn add_errors(errs: &mut FrontendErrors, errs2: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+{
+    for err in errs.errors() {
+        match err {
+            FrontendError::Internal(msg) => return Err(FrontendErrors::new(vec![FrontendError::Internal(msg.clone())])),
+            _ => (),
+        }
+    }
+    errs.append_to(errs2);
+    Ok(())
+}
 
 fn add_type_synonym_ident_for_type_var(ident: &String, pos: Pos, tree: &Tree, idents: &mut Vec<String>, processed_idents: &BTreeSet<String>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
 {
@@ -60,7 +84,10 @@ fn type_value_and_type_arg_count_for_type_var_ident(ident: &String, pos: Pos, tr
                     }
                     Ok(Some((Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(ident.clone()), type_values)), type_args.type_arg_idents().len())))
                 },
-                TypeVar::Builtin(None, _, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no type arguments"))])),
+                TypeVar::Builtin(None, _, _) => {
+                    errs.push(FrontendError::Message(pos, format!("built-in type {} hasn't type arguments", ident)));
+                    Ok(None)
+                },
                 TypeVar::Data(type_args, _, _) => {
                     let mut type_values: Vec<Rc<TypeValue>> = Vec::new();
                     for i in 0..type_args.len() {
@@ -92,7 +119,47 @@ impl Typer
     pub fn new() -> Self
     { Typer { type_matcher: TypeMatcher::new(), builtins: Builtins::new(), } }
 
-    fn evaluate_types_for_type_defs(&self, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn preevaluate_types_for_builtin_type_defs(&self, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        for def in tree.defs() {
+            match &**def {
+                Def::Type(ident, type_var, pos) => {
+                    let mut type_var_r = type_var.borrow_mut();
+                    match &mut *type_var_r {
+                        TypeVar::Builtin(builtin_type_args, _, _) => {
+                            match self.builtins.type_var(ident) {
+                                Some(builtin_type_var) => {
+                                    match parse_type_args_with_path(format!("({} type args).vscfl", ident).as_str(), builtin_type_var.type_arg_source.as_str()) {
+                                        Ok(type_args) => {
+                                            match check_idents_for_type_args(&type_args) {
+                                                Ok(()) => {
+                                                    let mut new_builtin_type_args = TypeArgs::new();
+                                                    for type_arg in type_args {
+                                                        match type_arg {
+                                                            TypeArg(ident, _) => new_builtin_type_args.add_type_arg_ident(ident),
+                                                        }
+                                                    }
+                                                    *builtin_type_args = Some(Box::new(new_builtin_type_args));
+                                                },
+                                                Err(mut errs2) => add_errors(&mut errs2, errs)?,
+                                            }
+                                        },
+                                        Err(err) => add_error(err, errs)?,
+                                    }
+                                },
+                                None => errs.push(FrontendError::Message(pos.clone(), format!("type variable {} mustn't be built-in type variable", ident))),
+                            }
+                        },
+                        _ => (),
+                    }
+                },
+                _ => (),
+            }
+        }
+        Ok(())
+    }
+    
+    fn evaluate_types_for_type_synonym_defs(&self, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         let mut visited_idents: BTreeSet<String> = BTreeSet::new();
         for def in tree.defs() {
@@ -167,7 +234,7 @@ impl Typer
                     TypeVar::Synonym(type_args, type_expr, type_value) => {
                         let mut type_param_env: Environment<LocalType> = Environment::new();
                         type_param_env.push_new_vars();
-                        for (i, type_arg) in type_args.iter().enumerate() {
+                        for i in 0..type_args.len() {
                             type_param_env.add_var(ident.clone(), LocalType::new(i));
                         }
                         *type_value = self.evaluate_type_for_type_expr(&**type_expr, tree, &mut type_param_env, &mut None, errs)?;
