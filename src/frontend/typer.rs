@@ -52,7 +52,7 @@ fn add_type_synonym_ident_for_type_var(ident: &String, pos: Pos, tree: &Tree, id
                         idents.push(ident.clone());
                         Ok(())
                     } else {
-                        errs.push(FrontendError::Message(pos, format!("recursive definition of type synonym {}", ident)));
+                        errs.push(FrontendError::Message(pos, format!("definition of type synonym {} is recursive", ident)));
                         Ok(())
                     }
                 },
@@ -125,7 +125,7 @@ impl Typer
             match &**def {
                 Def::Type(ident, type_var, pos) => {
                     let mut type_var_r = type_var.borrow_mut();
-                    self.preevaluate_types_for_builtin_type(ident, &mut *type_var_r, pos.clone(), tree, errs)?;
+                    self.preevaluate_types_for_builtin_type(ident, &mut *type_var_r, pos.clone(), errs)?;
                 },
                 _ => (),
             }
@@ -133,7 +133,7 @@ impl Typer
         Ok(())
     }
 
-    fn preevaluate_types_for_builtin_type(&self, ident: &String, type_var: &mut TypeVar, pos: Pos, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn preevaluate_types_for_builtin_type(&self, ident: &String, type_var: &mut TypeVar, pos: Pos, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         match type_var {
             TypeVar::Builtin(type_args, _, _) => {
@@ -197,7 +197,6 @@ impl Typer
     
     fn evaluate_types_for_type_defs(&self, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
-        let mut visited_idents: BTreeSet<String> = BTreeSet::new();
         for def in tree.defs() {
             match &**def {
                 Def::Type(ident, type_var, pos) => {
@@ -251,6 +250,7 @@ impl Typer
                     None => errs.push(FrontendError::Message(pos, format!("type variable {} mustn't be built-in type variable", ident))),
                 }                    
             },
+            TypeVar::Builtin(None, _, _) => errs.push(FrontendError::Message(pos, format!("built-in type {} hasn't type arguments", ident))),
             TypeVar::Data(type_args, cons, _) => {
                 for (i, type_arg) in type_args.iter().enumerate() {
                     let mut type_param_env: Environment<LocalType> = Environment::new();
@@ -264,7 +264,7 @@ impl Typer
                             type_arg_idents.push(type_arg_ident.clone());
                         },
                     }
-                    let mut ret_type_value = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(ident.clone()), tmp_type_values));
+                    let ret_type_value = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(ident.clone()), tmp_type_values));
                     for con in &*cons {
                         let con_r = con.borrow();
                         let pair = match &*con_r {
@@ -278,7 +278,7 @@ impl Typer
                                     }
                                 }
                                 if is_success {
-                                    Some((ident.clone(), type_values))
+                                    Some((con_ident.clone(), type_values))
                                 } else {
                                     None
                                 }
@@ -297,7 +297,7 @@ impl Typer
                                     }
                                 }
                                 if is_success {
-                                    Some((ident.clone(), type_values))
+                                    Some((con_ident.clone(), type_values))
                                 } else {
                                     None
                                 }
