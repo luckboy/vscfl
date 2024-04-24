@@ -395,7 +395,7 @@ impl Fields
        }
     }
     
-    pub fn set_field_index(&mut self, ident: String, field_idx: usize)
+    pub fn add_field_index(&mut self, ident: String, field_idx: usize)
     { self.field_indices.insert(ident, field_idx); }
 }
 
