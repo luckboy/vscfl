@@ -40,7 +40,7 @@ fn add_errors(errs: &mut FrontendErrors, errs2: &mut Vec<FrontendError>) -> Fron
     Ok(())
 }
 
-fn add_type_synonym_ident_for_type_var(ident: &String, pos: Pos, tree: &Tree, idents: &mut Vec<String>, processed_idents: &BTreeSet<String>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+fn add_type_synonym_ident(ident: &String, pos: Pos, tree: &Tree, idents: &mut Vec<String>, processed_idents: &BTreeSet<String>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
 {
     match tree.type_var(ident) {
         Some(type_var) => {
@@ -62,7 +62,7 @@ fn add_type_synonym_ident_for_type_var(ident: &String, pos: Pos, tree: &Tree, id
     }
 }
 
-fn add_type_ident_for_type_var(ident: &String, tree: &Tree, idents: &mut Vec<String>, processed_idents: &BTreeSet<String>) -> FrontendResultWithErrors<()>
+fn add_type_ident(ident: &String, tree: &Tree, idents: &mut Vec<String>, processed_idents: &BTreeSet<String>) -> FrontendResultWithErrors<()>
 {
     match tree.type_var(ident) {
         Some(type_var) => {
@@ -93,7 +93,7 @@ fn add_type_ident_for_type_var(ident: &String, tree: &Tree, idents: &mut Vec<Str
     }
 }
 
-fn add_data_ident_for_type_var(ident: &String, pos: Pos, tree: &Tree, idents: &mut Vec<String>, processed_idents: &BTreeSet<String>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+fn add_data_ident(ident: &String, pos: Pos, tree: &Tree, idents: &mut Vec<String>, processed_idents: &BTreeSet<String>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
 {
     match tree.type_var(ident) {
         Some(type_var) => {
@@ -462,8 +462,8 @@ impl Typer
             },
             TypeExpr::Array(elem_type_expr, _, _) => self.add_type_synonym_idents_for_type_expr(&**elem_type_expr, tree, idents, processed_idents, errs)?,
             TypeExpr::Param(_, _) => (),
-            TypeExpr::Var(ident, pos) => add_type_synonym_ident_for_type_var(ident, pos.clone(), tree, idents, processed_idents, errs)?,
-            TypeExpr::App(ident, _, pos) => add_type_synonym_ident_for_type_var(ident, pos.clone(), tree, idents, processed_idents, errs)?,
+            TypeExpr::Var(ident, pos) => add_type_synonym_ident(ident, pos.clone(), tree, idents, processed_idents, errs)?,
+            TypeExpr::App(ident, _, pos) => add_type_synonym_ident(ident, pos.clone(), tree, idents, processed_idents, errs)?,
             TypeExpr::Uniq(type_expr2, _) => self.add_type_synonym_idents_for_type_expr(&**type_expr2, tree, idents, processed_idents, errs)?,
         }
         Ok(())
@@ -687,7 +687,7 @@ impl Typer
         match type_value {
             TypeValue::Type(UniqFlag::None, type_value_name, type_values) => {
                 match type_value_name {
-                    TypeValueName::Name(ident) => add_type_ident_for_type_var(ident, tree, idents, processed_idents)?,
+                    TypeValueName::Name(ident) => add_type_ident(ident, tree, idents, processed_idents)?,
                     _ => (),
                 }
                 for type_value2 in type_values {
@@ -867,7 +867,7 @@ impl Typer
         }
     }
     
-    fn is_ref_type_for_type_var(&self, ident: &String, tree: &Tree) -> FrontendResultWithErrors<bool>
+    fn is_ref_type_for_type_ident(&self, ident: &String, tree: &Tree) -> FrontendResultWithErrors<bool>
     {
         match tree.type_var(ident) {
             Some(type_var) => {
@@ -893,8 +893,8 @@ impl Typer
             TypeValue::Type(_, type_value_name, type_values) => {
                 let is_ref_type = match type_value_name {
                     TypeValueName::Name(ident) => {
-                        add_data_ident_for_type_var(ident, pos.clone(), tree, idents, processed_idents, errs)?;
-                        self.is_ref_type_for_type_var(ident, tree)?
+                        add_data_ident(ident, pos.clone(), tree, idents, processed_idents, errs)?;
+                        self.is_ref_type_for_type_ident(ident, tree)?
                     },
                     _ => false,
                 };
