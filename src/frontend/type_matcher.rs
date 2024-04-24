@@ -108,8 +108,8 @@ impl TypeMatcher
                             Some(SharedFlag::Shared) => (), 
                             None => {
                                 if shared_flag == SharedFlag::Shared {
-                                    for type_value in type_values {
-                                        if self.shared_flag_for_type_value2(type_value, None, tree, local_types)? == SharedFlag::None {
+                                    for type_value2 in type_values {
+                                        if self.shared_flag_for_type_value2(type_value2, None, tree, local_types)? == SharedFlag::None {
                                             shared_flag = SharedFlag::None;
                                         }
                                     }
