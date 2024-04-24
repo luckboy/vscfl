@@ -675,7 +675,7 @@ impl Typer
                         }
                         Ok(idents)
                     },
-                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type variable isn't type synonym"))])),
+                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type variable is type synonym"))])),
                 }
             },
             None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no type variable"))])),
@@ -761,7 +761,7 @@ impl Typer
                         }
                         Ok(())
                     },
-                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type variable isn't type synonym"))])),
+                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type variable is type synonym"))])),
                 }
             },
             None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no type variable"))])),
@@ -811,7 +811,7 @@ impl Typer
         match type_var {
             TypeVar::Data(_, _, _) => {
                 dfs_with_result(ident, visited_idents, errs, |ident, processed_idents, errs| {
-                        self.check_type_recursions_for_type_ident(ident, tree, processed_idents, errs)
+                        self.check_type_recursions_for_data_ident(ident, tree, processed_idents, errs)
                 }, |_, _| Ok(()))?;
             },
             _ => (),
@@ -819,13 +819,12 @@ impl Typer
         Ok(())
     }
     
-    fn check_type_recursions_for_type_ident(&self, ident: &String, tree: &Tree, processed_idents: &BTreeSet<String>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Vec<String>>
+    fn check_type_recursions_for_data_ident(&self, ident: &String, tree: &Tree, processed_idents: &BTreeSet<String>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Vec<String>>
     {
         match tree.type_var(ident) {
             Some(type_var) => {
                 let mut type_var_r = type_var.borrow_mut();
                 match &mut *type_var_r {
-                    TypeVar::Builtin(_, _, _) => Ok(Vec::new()),
                     TypeVar::Data(_, cons, _) => {
                         let mut idents: Vec<String> = Vec::new();
                         for con in &*cons {
@@ -860,7 +859,7 @@ impl Typer
                         }
                         Ok(idents)
                     },
-                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type variable isn't type synonym"))])),
+                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type variable is built-in type or type synonym"))])),
                 }
             },
             None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no type variable"))])),
