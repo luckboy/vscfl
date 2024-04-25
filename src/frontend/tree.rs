@@ -184,7 +184,7 @@ pub struct TypeParam(pub String, pub Pos);
 pub enum Expr
 {
     Literal(Box<Literal<Expr>>, Option<LocalType>, Pos),
-    Lambda(Vec<LambdaArg>, Option<Box<TypeExpr>>, Box<Expr>, Option<LocalType>, Pos),
+    Lambda(Vec<LambdaArg>, Option<Box<TypeExpr>>, Box<Expr>, Option<LocalType>, Option<LocalFun>, Pos),
     Var(String, Option<LocalType>, Pos),
     NamedFieldConApp(String, Vec<NamedFieldPair<Expr>>, Option<LocalType>, Option<LocalType>, Pos),
     PrintfApp(Vec<Box<Expr>>, Option<LocalType>, Pos),
@@ -1137,6 +1137,21 @@ impl<'a> fmt::Display for LocalTypeWithLocalTypes<'a>
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
     { write!(f, "{}", self.1.local_type_to_string(self.0)) }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct LocalFun
+{
+    index: usize,
+}
+
+impl LocalFun
+{
+    pub fn new(idx: usize) -> Self
+    { LocalFun { index: idx, } }
+    
+    pub fn index(&self) -> usize
+    { self.index }
 }
 
 #[derive(Clone, Debug)]

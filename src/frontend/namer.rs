@@ -722,7 +722,7 @@ impl Namer
     {
         match expr {
             Expr::Literal(literal, _, _) => self.check_idents_for_literal(&**literal, tree, var_env, type_param_env, errs, Self::check_idents_for_expr)?,
-            Expr::Lambda(args, ret_type_expr, body, _, _) => {
+            Expr::Lambda(args, ret_type_expr, body, _, _, _) => {
                 var_env.push_new_vars();
                 self.check_idents_for_lambda_args(args.as_slice(), tree, var_env, type_param_env, errs)?;
                 match ret_type_expr {
