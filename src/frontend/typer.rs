@@ -86,10 +86,10 @@ fn add_type_ident(ident: &String, tree: &Tree, idents: &mut Vec<String>, process
                     }
                     Ok(())
                 },
-                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type variable is type synonym"))])),
+                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_type_ident: type variable is type synonym"))])),
             }
         },
-        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no type variable"))])),
+        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_type_ident: no type variable"))])),
     }
 }
 
@@ -108,10 +108,10 @@ fn add_data_ident(ident: &String, pos: Pos, tree: &Tree, idents: &mut Vec<String
                     }
                     Ok(())
                 },
-                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type variable is type synonym"))])),
+                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_data_ident: type variable is type synonym"))])),
             }
         },
-        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no type variable"))])),
+        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_data_ident: no type variable"))])),
     }
 }
 
@@ -119,7 +119,7 @@ fn local_type_for_type_param_ident(ident: &String, type_param_env: &Environment<
 {
     match type_param_env.var(ident) {
         Some(tmp_local_type) => Ok(*tmp_local_type),
-        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no type parameter"))])),
+        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_type_param_ident: no type parameter"))])),
     }
 }
 
@@ -156,7 +156,7 @@ fn type_value_and_type_arg_count_for_type_var_ident(ident: &String, pos: Pos, tr
                 },
             }
         },
-        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no type variable"))])),
+        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_value_and_type_arg_count_for_type_var_ident: no type variable"))])),
     }
 }
 
@@ -168,10 +168,10 @@ fn shared_flag_for_type_var_ident(ident: &String, tree: &Tree) -> FrontendResult
             match &mut *type_var_r {
                 TypeVar::Builtin(_, _, shared_flag) => Ok(*shared_flag),
                 TypeVar::Data(_, _, shared_flag) => Ok(*shared_flag),
-                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type variable is type synonym"))])),
+                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_flag_for_type_var_ident: type variable is type synonym"))])),
             }
         },
-        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no type variable"))])),
+        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_flag_for_type_var_ident: no type variable"))])),
     }
 }
 
@@ -344,8 +344,8 @@ impl Typer
                             *fields = Some(Box::new(new_fields));
                         }
                     },
-                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no built-in type variable in builtins"))])),
-                }                    
+                    None => (),
+                }
             },
             TypeVar::Builtin(None, _, _) => errs.push(FrontendError::Message(pos, format!("built-in type {} hasn't type arguments", ident))),
             TypeVar::Data(type_args, cons, _) => {
@@ -411,10 +411,10 @@ impl Typer
                                                 let type_value = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Fun, type_values));
                                                 *typ = Some(Box::new(Type::new(type_value, type_arg_idents.as_slice())));
                                             },
-                                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("variable isn't function"))])),
+                                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_type: variable isn't function"))])),
                                         }
                                     },
-                                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no variable"))])),
+                                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_type: no variable"))])),
                                 }
                             },
                             None => (),
@@ -438,10 +438,10 @@ impl Typer
                         self.add_type_synonym_idents_for_type_expr(&**type_expr, tree, &mut idents, processed_idents, errs)?;
                         Ok(idents)
                     },
-                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type variable isn't type synonym"))])),
+                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_synonym_idents_for_type_synonym_ident: type variable isn't type synonym"))])),
                 }
             },
-            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no type variable"))])),
+            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_synonym_idents_for_type_synonym_ident: no type variable"))])),
         }
     }
         
@@ -488,10 +488,10 @@ impl Typer
                         *type_value = self.evaluate_type_for_type_expr(&**type_expr, tree, &mut type_param_env, &mut None, errs)?;
                         Ok(())
                     },
-                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type variable isn't type synonym"))])),
+                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_type_for_type_synonym_ident: type variable isn't type synonym"))])),
                 }
             },
-            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no type variable"))])),
+            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_type_for_type_synonym_ident: no type variable"))])),
         }
     }
 
@@ -597,7 +597,7 @@ impl Typer
                             match type_value.substitute(type_values.as_slice()) {
                                 Ok(Some(new_type_value)) => Ok(Some(new_type_value)),
                                 Ok(None) => Ok(Some(type_value)),
-                                Err(err) => Err(FrontendErrors::new(vec![FrontendError::Internal(format!("{}", err))]))
+                                Err(err) => Err(FrontendErrors::new(vec![FrontendError::Internal(format!("evaluate_type_for_type_expr: {}", err))]))
                             }
                         } else {
                             Ok(None)
@@ -661,25 +661,25 @@ impl Typer
                                                             self.add_shared_type_idents_for_type_value(&**type_value2, tree, &mut idents, processed_idents)?
                                                         }
                                                     } else {
-                                                        return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("too few argument type values"))]))
+                                                        return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_type_idents_for_type_ident: too few argument type values"))]))
                                                     }
                                                 },
-                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("variable isn't function or no type"))])),
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_type_idents_for_type_ident: variable isn't function or no type"))])),
                                             }
                                         },
                                         Var::Fun(_, _, None) => (),
-                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("variable isn't function"))])),
+                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_type_idents_for_type_ident: variable isn't function"))])),
                                     }
                                 },
-                                None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no variable"))])),
+                                None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_type_idents_for_type_ident: no variable"))])),
                             }
                         }
                         Ok(idents)
                     },
-                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type variable is type synonym"))])),
+                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_type_idents_for_type_ident: type variable is type synonym"))])),
                 }
             },
-            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no type variable"))])),
+            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_type_idents_for_type_ident: no type variable"))])),
         }
     }
     
@@ -712,7 +712,7 @@ impl Typer
                                 *shared_flag = Some(builtin_type_var.shared_flag);
                                 Ok(())
                             },
-                            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no built-in type variable in builtins"))])),
+                            None => Ok(()),
                         }
                     },
                     TypeVar::Data(_, cons, shared_flag) => {
@@ -743,17 +743,17 @@ impl Typer
                                                             }
                                                         }
                                                     } else {
-                                                        return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("too few argument type values"))]))
+                                                        return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_shared_flag_for_type_ident: too few argument type values"))]))
                                                     }
                                                 },
-                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("variable isn't function or no type"))])),
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_shared_flag_for_type_ident: variable isn't function or no type"))])),
                                             }
                                         },
                                         Var::Fun(_, _, None) => is_success = false,
-                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("variable isn't function"))])),
+                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_shared_flag_for_type_ident: variable isn't function"))])),
                                     }
                                 },
-                                None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no variable"))])),
+                                None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_shared_flag_for_type_ident: no variable"))])),
                             }
                         }
                         if is_success {
@@ -763,10 +763,10 @@ impl Typer
                         }
                         Ok(())
                     },
-                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type variable is type synonym"))])),
+                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_shared_flag_for_type_ident: type variable is type synonym"))])),
                 }
             },
-            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no type variable"))])),
+            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_shared_flag_for_type_ident: no type variable"))])),
         }
     }
     
@@ -847,25 +847,25 @@ impl Typer
                                                             self.add_data_type_idents_for_type_value(&**type_value2, &pos, tree, &mut idents, processed_idents, errs)?
                                                         }
                                                     } else {
-                                                        return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("too few argument type values"))]))
+                                                        return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_type_recursions_for_data_ident: too few argument type values"))]))
                                                     }
                                                 },
-                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("variable isn't function"))])),
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_type_recursions_for_data_ident: variable isn't function"))])),
                                             }
                                         },
                                         Var::Fun(_, _, None) => (),
-                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("variable isn't function"))])),
+                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_type_recursions_for_data_ident: variable isn't function"))])),
                                     }
                                 },
-                                None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no variable"))])),
+                                None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_type_recursions_for_data_ident: no variable"))])),
                             }
                         }
                         Ok(idents)
                     },
-                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type variable is built-in type or type synonym"))])),
+                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_type_recursions_for_data_ident: type variable is built-in type or type synonym"))])),
                 }
             },
-            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no type variable"))])),
+            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_type_recursions_for_data_ident: no type variable"))])),
         }
     }
     
@@ -878,14 +878,14 @@ impl Typer
                     TypeVar::Builtin(_, _, _) => {
                         match self.builtins.type_var(ident) {
                             Some(builtin_type_var) => Ok(builtin_type_var.is_ref_type),
-                            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no built-in type variable in builtins"))])),
+                            None => Ok(false),
                         }
                     },
                     TypeVar::Data(_, _, _) => Ok(false),
-                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type variable is type synonym"))])),
+                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_ref_type_for_type_ident: type variable is type synonym"))])),
                 }
             },
-            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no type variable"))])),
+            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_ref_type_for_type_ident: no type variable"))])),
         }
     }
     

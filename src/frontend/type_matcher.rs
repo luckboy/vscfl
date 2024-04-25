@@ -84,7 +84,7 @@ impl TypeMatcher
             Some(LocalTypeEntry::Param(_, UniqFlag::Uniq, _, _)) => Ok((UniqFlag::Uniq, SharedFlag::None)),
             Some(LocalTypeEntry::Type(type_value)) => {
                 match &*type_value {
-                    TypeValue::Param(_, _) => Err(FrontendError::Internal(String::from("type parameter in local type entry"))),
+                    TypeValue::Param(_, _) => Err(FrontendError::Internal(String::from("uniq_flag_and_shared_flag_for_type_value2: type parameter in local type entry"))),
                     TypeValue::Type(UniqFlag::None, TypeValueName::Fun, _) => Ok((UniqFlag::None, SharedFlag::Shared)),
                     TypeValue::Type(UniqFlag::None, type_value_name, type_values) => {
                         let mut shared_flag = match type_value_name {
@@ -95,10 +95,10 @@ impl TypeMatcher
                                         match &*type_var_r {
                                             TypeVar::Builtin(_, _, Some(tmp_shared_flag)) => *tmp_shared_flag,
                                             TypeVar::Data(_, _, Some(tmp_shared_flag)) => *tmp_shared_flag,
-                                            _ => return Err(FrontendError::Internal(String::from("type variable isn't type or type hasn't shared flag"))),
+                                            _ => return Err(FrontendError::Internal(String::from("uniq_flag_and_shared_flag_for_type_value2: type variable isn't type or type hasn't shared flag"))),
                                         }
                                     },
-                                    None => return Err(FrontendError::Internal(String::from("no type variable"))),
+                                    None => return Err(FrontendError::Internal(String::from("uniq_flag_and_shared_flag_for_type_value2: no type variable"))),
                                 }
                             },
                             _ => SharedFlag::Shared,
@@ -126,7 +126,7 @@ impl TypeMatcher
                     _ => Ok((UniqFlag::Uniq, SharedFlag::None)),
                 }
             },
-            None => Err(FrontendError::Internal(String::from("no local type entry"))),
+            None => Err(FrontendError::Internal(String::from("uniq_flag_and_shared_flag_for_type_value2: no local type entry"))),
         }
     }
 
@@ -171,7 +171,7 @@ impl TypeMatcher
                 }
                 Ok(true)
             },
-            None=> Err(FrontendError::Internal(String::from("no local type entry"))),
+            None=> Err(FrontendError::Internal(String::from("set_shared_for_local_type: no local type entry"))),
         }
     }
     
@@ -304,7 +304,7 @@ impl TypeMatcher
             },
             (LocalTypeEntry::Param(DefinedFlag::Undefined, uniq_flag1, type_param_entry1, local_type1), LocalTypeEntry::Type(type_value2)) => {
                 match &**type_value2 {
-                    TypeValue::Param(_, _) => Err(FrontendError::Internal(String::from("type parameter in local type entry"))),
+                    TypeValue::Param(_, _) => Err(FrontendError::Internal(String::from("match_local_type_entries_with_infos: type parameter in local type entry"))),
                     TypeValue::Type(uniq_flag2, type_value_name2, type_values2) => {
                         if *uniq_flag1 == UniqFlag::Uniq && *uniq_flag2 == UniqFlag::None {
                             return Ok(None);
@@ -441,7 +441,7 @@ impl TypeMatcher
                         let shared_flag = shared_flag1;
                         Ok(Some(shared_flag))
                     },
-                    _ => Err(FrontendError::Internal(String::from("type parameter in local type entry"))),
+                    _ => Err(FrontendError::Internal(String::from("match_local_type_entries_with_infos: type parameter in local type entry"))),
                 }
             }
             _ => Ok(None),

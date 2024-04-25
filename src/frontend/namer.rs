@@ -279,7 +279,7 @@ impl Namer
                                                                     Some(named_fields) => {
                                                                         named_fields.set_field_index(field_ident.clone(), field_idx);
                                                                     },
-                                                                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no named fields"))])),
+                                                                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_defs: no named fields"))])),
                                                                 }
                                                                 field_idents.insert(field_ident.clone());
                                                                 field_idx += 1;
@@ -400,7 +400,7 @@ impl Namer
                                                                                     errs.push(FrontendError::Message(impl_var_pos.clone(), String::from("too many arguments")));
                                                                                 }
                                                                             },
-                                                                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("function is constuctor"))])),
+                                                                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_impls_for_impl_defs: function is constuctor"))])),
                                                                         }
                                                                         is_impl_var = true
                                                                     },
@@ -441,7 +441,7 @@ impl Namer
                                         },
                                     }
                                 },
-                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no trait variables"))])),
+                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_impls_for_impl_defs: no trait variables"))])),
                             }
                         },
                         None => errs.push(FrontendError::Message(pos.clone(), format!("undefined trait {}", trait_ident))),
@@ -585,7 +585,7 @@ impl Namer
                     errs.push(FrontendError::Message(pos.clone(), String::from("too many fields")))
                 }
             },
-            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("unnamed field contructor or no named fields"))])),
+            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_idents_for_named_field_pairs: unnamed field contructor or no named fields"))])),
         }
         for named_field_pair in named_field_pairs {
             match named_field_pair {
@@ -659,7 +659,7 @@ impl Namer
                             None => (),
                         }
                     },
-                    Fun::Con(_) => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("variable is contructor"))])),
+                    Fun::Con(_) => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_idents_for_var: variable is contructor"))])),
                 }
             },
         }
@@ -932,13 +932,13 @@ impl Namer
                                         match &*var_r {
                                             Var::Builtin(_, _) => (),
                                             Var::Var(_, type_expr, _, _, _, _, _, _) => self.check_idents_for_type_expr(&**type_expr, tree, &mut type_param_env, true, false, errs)?,
-                                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("variable is function"))])),
+                                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_idents_for_impl_var: variable is function"))])),
                                         }
                                     },
                                     None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no variable"))])),
                                 }
                             },
-                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no trait variables"))])),
+                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_idents_for_impl_var: no trait variables"))])),
                         }
                     },
                     _ => (),
@@ -972,13 +972,13 @@ impl Namer
                                                             _ => (),
                                                         }
                                                     },
-                                                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("isn't variable"))])),
+                                                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_idents_for_impl_var: isn't variable"))])),
                                                 }
                                             },
                                             None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no variable"))])),
                                         }
                                     },
-                                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no trait variables"))])),
+                                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_idents_for_impl_var: no trait variables"))])),
                                 }
                             },
                             _ => (),

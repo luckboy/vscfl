@@ -357,7 +357,7 @@ impl<'a> Parser<'a>
                         let ident = match token2 {
                             Token::ConIdent(tmp_ident) => tmp_ident,
                             Token::VarIdent(tmp_ident) => tmp_ident,
-                            _ => return Err(FrontendError::Internal(String::from("no identifier"))),
+                            _ => return Err(FrontendError::Internal(String::from("parse_def: no identifier"))),
                         };
                         Ok(Box::new(Def::Var(ident, check_modifiers_for_builtin_var(&modifiers, None)?, first_pos)))
                     },
@@ -479,7 +479,7 @@ impl<'a> Parser<'a>
                 let ident = match token {
                     Token::ConIdent(tmp_ident) => tmp_ident,
                     Token::VarIdent(tmp_ident) => tmp_ident,
-                    _ => return Err(FrontendError::Internal(String::from("no identifier"))),
+                    _ => return Err(FrontendError::Internal(String::from("parse_def: no identifier"))),
                 };
                 Ok(Box::new(Def::Var(ident, self.parse_var(&modifiers, None)?, first_pos)))
             },
@@ -1720,7 +1720,7 @@ impl<'a> Parser<'a>
                         let ident = match token2 {
                             Token::ConIdent(tmp_ident) => tmp_ident,
                             Token::VarIdent(tmp_ident) => tmp_ident,
-                            _ => return Err(FrontendError::Internal(String::from("no identifier"))),
+                            _ => return Err(FrontendError::Internal(String::from("parse_trait_def: no identifier"))),
                         };
                         Ok(Box::new(TraitDef(ident, check_modifiers_for_builtin_var(&modifiers, Some(trait_ident))?, first_pos)))
                     },
@@ -1732,7 +1732,7 @@ impl<'a> Parser<'a>
                 let ident = match token {
                     Token::ConIdent(tmp_ident) => tmp_ident,
                     Token::VarIdent(tmp_ident) => tmp_ident,
-                    _ => return Err(FrontendError::Internal(String::from("no identifier"))),
+                    _ => return Err(FrontendError::Internal(String::from("parse_trait_def: no identifier"))),
                 };
                 Ok(Box::new(TraitDef(ident, self.parse_var(&modifiers, Some(trait_ident))?, first_pos)))
             },
@@ -1844,7 +1844,7 @@ impl<'a> Parser<'a>
                         let ident = match token {
                             Token::ConIdent(tmp_ident) => tmp_ident,
                             Token::VarIdent(tmp_ident) => tmp_ident,
-                            _ => return Err(FrontendError::Internal(String::from("no identifier"))),
+                            _ => return Err(FrontendError::Internal(String::from("parse_impl_def: no identifier"))),
                         };
                         Ok(Box::new(ImplDef(ident, Rc::new(RefCell::new(ImplVar::Builtin(None))), pos)))
                     },
@@ -1857,7 +1857,7 @@ impl<'a> Parser<'a>
                 let ident = match token {
                     Token::ConIdent(tmp_ident) => tmp_ident,
                     Token::VarIdent(tmp_ident) => tmp_ident,
-                    _ => return Err(FrontendError::Internal(String::from("no identifier"))),
+                    _ => return Err(FrontendError::Internal(String::from("parse_impl_def: no identifier"))),
                 };
                 match self.lexer.next_token()? {
                     (Token::Eof, pos2) => Err(FrontendError::Message(pos2, String::from("unexpected end of file"))),
