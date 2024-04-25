@@ -5860,7 +5860,7 @@ h: () = printf(\"%d\\n\", 2);
                     match expr {
                         Some(expr) => {
                             match &**expr {
-                                Expr::Lambda(lambda_args, None, expr, None, None, pos) => {
+                                Expr::Lambda(lambda_args, None, expr, None, None, None, pos) => {
                                     assert_eq!(3, pos.line);
                                     assert_eq!(10, pos.column);
                                     assert_eq!(2, lambda_args.len());
@@ -5957,7 +5957,7 @@ h: () = printf(\"%d\\n\", 2);
                     match expr {
                         Some(expr) => {
                             match &**expr {
-                                Expr::Lambda(lambda_args, ret_type_expr, expr, None, None, pos) => {
+                                Expr::Lambda(lambda_args, ret_type_expr, expr, None, None, None, pos) => {
                                     assert_eq!(4, pos.line);
                                     assert_eq!(10, pos.column);
                                     assert_eq!(2, lambda_args.len());

@@ -184,7 +184,7 @@ pub struct TypeParam(pub String, pub Pos);
 pub enum Expr
 {
     Literal(Box<Literal<Expr>>, Option<LocalType>, Pos),
-    Lambda(Vec<LambdaArg>, Option<Box<TypeExpr>>, Box<Expr>, Option<LocalType>, Option<LocalFun>, Pos),
+    Lambda(Vec<LambdaArg>, Option<Box<TypeExpr>>, Box<Expr>, Option<LocalType>, Option<LocalFun>, Option<Box<Closure>>, Pos),
     Var(String, Option<LocalType>, Pos),
     NamedFieldConApp(String, Vec<NamedFieldPair<Expr>>, Option<LocalType>, Option<LocalType>, Pos),
     PrintfApp(Vec<Box<Expr>>, Option<LocalType>, Pos),
@@ -1160,6 +1160,9 @@ impl LocalFun
 
 #[derive(Clone, Debug)]
 pub struct Value;
+
+#[derive(Clone, Debug)]
+pub struct Closure;
 
 #[derive(Clone, Debug)]
 pub struct TraitVars
