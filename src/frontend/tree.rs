@@ -616,6 +616,7 @@ pub struct TypeParamEntry
     pub closure_local_types: BTreeSet<LocalType>,
     pub number: Option<usize>,
     pub ident: Option<String>,
+    pub pos: Option<Pos>,
 }
 
 impl TypeParamEntry
@@ -628,6 +629,7 @@ impl TypeParamEntry
             closure_local_types: BTreeSet::new(),
             number: None,
             ident: None,
+            pos: None,
         }
     }
 
@@ -639,6 +641,7 @@ impl TypeParamEntry
             closure_local_types: BTreeSet::new(),
             number: Some(num),
             ident: None,
+            pos: None,
         }
     }
     
@@ -658,6 +661,7 @@ impl TypeParamEntry
             closure_local_types: BTreeSet::new(),
             number: num,
             ident: Some(ident),
+            pos: None,
         }
     }
 }
