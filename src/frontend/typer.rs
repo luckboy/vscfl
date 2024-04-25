@@ -667,7 +667,8 @@ impl Typer
                                                 _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("variable isn't function or no type"))])),
                                             }
                                         },
-                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("variable isn't function or no type"))])),
+                                        Var::Fun(_, _, None) => (),
+                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("variable isn't function"))])),
                                     }
                                 },
                                 None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no variable"))])),
@@ -748,7 +749,8 @@ impl Typer
                                                 _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("variable isn't function or no type"))])),
                                             }
                                         },
-                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("variable isn't function or no type"))])),
+                                        Var::Fun(_, _, None) => is_success = false,
+                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("variable isn't function"))])),
                                     }
                                 },
                                 None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no variable"))])),
@@ -848,10 +850,11 @@ impl Typer
                                                         return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("too few argument type values"))]))
                                                     }
                                                 },
-                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("variable isn't function or no type"))])),
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("variable isn't function"))])),
                                             }
                                         },
-                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("variable isn't function or no type"))])),
+                                        Var::Fun(_, _, None) => (),
+                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("variable isn't function"))])),
                                     }
                                 },
                                 None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no variable"))])),
@@ -866,7 +869,7 @@ impl Typer
         }
     }
     
-    fn is_ref_type_for_type_ident(&self, ident: &String, tree: &Tree) -> FrontendResultWithErrors<bool>
+    fn has_ref_type_for_type_ident(&self, ident: &String, tree: &Tree) -> FrontendResultWithErrors<bool>
     {
         match tree.type_var(ident) {
             Some(type_var) => {
@@ -893,7 +896,7 @@ impl Typer
                 let is_ref_type = match type_value_name {
                     TypeValueName::Name(ident) => {
                         add_data_ident(ident, pos.clone(), tree, idents, processed_idents, errs)?;
-                        self.is_ref_type_for_type_ident(ident, tree)?
+                        self.has_ref_type_for_type_ident(ident, tree)?
                     },
                     _ => false,
                 };
