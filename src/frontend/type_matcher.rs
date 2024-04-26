@@ -54,7 +54,6 @@ impl<'a, 'b> fmt::Display for MismatchedTypeInfoWidthLocalTypes<'a, 'b>
     }
 }
 
-
 #[derive(Clone)]
 pub enum TypeMatcherResult
 {
