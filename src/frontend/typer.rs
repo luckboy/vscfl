@@ -1295,11 +1295,12 @@ impl Typer
             }
             Ok(is_success)
         } else {
-            if !trait_ident.is_none() {
-                Ok(true)
-            } else {
-                errs.push(FrontendError::Message(pos, format!("variable {} must have defined traits", ident)));
-                Ok(false)
+            match trait_ident {
+                Some(trait_ident) => {
+                    errs.push(FrontendError::Message(pos, format!("variable {} must have defined trait {}", ident, trait_ident)));
+                    Ok(false)
+                },
+                None => Ok(true),
             }
         }
     }
