@@ -1126,7 +1126,7 @@ impl Typer
                                 TraitName::Shared => (),
                                 TraitName::Fun => {
                                     if type_exprs.len() < 1 {
-                                        errs.push(FrontendError::Message(where_tuple_pos.clone(), format!("too few type expressions of type parameter {}", type_param_ident)));
+                                        errs.push(FrontendError::Message(where_tuple_pos.clone(), format!("no type expressions of type parameter {} for trait ->", type_param_ident)));
                                         is_success = false;
                                     }
                                 },
