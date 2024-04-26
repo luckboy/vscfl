@@ -40,6 +40,10 @@ fn add_errors(errs: &mut FrontendErrors, errs2: &mut Vec<FrontendError>) -> Fron
     Ok(())
 }
 
+//
+// Evaluation of types for type variables.
+//
+
 fn add_type_synonym_ident(ident: &String, pos: Pos, tree: &Tree, idents: &mut Vec<String>, processed_idents: &BTreeSet<String>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
 {
     match tree.type_var(ident) {
@@ -104,7 +108,7 @@ fn add_data_ident(ident: &String, pos: Pos, tree: &Tree, idents: &mut Vec<String
                     if !processed_idents.contains(ident) {
                         idents.push(ident.clone());
                     } else {
-                        errs.push(FrontendError::Message(pos, format!("type {} must be in reference type", ident)));
+                        errs.push(FrontendError::Message(pos, format!("recursive type {} must be in reference type", ident)));
                     }
                     Ok(())
                 },
@@ -137,7 +141,7 @@ fn type_value_and_type_arg_count_for_type_var_ident(ident: &String, pos: Pos, tr
                     Ok(Some((Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(ident.clone()), type_values)), type_args.type_arg_idents().len())))
                 },
                 TypeVar::Builtin(None, _, _) => {
-                    errs.push(FrontendError::Message(pos, format!("built-in type {} hasn't type arguments", ident)));
+                    errs.push(FrontendError::Message(pos, format!("built-in type {} hasn't evalauted type arguments", ident)));
                     Ok(None)
                 },
                 TypeVar::Data(type_args, _, _) => {
@@ -175,6 +179,76 @@ fn shared_flag_for_type_var_ident(ident: &String, tree: &Tree) -> FrontendResult
     }
 }
 
+//
+// Evaluation of types for variables.
+//
+
+fn type_arg_count_for_type_ident(ident: &String, tree: &Tree) -> FrontendResultWithErrors<usize>
+{
+    match tree.type_var(ident) {
+        Some(type_var) => {
+            let type_var_r = type_var.borrow();
+            match &*type_var_r {
+                TypeVar::Builtin(Some(type_args), _, _) => Ok(type_args.type_arg_idents().len()),
+                TypeVar::Builtin(None, _, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_arg_count_for_type_ident: no type arguments"))])),
+                TypeVar::Data(type_args, _, _) => Ok(type_args.len()),
+                TypeVar::Synonym(_, _, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_arg_count_for_type_ident: type variable is type synonym"))])),
+            }
+        },
+        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_arg_count_for_type_ident: no type variable"))])),
+    }
+}
+
+fn type_arg_count_for_trait_ident(ident: &String, tree: &Tree) -> FrontendResultWithErrors<usize>
+{
+    match tree.trait1(ident) {
+        Some(trait1) => {
+            let trait_r = trait1.borrow();
+            match &*trait_r {
+                Trait(type_args, _, _) => Ok(type_args.len()),
+            }
+        },
+        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_arg_count_for_trait_ident: no type variable"))])),
+    }
+}
+
+fn shared_flag_for_type_var_ident2(ident: &String, tree: &Tree) -> FrontendResultWithErrors<SharedFlag>
+{
+    match tree.type_var(ident) {
+        Some(type_var) => {
+            let mut type_var_r = type_var.borrow_mut();
+            match &mut *type_var_r {
+                TypeVar::Builtin(_, _, Some(shared_flag)) => Ok(*shared_flag),
+                TypeVar::Data(_, _, Some(shared_flag)) => Ok(*shared_flag),
+                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_flag_for_type_var_ident2: type variable is type synonym or no shared flag"))])),
+            }
+        },
+        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_flag_for_type_var_ident2: no type variable"))])),
+    }
+}
+
+fn add_local_type(local_type: LocalType, pos: Pos, typ: &Type, local_types: &mut Vec<LocalType>, processed_local_types: &BTreeSet<LocalType>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+{
+    if !processed_local_types.contains(&local_type) {
+        local_types.push(local_type);
+        Ok(())
+    } else {
+        match typ.type_param_entry(local_type) {
+            Some(type_param_entry) => {
+                let type_param_entry_r = type_param_entry.borrow();
+                match &type_param_entry_r.ident {
+                    Some(ident) => {
+                        errs.push(FrontendError::Message(pos, format!("trait definition of type parameter {} is recursive", ident)));
+                        Ok(())
+                    },
+                    None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_local_type: no identifier"))]))
+                }
+            },
+            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_local_type: no type parameter entry"))])),
+        }
+    }
+}
+
 pub struct Typer
 {
     type_matcher: TypeMatcher,
@@ -186,13 +260,32 @@ impl Typer
     pub fn new() -> Self
     { Typer { type_matcher: TypeMatcher::new(), builtins: Builtins::new(), } }
 
-    fn preevaluate_types_for_builtin_type_defs(&self, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    pub fn evalaute_types_for_type_vars(&self, tree: &Tree) -> FrontendResultWithErrors<()>
+    {
+        let mut errs: Vec<FrontendError> = Vec::new();
+        self.evaluate_type_args_for_builtin_type_defs(tree, &mut errs)?;
+        self.evaluate_types_for_type_synonym_defs(tree, &mut errs)?;
+        self.evaluate_types_for_type_defs(tree, &mut errs)?;
+        self.evaluate_shared_flags_for_type_defs(tree)?;
+        self.check_type_recursions_for_data_defs(tree, &mut errs)?;
+        if errs.is_empty() {
+            Ok(())
+        } else {
+            Err(FrontendErrors::new(errs))
+        }
+    }
+
+    //
+    // Evaluation of types for type variables.
+    //    
+    
+    fn evaluate_type_args_for_builtin_type_defs(&self, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         for def in tree.defs() {
             match &**def {
                 Def::Type(ident, type_var, pos) => {
                     let mut type_var_r = type_var.borrow_mut();
-                    self.preevaluate_types_for_builtin_type(ident, &mut *type_var_r, pos.clone(), errs)?;
+                    self.evaluate_type_args_for_builtin_type(ident, &mut *type_var_r, pos.clone(), errs)?;
                 },
                 _ => (),
             }
@@ -200,7 +293,7 @@ impl Typer
         Ok(())
     }
 
-    fn preevaluate_types_for_builtin_type(&self, ident: &String, type_var: &mut TypeVar, pos: Pos, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn evaluate_type_args_for_builtin_type(&self, ident: &String, type_var: &mut TypeVar, pos: Pos, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         match type_var {
             TypeVar::Builtin(type_args, _, _) => {
@@ -347,7 +440,7 @@ impl Typer
                     None => (),
                 }
             },
-            TypeVar::Builtin(None, _, _) => errs.push(FrontendError::Message(pos, format!("built-in type {} hasn't type arguments", ident))),
+            TypeVar::Builtin(None, _, _) => errs.push(FrontendError::Message(pos, format!("built-in type {} hasn't evalauted type arguments", ident))),
             TypeVar::Data(type_args, cons, _) => {
                 for (i, type_arg) in type_args.iter().enumerate() {
                     let mut type_param_env: Environment<LocalType> = Environment::new();
@@ -785,7 +878,7 @@ impl Typer
                         let mut is_success = true;
                         if shared_flag == SharedFlag::Shared {
                             for type_value2 in type_values {
-                                match self.evaluate_shared_flag_for_type_value(type_value2, tree)? {
+                                match self.evaluate_shared_flag_for_type_value(&**type_value2, tree)? {
                                     Some(shared_flag2) => {
                                         if shared_flag2 == SharedFlag::None {
                                             shared_flag = SharedFlag::None;
@@ -909,5 +1002,305 @@ impl Typer
             _ => (),
         }
         Ok(())
+    }
+
+    //
+    // Evaluation of types for variables.
+    //
+    
+    fn check_type_args_for_impl_defs(&self, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        for def in tree.defs() {
+            match &**def {
+                Def::Impl(impl1, pos) => {
+                    let impl_r = impl1.borrow();
+                    self.check_type_args_for_impl(&*impl_r, pos.clone(), tree, errs)?;
+                },
+                _ => (),
+            }
+        }
+        Ok(())
+    }
+    
+    fn check_type_args_for_impl(&self, impl1: &Impl, pos: Pos, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        let (trait_ident, type_name) = match impl1 {
+            Impl::Builtin(tmp_trait_ident, tmp_type_name, _) => (tmp_trait_ident.clone(), tmp_type_name.clone()),
+            Impl::Impl(tmp_trait_ident, tmp_type_name, _, _) => (tmp_trait_ident.clone(), tmp_type_name.clone()),
+        };
+        let trait_type_arg_count = type_arg_count_for_trait_ident(&trait_ident, tree)?;
+        let type_arg_count = match &type_name {
+            TypeName::Tuple(count) => *count,
+            TypeName::Array(_) => 1,
+            TypeName::Fun(count) => *count + 1,
+            TypeName::Name(ident) => type_arg_count_for_type_ident(ident, tree)?,
+        };
+        if type_arg_count < trait_type_arg_count {
+            errs.push(FrontendError::Message(pos, format!("too few type arguments of type {}", type_name)));
+        } else if type_arg_count > trait_type_arg_count {
+            errs.push(FrontendError::Message(pos, format!("too many type arguments of type {}", type_name)));
+        }
+        Ok(())
+    }
+    
+    fn shared_flag_for_type_value(&self, type_value: &TypeValue, tree: &Tree, typ: &Type) -> FrontendResultWithErrors<SharedFlag>
+    {
+        match type_value {
+            TypeValue::Param(UniqFlag::None, local_type) => {
+                match typ.type_param_entry(*local_type) {
+                    Some(type_param_entry) => {
+                        let type_param_entry_r = type_param_entry.borrow();
+                        if type_param_entry_r.trait_names.contains(&TraitName::Shared) {
+                            Ok(SharedFlag::Shared)
+                        } else {
+                            Ok(SharedFlag::None)
+                        }
+                    },
+                    None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_flag_for_type_value: no type parameter"))])),
+                }
+            },
+            TypeValue::Type(UniqFlag::None, TypeValueName::Fun, _) => Ok(SharedFlag::Shared),
+            TypeValue::Type(UniqFlag::None, type_value_name, type_values) => {
+                let mut shared_flag = match type_value_name {
+                    TypeValueName::Name(ident) => shared_flag_for_type_var_ident2(ident, tree)?,
+                    _ => SharedFlag::Shared,
+                };
+                if shared_flag == SharedFlag::Shared {
+                    for type_value2 in type_values {
+                        if self.shared_flag_for_type_value(&**type_value2, tree, typ)? == SharedFlag::None {
+                            shared_flag = SharedFlag::None;
+                        }
+                    }
+                }
+                Ok(shared_flag)
+            },
+            _ => Ok(SharedFlag::None),
+        }
+    }
+
+    fn check_type_param_recursions_for_local_type(&self, local_type: LocalType, typ: &Type, processed_local_types: &BTreeSet<LocalType>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Vec<LocalType>>
+    {
+        match typ.type_param_entry(local_type) {
+            Some(type_param_entry) => {
+                let mut local_types: Vec<LocalType> = Vec::new();
+                let type_param_entry_r = type_param_entry.borrow();
+                match &type_param_entry_r.pos {
+                    Some(pos) => {
+                        for type_value in &type_param_entry_r.type_values {
+                            self.add_local_types_for_type_value(&**type_value, pos, typ, &mut local_types, processed_local_types, errs)?;
+                        }
+                        Ok(local_types)
+                    },
+                    None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_type_param_recursions_for_local_type: no position"))])),
+                }
+            },
+            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_type_param_recursions_for_local_type: no type parameter entry"))])),
+        }
+    }
+    
+    fn add_local_types_for_type_value(&self, type_value: &TypeValue, pos: &Pos, typ: &Type, local_types: &mut Vec<LocalType>, processed_local_types: &BTreeSet<LocalType>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        match type_value {
+            TypeValue::Param(_, local_type) => add_local_type(*local_type, pos.clone(), typ, local_types, processed_local_types, errs)?,
+            TypeValue::Type(_, _, type_values) => {
+                for type_value2 in type_values {
+                    self.add_local_types_for_type_value(&**type_value2, pos, typ, local_types, processed_local_types, errs)?;
+                }
+            },
+        }
+        Ok(())
+    }    
+    
+    fn evaluate_types_for_where_tuples(&self, ident: &str, where_tuples: &[WhereTuple], trait_ident: Option<&String>, pos: Pos, tree: &Tree, type_param_env: &mut Environment<LocalType>, typ: &mut Type, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<bool>
+    {
+        if !where_tuples.is_empty() {
+            let mut is_success = true;
+            for where_tuple in where_tuples {
+                match where_tuple {
+                    WhereTuple::Traits(type_param_ident, trait_names, type_exprs, where_tuple_pos) => {
+                        for trait_name in trait_names {
+                            match trait_name {
+                                TraitName::Shared => (),
+                                TraitName::Fun => {
+                                    if type_exprs.len() < 1 {
+                                        errs.push(FrontendError::Message(where_tuple_pos.clone(), format!("too few type expressions of type parameter {}", type_param_ident)));
+                                        is_success = false;
+                                    }
+                                },
+                                TraitName::Name(trait_ident) => {
+                                    let type_arg_count = type_arg_count_for_type_ident(trait_ident, tree)?;
+                                    if type_arg_count != type_exprs.len() {
+                                        errs.push(FrontendError::Message(where_tuple_pos.clone(), format!("number of type arguments of trait {} isn't equal to number of type expressions of type parameter {}", trait_ident, type_param_ident)));
+                                        is_success = false;
+                                    }
+                                },
+                            }
+                        }
+                    },
+                    _ => (),
+                }
+            }
+            if !is_success {
+                return Ok(false);
+            }
+            for where_tuple in where_tuples {
+                match where_tuple {
+                    WhereTuple::Traits(type_param_ident, trait_names, type_exprs, where_tuple_pos) => {
+                        match type_param_env.var(type_param_ident) {
+                            Some(local_type) => {
+                                match typ.type_param_entry(*local_type) {
+                                    Some(type_param_entry) => {
+                                        let mut type_param_entry_r = type_param_entry.borrow_mut();
+                                        type_param_entry_r.trait_names.clear();
+                                        for trait_name in trait_names {
+                                            type_param_entry_r.trait_names.insert(trait_name.clone());
+                                        }
+                                        let mut tmp_is_success = true;
+                                        type_param_entry_r.type_values.clear();
+                                        for type_expr in type_exprs {
+                                            match self.evaluate_type_for_type_expr(&**type_expr, tree, type_param_env, &mut None, errs)? {
+                                                Some(type_value) => type_param_entry_r.type_values.push(type_value),
+                                                None => tmp_is_success = false,
+                                            }
+                                        }
+                                        type_param_entry_r.pos = Some(where_tuple_pos.clone());
+                                        if !tmp_is_success {
+                                            type_param_entry_r.trait_names.clear();
+                                            type_param_entry_r.type_values.clear();
+                                            type_param_entry_r.pos = None;
+                                            is_success = false;
+                                        }
+                                    },
+                                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_where_tuples: no type parameter entry"))])),
+                                }
+                            },
+                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_where_tuples: no type parameter"))])),
+                        }
+                    },
+                    _ => (),
+                }
+            }
+            if !is_success {
+                return Ok(false);
+            }
+            for type_param_entry in typ.type_param_entries() {
+                let type_param_entry_r = type_param_entry.borrow();
+                if type_param_entry_r.trait_names.contains(&TraitName::Shared) {
+                    for type_value in &type_param_entry_r.type_values {
+                        if self.shared_flag_for_type_value(&**type_value, tree, typ)? == SharedFlag::None {
+                            match (&type_param_entry_r.ident, &type_param_entry_r.pos) {
+                                (Some(type_param_ident), Some(type_param_pos)) =>{
+                                    errs.push(FrontendError::Message(type_param_pos.clone(), format!("type parameter {} mustn't be shared", type_param_ident)));
+                                    is_success = false;
+                                },
+                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_where_tuples: no identifier or no position"))]))
+                            }
+                        }
+                    }
+                }
+            }
+            if is_success {
+                let mut visited_local_types: BTreeSet<LocalType> = BTreeSet::new();
+                let mut errs2: Vec<FrontendError> = Vec::new();
+                for i in 0..typ.type_param_entries().len() {
+                    dfs_with_result(&LocalType::new(i), &mut visited_local_types, &mut errs2, |local_type, processed_local_types, errs| {
+                            self.check_type_param_recursions_for_local_type(*local_type, typ, processed_local_types, errs)
+                    }, |_, _| Ok(()))?;
+                }
+                if !errs2.is_empty() {
+                    errs.append(&mut errs2);
+                    is_success = false;
+                }
+            }
+            for where_tuple in where_tuples {
+                match where_tuple {
+                    WhereTuple::Eq(type_params) => {
+                        match type_params.first() {
+                            Some(TypeParam(type_param_ident, _)) => {
+                                match type_param_env.var(type_param_ident) {
+                                    Some(local_type) => {
+                                        match typ.type_param_entry(*local_type) {
+                                            Some(type_param_entry) => {
+                                                let cloned_type_param_entry = type_param_entry.clone();
+                                                for type_param in &type_params[1..] {
+                                                    match type_param {
+                                                        TypeParam(type_param_ident2, type_param_pos2) => {
+                                                            match type_param_env.var(type_param_ident2) {
+                                                                Some(local_type2) => {
+                                                                    match typ.type_param_entry(*local_type2) {
+                                                                        Some(type_param_entry2) => {
+                                                                            let cloned_type_param_entry2 = type_param_entry2.clone();
+                                                                            let type_param_entry_r = cloned_type_param_entry.borrow();
+                                                                            let type_param_entry2_r = cloned_type_param_entry2.borrow();
+                                                                            if type_param_entry_r.trait_names == type_param_entry2_r.trait_names {
+                                                                                typ.set_eq_type_params(*local_type, *local_type2);
+                                                                            } else {
+                                                                                errs.push(FrontendError::Message(type_param_pos2.clone(), format!("type parameter {} hasn't same traits as type parameter {}", type_param_ident2, type_param_ident)));
+                                                                                is_success = false;
+                                                                            }
+                                                                        },
+                                                                        None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_where_tuples: no type parameter entry"))]))
+                                                                    }
+                                                                },
+                                                                None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_where_tuples: no type parameter"))]))
+                                                            }
+                                                        },
+                                                    }
+                                                }
+                                            },
+                                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_where_tuples: no type parameter entry"))]))
+                                        }
+                                    },
+                                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_where_tuples: no type parameter"))]))
+                                }
+                            },
+                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_where_tuples: no type parameters"))])),
+                        }
+                    },
+                    _ => (),
+                }
+            }
+            if !is_success {
+                return Ok(false);
+            }
+            match trait_ident {
+                Some(trait_ident) => {
+                    let mut local_types: Vec<LocalType> = Vec::new();
+                    for (i, type_param_entry) in typ.type_param_entries().iter().enumerate() {
+                        let type_param_entry_r = type_param_entry.borrow();
+                        if !type_param_entry_r.trait_names.contains(&TraitName::Name(trait_ident.clone())) {
+                            local_types.push(LocalType::new(i));
+                        }
+                    }
+                    match local_types.first() {
+                        Some(local_type) => {
+                            let mut tmp_is_success = true;
+                            for local_type2 in &local_types[1..] {
+                                if !typ.has_eq_type_params(*local_type, *local_type2) {
+                                    tmp_is_success = false;
+                                }
+                            }
+                            if !tmp_is_success {
+                                errs.push(FrontendError::Message(pos, format!("variable {} has type parameters with trait {} which aren't equal", ident, trait_ident)));
+                                is_success = false;
+                            }
+                        },
+                        None => {
+                            errs.push(FrontendError::Message(pos, format!("variable {} hasn't type parameters with trait {}", ident, trait_ident)));
+                            is_success = false;
+                        },
+                    }
+                },
+                None => (),
+            }
+            Ok(is_success)
+        } else {
+            if !trait_ident.is_none() {
+                Ok(true)
+            } else {
+                errs.push(FrontendError::Message(pos, format!("variable {} must have defined traits", ident)));
+                Ok(false)
+            }
+        }
     }
 }
