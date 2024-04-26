@@ -119,6 +119,19 @@ fn add_data_ident(ident: &String, pos: Pos, tree: &Tree, idents: &mut Vec<String
     }
 }
 
+fn add_type_param_local_type(ident: &String, type_param_env: &mut Environment<LocalType>, local_type_counter: &mut usize) -> LocalType
+{
+    match type_param_env.var(ident) {
+        Some(tmp_local_type) => *tmp_local_type,
+        None => {
+            let tmp_local_type = LocalType::new(*local_type_counter);
+            type_param_env.add_var(ident.clone(), tmp_local_type);
+            *local_type_counter += 1;
+            tmp_local_type
+        },
+    }
+}
+
 fn local_type_for_type_param_ident(ident: &String, type_param_env: &Environment<LocalType>) -> FrontendResultWithErrors<LocalType>
 {
     match type_param_env.var(ident) {
@@ -640,17 +653,7 @@ impl Typer
             },
             TypeExpr::Param(ident, _) => {
                 let local_type = match local_type_counter {
-                    Some(local_type_counter) => {
-                        match type_param_env.var(ident) {
-                            Some(tmp_local_type) => *tmp_local_type,
-                            None => {
-                                let tmp_local_type = LocalType::new(*local_type_counter);
-                                type_param_env.add_var(ident.clone(), tmp_local_type);
-                                *local_type_counter += 1;
-                                tmp_local_type
-                            },
-                        }
-                    },
+                    Some(local_type_counter) => add_type_param_local_type(ident, type_param_env, local_type_counter),
                     None => local_type_for_type_param_ident(ident, type_param_env)?,
                 };
                 Ok(Some(Rc::new(TypeValue::Param(UniqFlag::None, local_type))))
