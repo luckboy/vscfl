@@ -1284,12 +1284,12 @@ impl Typer
                                 }
                             }
                             if !tmp_is_success {
-                                errs.push(FrontendError::Message(pos, format!("variable {} has type parameters with trait {} which aren't equal", ident, trait_ident)));
+                                errs.push(FrontendError::Message(pos, format!("type of variable {} has type parameters with trait {} which aren't equal", ident, trait_ident)));
                                 is_success = false;
                             }
                         },
                         None => {
-                            errs.push(FrontendError::Message(pos, format!("variable {} hasn't type parameters with trait {}", ident, trait_ident)));
+                            errs.push(FrontendError::Message(pos, format!("type of variable {} hasn't type parameters with trait {}", ident, trait_ident)));
                             is_success = false;
                         },
                     }
@@ -1300,7 +1300,7 @@ impl Typer
         } else {
             match trait_ident {
                 Some(trait_ident) => {
-                    errs.push(FrontendError::Message(pos, format!("variable {} must have defined trait {}", ident, trait_ident)));
+                    errs.push(FrontendError::Message(pos, format!("type of variable {} must have type parameter with trait {}", ident, trait_ident)));
                     Ok(false)
                 },
                 None => Ok(true),
