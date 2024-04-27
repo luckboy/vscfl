@@ -860,7 +860,7 @@ impl<'a> Parser<'a>
                             },
                         };
                         let expr = self.parse_expr1()?;
-                        Ok(Box::new(Expr::Lambda(args, type_expr, expr, None, None, None, pos)))
+                        Ok(Box::new(Expr::Lambda(args, type_expr, expr, None, None, None, None, pos)))
                     },
                     (_, pos2) => Err(FrontendError::Message(pos2, String::from("unclosed bar bracket"))),
                 }
