@@ -145,9 +145,8 @@ impl TypeMatcher
         }
     }
 
-    fn set_shared_for_local_type(&self, local_type: LocalType, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<bool>
+    pub fn set_shared_for_type_value(&self, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<bool>
     {
-        let type_value = Rc::new(TypeValue::Param(UniqFlag::None, local_type));
         match local_types.type_entry_for_type_value(&type_value) {
             Some(LocalTypeEntry::Param(defined_flag, UniqFlag::None, type_param_entry, _)) => {
                 let mut type_param_entry_r = type_param_entry.borrow_mut();
@@ -170,10 +169,16 @@ impl TypeMatcher
                 }
                 Ok(true)
             },
-            None=> Err(FrontendError::Internal(String::from("set_shared_for_local_type: no local type entry"))),
+            None=> Err(FrontendError::Internal(String::from("set_shared_for_type_value: no local type entry"))),
         }
     }
-    
+
+    pub fn set_shared(&self, local_type: LocalType, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<bool>
+    {
+        let type_value = Rc::new(TypeValue::Param(UniqFlag::None, local_type));
+        self.set_shared_for_type_value(&type_value, tree, local_types)
+    }
+
     fn match_local_type_entries_with_infos(&self, local_type_entry1: &LocalTypeEntry, local_type_entry2: &LocalTypeEntry, tree: &Tree, local_types: &mut LocalTypes, infos: &mut Vec<MismatchedTypeInfo>) -> FrontendResult<Option<SharedFlag>>
     {
         match (local_type_entry1, local_type_entry2) {
@@ -208,14 +213,14 @@ impl TypeMatcher
                 }
                 if !type_param_entry1_r.trait_names.contains(&TraitName::Shared) && type_param_entry2_r.trait_names.contains(&TraitName::Shared) {
                     for closure_local_type in &type_param_entry1_r.closure_local_types {
-                        if !self.set_shared_for_local_type(*closure_local_type, tree, local_types)? {
+                        if !self.set_shared(*closure_local_type, tree, local_types)? {
                             infos.push(MismatchedTypeInfo::SharedClosure(*closure_local_type));
                             is_success = false;
                         }
                     }
                 } else if type_param_entry1_r.trait_names.contains(&TraitName::Shared) && !type_param_entry2_r.trait_names.contains(&TraitName::Shared) {
                     for closure_local_type in &type_param_entry2_r.closure_local_types {
-                        if !self.set_shared_for_local_type(*closure_local_type, tree, local_types)? {
+                        if !self.set_shared(*closure_local_type, tree, local_types)? {
                             infos.push(MismatchedTypeInfo::SharedClosure(*closure_local_type));
                             is_success = false;
                         }
@@ -377,7 +382,7 @@ impl TypeMatcher
                         }
                         if !type_param_entry1_r.trait_names.contains(&TraitName::Shared) && shared_flag == SharedFlag::Shared {
                             for closure_local_type in &type_param_entry1_r.closure_local_types {
-                                if !self.set_shared_for_local_type(*closure_local_type, tree, local_types)? {
+                                if !self.set_shared(*closure_local_type, tree, local_types)? {
                                     infos.push(MismatchedTypeInfo::SharedClosure(*closure_local_type));
                                     is_success = false;
                                 }
