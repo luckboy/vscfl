@@ -136,7 +136,7 @@ pub enum TypeExpr
 pub enum Var
 {
     Builtin(Option<String>, Option<Box<Type>>),
-    Var(VarModifier, Box<TypeExpr>, Vec<WhereTuple>, Option<Box<Expr>>, Option<String>, Option<Box<LocalTypes>>, Option<Box<Type>>, Option<Value>),
+    Var(VarModifier, Box<TypeExpr>, Vec<WhereTuple>, Option<Box<Expr>>, Option<String>, Option<LocalType>, Option<Box<LocalTypes>>, Option<Box<Type>>, Option<Value>),
     Fun(Box<Fun>, Option<String>, Option<Box<Type>>),
 }
 

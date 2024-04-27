@@ -30,7 +30,7 @@ x: Int = 1;
             assert_eq!(String::from("x"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
@@ -389,7 +389,7 @@ constant e: Int = 6;
             assert_eq!(String::from("A"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
@@ -428,7 +428,7 @@ constant e: Int = 6;
             assert_eq!(String::from("a"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(2, pos.line);
@@ -467,7 +467,7 @@ constant e: Int = 6;
             assert_eq!(String::from("b"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::Private, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::Private, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(3, pos.line);
@@ -506,7 +506,7 @@ constant e: Int = 6;
             assert_eq!(String::from("c"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::Local, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::Local, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(4, pos.line);
@@ -545,7 +545,7 @@ constant e: Int = 6;
             assert_eq!(String::from("d"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::Global, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::Global, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(5, pos.line);
@@ -584,7 +584,7 @@ constant e: Int = 6;
             assert_eq!(String::from("e"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::Constant, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::Constant, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(6, pos.line);
@@ -1646,7 +1646,7 @@ f() -> (t1, t2, t3)
             assert_eq!(String::from("a"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Tuple(type_exprs, pos) => {
                             assert_eq!(1, pos.line);
@@ -1984,7 +1984,7 @@ c: Int =
             assert_eq!(String::from("a"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
@@ -2052,7 +2052,7 @@ c: Int =
             assert_eq!(String::from("b"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(2, pos.line);
@@ -2167,7 +2167,7 @@ c: Int =
             assert_eq!(String::from("c"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(6, pos.line);
@@ -2280,7 +2280,7 @@ b: Int = shared 2.5 as Int;
             assert_eq!(String::from("a"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
@@ -2341,7 +2341,7 @@ b: Int = shared 2.5 as Int;
             assert_eq!(String::from("b"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(2, pos.line);
@@ -2419,7 +2419,7 @@ b: Bool = shared false | true;
             assert_eq!(String::from("a"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Uniq(type_expr, pos) => {
                             assert_eq!(1, pos.line);
@@ -2499,7 +2499,7 @@ b: Bool = shared false | true;
             assert_eq!(String::from("b"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(2, pos.line);
@@ -2589,7 +2589,7 @@ a: Bool = true ^ false | false ^ true;
             assert_eq!(String::from("a"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
@@ -2726,7 +2726,7 @@ a: Bool = true & false ^ false & true;
             assert_eq!(String::from("a"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
@@ -2863,7 +2863,7 @@ a: Bool = 1 == 2 & 3 != 4;
             assert_eq!(String::from("a"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
@@ -3005,7 +3005,7 @@ f: Bool = 1 << 2 <= 3 >> 4;
             assert_eq!(String::from("a"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
@@ -3125,7 +3125,7 @@ f: Bool = 1 << 2 <= 3 >> 4;
             assert_eq!(String::from("b"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(2, pos.line);
@@ -3245,7 +3245,7 @@ f: Bool = 1 << 2 <= 3 >> 4;
             assert_eq!(String::from("c"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(3, pos.line);
@@ -3365,7 +3365,7 @@ f: Bool = 1 << 2 <= 3 >> 4;
             assert_eq!(String::from("d"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(4, pos.line);
@@ -3485,7 +3485,7 @@ f: Bool = 1 << 2 <= 3 >> 4;
             assert_eq!(String::from("e"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(5, pos.line);
@@ -3605,7 +3605,7 @@ f: Bool = 1 << 2 <= 3 >> 4;
             assert_eq!(String::from("f"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(6, pos.line);
@@ -3743,7 +3743,7 @@ b: Int = 1 + 2 >> 3 - 4;
             assert_eq!(String::from("a"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
@@ -3863,7 +3863,7 @@ b: Int = 1 + 2 >> 3 - 4;
             assert_eq!(String::from("b"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(2, pos.line);
@@ -4001,7 +4001,7 @@ b: Int = 1 * 2 - 3 / 4;
             assert_eq!(String::from("a"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
@@ -4121,7 +4121,7 @@ b: Int = 1 * 2 - 3 / 4;
             assert_eq!(String::from("b"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(2, pos.line);
@@ -4260,7 +4260,7 @@ c: Int = -1 % !2;
             assert_eq!(String::from("a"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
@@ -4358,7 +4358,7 @@ c: Int = -1 % !2;
             assert_eq!(String::from("b"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(2, pos.line);
@@ -4456,7 +4456,7 @@ c: Int = -1 % !2;
             assert_eq!(String::from("c"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(3, pos.line);
@@ -4571,7 +4571,7 @@ a: Int = -!1;
             assert_eq!(String::from("a"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
@@ -4683,7 +4683,7 @@ d: Int =
             assert_eq!(String::from("a"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
@@ -4749,7 +4749,7 @@ d: Int =
             assert_eq!(String::from("b"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(2, pos.line);
@@ -5006,7 +5006,7 @@ d: Int =
             assert_eq!(String::from("c"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(10, pos.line);
@@ -5359,7 +5359,7 @@ d: Int =
             assert_eq!(String::from("d"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(18, pos.line);
@@ -5688,7 +5688,7 @@ h: () = printf(\"%d\\n\", 2);
             assert_eq!(String::from("a"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
@@ -5808,7 +5808,7 @@ h: () = printf(\"%d\\n\", 2);
             assert_eq!(String::from("b"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(2, pos.line);
@@ -5847,7 +5847,7 @@ h: () = printf(\"%d\\n\", 2);
             assert_eq!(String::from("c"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(3, pos.line);
@@ -5944,7 +5944,7 @@ h: () = printf(\"%d\\n\", 2);
             assert_eq!(String::from("d"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(4, pos.line);
@@ -6054,7 +6054,7 @@ h: () = printf(\"%d\\n\", 2);
             assert_eq!(String::from("e"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(5, pos.line);
@@ -6090,7 +6090,7 @@ h: () = printf(\"%d\\n\", 2);
             assert_eq!(String::from("f"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(6, pos.line);
@@ -6126,7 +6126,7 @@ h: () = printf(\"%d\\n\", 2);
             assert_eq!(String::from("g"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(7, pos.line);
@@ -6199,7 +6199,7 @@ h: () = printf(\"%d\\n\", 2);
             assert_eq!(String::from("h"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Tuple(type_exprs, pos) => {
                             assert_eq!(8, pos.line);
@@ -6277,7 +6277,7 @@ a: Int =
             assert_eq!(String::from("a"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
@@ -6400,7 +6400,7 @@ a: Int =
             assert_eq!(String::from("a"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
@@ -7058,7 +7058,7 @@ o: A3 = [1; 10];
             assert_eq!(String::from("a"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
@@ -7097,7 +7097,7 @@ o: A3 = [1; 10];
             assert_eq!(String::from("b"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(2, pos.line);
@@ -7136,7 +7136,7 @@ o: A3 = [1; 10];
             assert_eq!(String::from("c"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(3, pos.line);
@@ -7175,7 +7175,7 @@ o: A3 = [1; 10];
             assert_eq!(String::from("d"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(4, pos.line);
@@ -7214,7 +7214,7 @@ o: A3 = [1; 10];
             assert_eq!(String::from("e"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(5, pos.line);
@@ -7253,7 +7253,7 @@ o: A3 = [1; 10];
             assert_eq!(String::from("f"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(6, pos.line);
@@ -7292,7 +7292,7 @@ o: A3 = [1; 10];
             assert_eq!(String::from("g"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(7, pos.line);
@@ -7331,7 +7331,7 @@ o: A3 = [1; 10];
             assert_eq!(String::from("h"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(8, pos.line);
@@ -7370,7 +7370,7 @@ o: A3 = [1; 10];
             assert_eq!(String::from("i"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(9, pos.line);
@@ -7409,7 +7409,7 @@ o: A3 = [1; 10];
             assert_eq!(String::from("j"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(10, pos.line);
@@ -7448,7 +7448,7 @@ o: A3 = [1; 10];
             assert_eq!(String::from("k"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(11, pos.line);
@@ -7487,7 +7487,7 @@ o: A3 = [1; 10];
             assert_eq!(String::from("l"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(12, pos.line);
@@ -7550,7 +7550,7 @@ o: A3 = [1; 10];
             assert_eq!(String::from("m"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(13, pos.line);
@@ -7589,7 +7589,7 @@ o: A3 = [1; 10];
             assert_eq!(String::from("n"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(14, pos.line);
@@ -7663,7 +7663,7 @@ o: A3 = [1; 10];
             assert_eq!(String::from("o"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(15, pos.line);
@@ -7758,7 +7758,7 @@ a: Int =
             assert_eq!(String::from("a"), *ident);
             let var_r = var.borrow();
             match &*var_r {
-                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None) => {
+                Var::Var(VarModifier::None, type_expr, where_tuples, expr, None, None, None, None, None) => {
                     match &**type_expr {
                         TypeExpr::Var(type_var_ident, pos) => {
                             assert_eq!(1, pos.line);
@@ -8597,7 +8597,7 @@ trait T
                             assert_eq!(String::from("A"), *ident);
                             let var_r = var.borrow();
                             match &*var_r {
-                                Var::Var(VarModifier::None, type_expr, where_tuples, expr, Some(trait_ident), None, None, None) => {
+                                Var::Var(VarModifier::None, type_expr, where_tuples, expr, Some(trait_ident), None, None, None, None) => {
                                     match &**type_expr {
                                         TypeExpr::Param(type_param_ident, pos) => {
                                             assert_eq!(3, pos.line);
@@ -8644,7 +8644,7 @@ trait T
                             assert_eq!(String::from("a"), *ident);
                             let var_r = var.borrow();
                             match &*var_r {
-                                Var::Var(VarModifier::None, type_expr, where_tuples, expr, Some(trait_ident), None, None, None) => {
+                                Var::Var(VarModifier::None, type_expr, where_tuples, expr, Some(trait_ident), None, None, None, None) => {
                                     match &**type_expr {
                                         TypeExpr::Param(type_param_ident, pos) => {
                                             assert_eq!(4, pos.line);
@@ -8691,7 +8691,7 @@ trait T
                             assert_eq!(String::from("b"), *ident);
                             let var_r = var.borrow();
                             match &*var_r {
-                                Var::Var(VarModifier::Private, type_expr, where_tuples, expr, Some(trait_ident), None, None, None) => {
+                                Var::Var(VarModifier::Private, type_expr, where_tuples, expr, Some(trait_ident), None, None, None, None) => {
                                     match &**type_expr {
                                         TypeExpr::Param(type_param_ident, pos) => {
                                             assert_eq!(5, pos.line);
@@ -8738,7 +8738,7 @@ trait T
                             assert_eq!(String::from("c"), *ident);
                             let var_r = var.borrow();
                             match &*var_r {
-                                Var::Var(VarModifier::Local, type_expr, where_tuples, expr, Some(trait_ident), None, None, None) => {
+                                Var::Var(VarModifier::Local, type_expr, where_tuples, expr, Some(trait_ident), None, None, None, None) => {
                                     match &**type_expr {
                                         TypeExpr::Param(type_param_ident, pos) => {
                                             assert_eq!(6, pos.line);
@@ -8785,7 +8785,7 @@ trait T
                             assert_eq!(String::from("d"), *ident);
                             let var_r = var.borrow();
                             match &*var_r {
-                                Var::Var(VarModifier::Global, type_expr, where_tuples, expr, Some(trait_ident), None, None, None) => {
+                                Var::Var(VarModifier::Global, type_expr, where_tuples, expr, Some(trait_ident), None, None, None, None) => {
                                     match &**type_expr {
                                         TypeExpr::Param(type_param_ident, pos) => {
                                             assert_eq!(7, pos.line);
@@ -8832,7 +8832,7 @@ trait T
                             assert_eq!(String::from("e"), *ident);
                             let var_r = var.borrow();
                             match &*var_r {
-                                Var::Var(VarModifier::Constant, type_expr, where_tuples, expr, Some(trait_ident), None, None, None) => {
+                                Var::Var(VarModifier::Constant, type_expr, where_tuples, expr, Some(trait_ident), None, None, None, None) => {
                                     match &**type_expr {
                                         TypeExpr::Param(type_param_ident, pos) => {
                                             assert_eq!(8, pos.line);
@@ -8879,7 +8879,7 @@ trait T
                             assert_eq!(String::from("f"), *ident);
                             let var_r = var.borrow();
                             match &*var_r {
-                                Var::Var(VarModifier::None, type_expr, where_tuples, None, Some(trait_ident), None, None, None) => {
+                                Var::Var(VarModifier::None, type_expr, where_tuples, None, Some(trait_ident), None, None, None, None) => {
                                     match &**type_expr {
                                         TypeExpr::Param(type_param_ident, pos) => {
                                             assert_eq!(9, pos.line);

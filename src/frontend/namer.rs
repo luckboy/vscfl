@@ -25,7 +25,7 @@ fn add_error_for_var(ident: &str, pos: Pos, defined_var: &Var, errs: &mut Vec<Fr
 {
     match defined_var {
         Var::Builtin(_, _) => errs.push(FrontendError::Message(pos, format!("already defined built-in variable {}", ident))),
-        Var::Var(_, _, _, _, _, _, _, _) => errs.push(FrontendError::Message(pos, format!("already defined variable {}", ident))),
+        Var::Var(_, _, _, _, _, _, _, _, _) => errs.push(FrontendError::Message(pos, format!("already defined variable {}", ident))),
         Var::Fun(fun, _, _) => {
             match &**fun {
                 Fun::Fun(_, _, _, _, _, _, _) => errs.push(FrontendError::Message(pos, format!("already defined function {}", ident))),
@@ -72,7 +72,7 @@ fn check_const_ident(ident: &String, pos: Pos, tree: &Tree, errs: &mut Vec<Front
             let var_r = var.borrow();
             match &*var_r {
                 Var::Builtin(_, _) => (),
-                Var::Var(_, _, _, _, _, _, _, _) => (),
+                Var::Var(_, _, _, _, _, _, _, _, _) => (),
                 Var::Fun(_, _, _) => errs.push(FrontendError::Message(pos, format!("variable {} is function", ident))),
             }
         },
@@ -390,7 +390,7 @@ impl Namer
                                                                 match (&*trait_var_r, &*impl_var_r) {
                                                                     (Var::Builtin(_, _), _) => is_impl_var = true,
                                                                     (_, ImplVar::Builtin(_)) => is_impl_var = true,
-                                                                    (Var::Var(_, _, _, _, _, _, _, _), ImplVar::Var(_, _, _, _)) => is_impl_var = true,
+                                                                    (Var::Var(_, _, _, _, _, _, _, _, _), ImplVar::Var(_, _, _, _)) => is_impl_var = true,
                                                                     (Var::Fun(fun, _, _), ImplVar::Fun(impl_fun, _)) => {
                                                                         match (&**fun, &**impl_fun) {
                                                                             (Fun::Fun(_, args, _, _, _, _, _), ImplFun(impl_args, _, _, _)) => {
@@ -404,7 +404,7 @@ impl Namer
                                                                         }
                                                                         is_impl_var = true
                                                                     },
-                                                                    (Var::Var(_, _, _, _, _, _, _, _), ImplVar::Fun(_, _)) => errs.push(FrontendError::Message(impl_var_pos.clone(), format!("function {} must be variable in implementation {}", impl_var_ident, trait_ident))),
+                                                                    (Var::Var(_, _, _, _, _, _, _, _, _), ImplVar::Fun(_, _)) => errs.push(FrontendError::Message(impl_var_pos.clone(), format!("function {} must be variable in implementation {}", impl_var_ident, trait_ident))),
                                                                     (Var::Fun(_, _, _), ImplVar::Var(_, _, _, _)) =>  errs.push(FrontendError::Message(impl_var_pos.clone(), format!("variable {} must be function in implementation {}", impl_var_ident, trait_ident))),
                                                                 }
                                                                 if is_impl_var {
@@ -419,7 +419,7 @@ impl Namer
                                             for (trait_var_ident, trait_var) in trait_vars.vars() {
                                                 let trait_var_r = trait_var.borrow();
                                                 match &*trait_var_r {
-                                                    Var::Var(_, _, _, None, _, _, _, _) => {
+                                                    Var::Var(_, _, _, None, _, _, _, _, _) => {
                                                         if new_impl_vars.var(trait_var_ident).is_none() {
                                                             errs.push(FrontendError::Message(pos.clone(), format!("undefined required variable {} in implementation {}", trait_var_ident, trait_ident)));
                                                         }
@@ -633,7 +633,7 @@ impl Namer
     {
         match var {
             Var::Builtin(_, _) => (),
-            Var::Var(_, type_expr, where_tuples, expr, _, _, _, _) => {
+            Var::Var(_, type_expr, where_tuples, expr, _, _, _, _, _) => {
                 let mut var_env: Environment<()> = Environment::new();
                 let mut type_param_env: Environment<()> = Environment::new();
                 type_param_env.push_new_vars();
@@ -931,7 +931,7 @@ impl Namer
                                         let var_r = var.borrow();
                                         match &*var_r {
                                             Var::Builtin(_, _) => (),
-                                            Var::Var(_, type_expr, _, _, _, _, _, _) => self.check_idents_for_type_expr(&**type_expr, tree, &mut type_param_env, true, false, errs)?,
+                                            Var::Var(_, type_expr, _, _, _, _, _, _, _) => self.check_idents_for_type_expr(&**type_expr, tree, &mut type_param_env, true, false, errs)?,
                                             _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_idents_for_impl_var: variable is function"))])),
                                         }
                                     },

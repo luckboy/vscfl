@@ -317,7 +317,7 @@ impl<'a> Parser<'a>
                         None
                     },
                 };
-                Ok(Rc::new(RefCell::new(Var::Var(var_modifier, type_expr, where_tuples, expr, trait_ident, None, None, None))))
+                Ok(Rc::new(RefCell::new(Var::Var(var_modifier, type_expr, where_tuples, expr, trait_ident, None, None, None, None))))
             },
             (_, pos) => Err(FrontendError::Message(pos, String::from("unexpected token"))),
         }

@@ -70,7 +70,7 @@ impl<T: Clone> Environment<T>
         }
     }
     
-    pub fn swapt_saved_vars(&mut self) -> bool
+    pub fn swap_saved_vars(&mut self) -> bool
     {
         match self.saved_var_stack.last_mut() {
             Some((saved_vars, _)) => {
@@ -190,4 +190,22 @@ impl<T: Clone> Environment<T>
             None => false,
         }
     }
+
+    pub fn foreach_with_result<E, F>(&self, mut f: F) -> Result<(), E>
+        where F: FnMut(&String, &T) -> Result<(), E>
+    {
+        match self.stack.last() {
+            Some(vars) => {
+                for (ident, value) in vars {
+                    f(ident, value)?;
+                }
+            },
+            None => (),
+        }
+        Ok(())
+    }
+
+    pub fn foreach<F>(&self, mut f: F)
+        where F: FnMut(&String, &T)
+    { let _res: Result<(), ()> = self.foreach_with_result(|ident, value| Ok(f(ident, value))); }
 }
