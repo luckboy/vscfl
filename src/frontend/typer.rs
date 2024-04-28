@@ -1125,6 +1125,14 @@ impl Typer
             match &**def {
                 Def::Impl(impl1, pos) => {
                     let impl_r = impl1.borrow();
+                    match &*impl_r {
+                        Impl::Builtin(trait_ident, type_name, _) => {
+                            if !self.builtins.has_impl_pair(&(trait_ident.clone(), type_name.clone())) {
+                                errs.push(FrontendError::Message(pos.clone(), format!("implementation of trait {} for type {} isn't built-in implementation", trait_ident, type_name)));
+                            }
+                        },
+                        _ => (),
+                    }
                     let (trait_ident, type_name) = match &*impl_r {
                         Impl::Builtin(tmp_trait_ident, tmp_type_name, _) => (tmp_trait_ident, tmp_type_name),
                         Impl::Impl(tmp_trait_ident, tmp_type_name, _, _) => (tmp_trait_ident, tmp_type_name),
@@ -1291,9 +1299,6 @@ impl Typer
                     let impl_r = impl1.borrow();
                     match &*impl_r {
                         Impl::Builtin(trait_ident, type_name, Some(impl_vars)) => {
-                            if !self.builtins.has_impl_pair(&(trait_ident.clone(), type_name.clone())) {
-                                errs.push(FrontendError::Message(pos.clone(), format!("implementation of trait {} for type {} isn't built-in implementation", trait_ident, type_name)));
-                            }
                             for (ident, impl_var) in impl_vars.vars() {
                                 let mut impl_var_r = impl_var.borrow_mut();
                                 self.evaluate_types_for_impl_var(ident, &mut *impl_var_r, pos.clone(), trait_ident, type_name, tree, true, errs)?;
@@ -2386,7 +2391,7 @@ impl Typer
                                     for i in 0..args.len() {
                                         match &mut args[i] {
                                             ImplArg(arg_ident, arg_local_type, _) => {
-                                                if i < new_local_types2.len() {
+                                                if i < new_local_types2.len() - 1 {
                                                     var_env.add_var(arg_ident.clone(), new_local_types2[i]);
                                                     *arg_local_type = Some(new_local_types2[i]);
                                                 } else {
@@ -2404,10 +2409,10 @@ impl Typer
                                     for i in 0..args.len() {
                                         match &args[i] {
                                             ImplArg(arg_ident, _, pos) => {
-                                                if i < new_local_types2.len() {
+                                                if i < new_local_types2.len() - 1 {
                                                     var_env2.add_var(arg_ident.clone(), (new_local_types2[i], 0, pos.clone()));
                                                 } else {
-                                                    var_env2.add_var(arg_ident.clone(), (new_local_types3[i - new_local_types2.len()], 0, pos.clone()));
+                                                    var_env2.add_var(arg_ident.clone(), (new_local_types3[i - (new_local_types2.len() - 1)], 0, pos.clone()));
                                                 }
                                             },
                                         }
