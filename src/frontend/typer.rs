@@ -1078,7 +1078,7 @@ impl Typer
     // Evaluation of types for variables.
     //
     
-    fn check_type_args_for_impl_defs(&self, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn check_type_arg_counts_for_impl_defs(&self, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         for def in tree.defs() {
             match &**def {
