@@ -390,7 +390,7 @@ impl Namer
                                                                 match (&*trait_var_r, &*impl_var_r) {
                                                                     (Var::Builtin(_, _), _) => is_impl_var = true,
                                                                     (_, ImplVar::Builtin(_)) => is_impl_var = true,
-                                                                    (Var::Var(_, _, _, _, _, _, _, _, _), ImplVar::Var(_, _, _, _)) => is_impl_var = true,
+                                                                    (Var::Var(_, _, _, _, _, _, _, _, _), ImplVar::Var(_, _, _, _, _)) => is_impl_var = true,
                                                                     (Var::Fun(fun, _, _), ImplVar::Fun(impl_fun, _)) => {
                                                                         match (&**fun, &**impl_fun) {
                                                                             (Fun::Fun(_, args, _, _, _, _, _), ImplFun(impl_args, _, _, _)) => {
@@ -405,7 +405,7 @@ impl Namer
                                                                         is_impl_var = true
                                                                     },
                                                                     (Var::Var(_, _, _, _, _, _, _, _, _), ImplVar::Fun(_, _)) => errs.push(FrontendError::Message(impl_var_pos.clone(), format!("function {} must be variable in implementation {}", impl_var_ident, trait_ident))),
-                                                                    (Var::Fun(_, _, _), ImplVar::Var(_, _, _, _)) =>  errs.push(FrontendError::Message(impl_var_pos.clone(), format!("variable {} must be function in implementation {}", impl_var_ident, trait_ident))),
+                                                                    (Var::Fun(_, _, _), ImplVar::Var(_, _, _, _, _)) =>  errs.push(FrontendError::Message(impl_var_pos.clone(), format!("variable {} must be function in implementation {}", impl_var_ident, trait_ident))),
                                                                 }
                                                                 if is_impl_var {
                                                                     new_impl_vars.add_var(impl_var_ident.clone(), impl_var.clone());
@@ -917,7 +917,7 @@ impl Namer
     {
         match impl_var {
             ImplVar::Builtin(_) => (),
-            ImplVar::Var(expr, _, _, _) => {
+            ImplVar::Var(expr, _, _, _, _) => {
                 let mut var_env: Environment<()> = Environment::new();
                 let mut type_param_env: Environment<()> = Environment::new();
                 type_param_env.push_new_vars();

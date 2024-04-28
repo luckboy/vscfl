@@ -54,12 +54,20 @@ pub struct Builtins
     type_vars: HashMap<String, BuiltinTypeVar>,
     vars: HashMap<String, BuiltinVar>,
     impl_pairs: HashSet<(String, TypeName)>,
+    impl_var_tuples: HashSet<(String, TypeName, String)>,
 }
 
 impl Builtins
 {
     pub fn new() -> Self
-    { Builtins { type_vars: HashMap::new(), vars: HashMap::new(), impl_pairs: HashSet::new(), } }
+    {
+        Builtins {
+            type_vars: HashMap::new(),
+            vars: HashMap::new(),
+            impl_pairs: HashSet::new(),
+            impl_var_tuples: HashSet::new(),
+        }
+    }
     
     pub fn type_vars(&self) -> &HashMap<String, BuiltinTypeVar>
     { &self.type_vars }
@@ -96,4 +104,16 @@ impl Builtins
 
     pub fn remove_impl_pair(&mut self, impl_pair: &(String, TypeName))
     { self.impl_pairs.remove(impl_pair); }
+
+    pub fn impl_var_tuples(&self) -> &HashSet<(String, TypeName, String)>
+    { &self.impl_var_tuples }
+
+    pub fn has_impl_var_tuple(&self, impl_var_tuple: &(String, TypeName, String)) -> bool
+    { self.impl_var_tuples.contains(impl_var_tuple) }
+
+    pub fn add_impl_var_tuple(&mut self, impl_var_tuple: (String, TypeName, String))
+    { self.impl_var_tuples.insert(impl_var_tuple); }
+
+    pub fn remove_impl_var_tuple(&mut self, impl_var_tuple: &(String, TypeName, String))
+    { self.impl_var_tuples.remove(impl_var_tuple); }
 }

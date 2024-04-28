@@ -253,6 +253,16 @@ fn shared_flag_for_type_var_ident2(ident: &String, tree: &Tree) -> FrontendResul
     }
 }
 
+fn shared_flag_for_type_name(type_name: &TypeName, tree: &Tree) -> FrontendResultWithErrors<SharedFlag>
+{
+    match type_name {
+        TypeName::Tuple(_) => Ok(SharedFlag::Shared),
+        TypeName::Array(_) => Ok(SharedFlag::Shared),
+        TypeName::Fun(_) => Ok(SharedFlag::Shared),
+        TypeName::Name(ident) => shared_flag_for_type_var_ident2(ident, tree),
+    }
+}
+
 fn add_local_type(local_type: LocalType, pos: Pos, typ: &Type, local_types: &mut Vec<LocalType>, processed_local_types: &BTreeSet<LocalType>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
 {
     if !processed_local_types.contains(&local_type) {
@@ -303,6 +313,23 @@ fn merge_tuples(tuple1: &(LocalType, usize, Pos), tuple2: &(LocalType, usize, Po
     }
 }
 
+fn add_local_type2(local_type: LocalType, type_values: &[Rc<TypeValue>], local_types: &mut Vec<LocalType>, processed_local_types: &BTreeSet<LocalType>) -> FrontendResultWithErrors<()>
+{
+    if !processed_local_types.contains(&local_type) {
+        if local_type.index() < type_values.len() {
+            match &*type_values[local_type.index()] {
+                TypeValue::Type(_, _, _) => local_types.push(local_type),
+                _ => (),
+            }
+            Ok(())
+        } else {
+            Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_local_type2: no type value"))]))
+        }
+    } else {
+        Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_local_type2: trait definition of type parameter is recursive"))]))
+    }
+}
+
 pub struct Typer
 {
     type_matcher: TypeMatcher,
@@ -329,6 +356,20 @@ impl Typer
         }
     }
 
+    pub fn evalaute_types_for_vars(&self, tree: &Tree) -> FrontendResultWithErrors<()>
+    {
+        let mut errs: Vec<FrontendError> = Vec::new();
+        self.check_type_arg_counts_for_impl_defs(tree, &mut errs)?;
+        self.evaluate_types_for_var_and_trait_defs(tree, &mut errs)?;
+        self.check_impls_for_impl_defs(tree, &mut errs)?;
+        self.evaluate_types_for_impl_defs(tree, &mut errs)?;
+        if errs.is_empty() {
+            Ok(())
+        } else {
+            Err(FrontendErrors::new(errs))
+        }
+    }
+    
     fn set_shared(&self, ident: &str, local_type: LocalType, pos: Pos, tree: &Tree, local_types: &LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         match self.type_matcher.set_shared(local_type, tree, local_types) {
@@ -1085,10 +1126,10 @@ impl Typer
                 Def::Impl(impl1, pos) => {
                     let impl_r = impl1.borrow();
                     let (trait_ident, type_name) = match &*impl_r {
-                        Impl::Builtin(tmp_trait_ident, tmp_type_name, _) => (tmp_trait_ident.clone(), tmp_type_name.clone()),
-                        Impl::Impl(tmp_trait_ident, tmp_type_name, _, _) => (tmp_trait_ident.clone(), tmp_type_name.clone()),
+                        Impl::Builtin(tmp_trait_ident, tmp_type_name, _) => (tmp_trait_ident, tmp_type_name),
+                        Impl::Impl(tmp_trait_ident, tmp_type_name, _, _) => (tmp_trait_ident, tmp_type_name),
                     };
-                    let trait_type_arg_count = type_arg_count_for_trait_ident(&trait_ident, tree)?;
+                    let trait_type_arg_count = type_arg_count_for_trait_ident(trait_ident, tree)?;
                     let type_arg_count = match &type_name {
                         TypeName::Tuple(count) => *count,
                         TypeName::Array(_) => 1,
@@ -1135,6 +1176,147 @@ impl Typer
         }
         Ok(())
     }
+
+    fn check_impls_for_impl_defs(&self, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        for def in tree.defs() {
+            match &**def {
+                Def::Impl(impl1, pos) => {
+                    let impl_r = impl1.borrow();
+                    let (trait_ident, type_name) = match &*impl_r {
+                        Impl::Builtin(tmp_trait_ident, tmp_type_name, _) => (tmp_trait_ident, tmp_type_name), 
+                        Impl::Impl(tmp_trait_ident, tmp_type_name, _, _) => (tmp_trait_ident, tmp_type_name),
+                    };
+                    if shared_flag_for_type_name(&type_name, tree)? == SharedFlag::None {
+                        match tree.trait1(&trait_ident) {
+                            Some(trait1) => {
+                                let trait_r = trait1.borrow();
+                                let mut is_success = true;
+                                match &*trait_r {
+                                    Trait(_, _, Some(trait_vars)) => {
+                                        for trait_var in trait_vars.vars().values() {
+                                            let trait_var_r = trait_var.borrow();
+                                            let typ = match &*trait_var_r {
+                                                Var::Builtin(_, Some(tmp_type)) => tmp_type,
+                                                Var::Var(_, _, _, _, _, _, _, Some(tmp_type), _) => tmp_type,
+                                                Var::Fun(_, _, Some(tmp_type)) => tmp_type,
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_impls_for_impl_defs: no type"))])),
+                                            };
+                                            for type_param_entry in typ.type_param_entries() {
+                                                let type_param_entry_r = type_param_entry.borrow();
+                                                if type_param_entry_r.trait_names.contains(&TraitName::Name(trait_ident.clone())) {
+                                                    if type_param_entry_r.trait_names.contains(&TraitName::Shared) {
+                                                        is_success = false;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_impls_for_impl_defs: no trait variables"))])),
+                                }
+                                if !is_success {
+                                    errs.push(FrontendError::Message(pos.clone(), format!("defined implementation of trait {} for type {} that is unique type", trait_ident, type_name)));
+                                }
+                            }
+                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_impls_for_impl_defs: no trait"))])),
+                        }
+                    }
+                    match tree.trait1(&trait_ident) {
+                        Some(trait1) => {
+                            let trait_r = trait1.borrow();
+                            match &*trait_r {
+                                Trait(_, _, Some(trait_vars)) => {
+                                    match &*impl_r {
+                                        Impl::Impl(_, _, impl_defs, _) => {
+                                            for impl_def in impl_defs {
+                                                match &**impl_def {
+                                                    ImplDef(impl_var_ident, impl_var, impl_var_pos) => {
+                                                       match trait_vars.var(impl_var_ident) {
+                                                            Some(trait_var) => {
+                                                                let trait_var_r = trait_var.borrow();
+                                                                let impl_var_r = impl_var.borrow();
+                                                                match (&*trait_var_r, &*impl_var_r) {
+                                                                    (Var::Builtin(_, Some(trait_var_type)), ImplVar::Fun(impl_fun, _)) => {
+                                                                        match &**trait_var_type.type_value() {
+                                                                            TypeValue::Type(_, TypeValueName::Fun, type_values) => {
+                                                                                if type_values.len() >= 1 {
+                                                                                    match &**impl_fun {
+                                                                                        ImplFun(impl_args, _, _, _) => {
+                                                                                            if impl_args.len() < type_values.len() - 1  {
+                                                                                                errs.push(FrontendError::Message(impl_var_pos.clone(), String::from("too few arguments")));
+                                                                                            } else if impl_args.len() > type_values.len() - 1 {
+                                                                                                errs.push(FrontendError::Message(impl_var_pos.clone(), String::from("too many arguments")));
+                                                                                            }
+                                                                                        },
+                                                                                    }
+                                                                                } else {
+                                                                                    return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_impls_for_impl_defs: too few type values"))]))
+                                                                                }
+                                                                            },
+                                                                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_impls_for_impl_defs: type ins't function type"))])),
+                                                                        }
+                                                                    },
+                                                                    (Var::Builtin(_, None), ImplVar::Fun(_, _)) => {
+                                                                        errs.push(FrontendError::Message(pos.clone(), format!("unevaluated type of variable {}", impl_var_ident)));
+                                                                    },
+                                                                    _ => (),
+                                                                }
+                                                            },
+                                                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_impls_for_impl_defs: no trait variable"))])),
+                                                       }
+                                                    },
+                                                }
+                                            }
+                                        },
+                                        _ => (),
+                                    }
+                                },
+                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_impls_for_impl_defs: no trait variables"))])),
+                            }
+                        },
+                        None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_impls_for_impl_defs: no trait"))])),
+                    }
+                },
+                _ => (),
+            }
+        }
+        Ok(())
+    }
+
+    fn evaluate_types_for_impl_defs(&self, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        for def in tree.defs() {
+            match &**def {
+                Def::Impl(impl1, pos) => {
+                    let impl_r = impl1.borrow();
+                    match &*impl_r {
+                        Impl::Builtin(trait_ident, type_name, Some(impl_vars)) => {
+                            if !self.builtins.has_impl_pair(&(trait_ident.clone(), type_name.clone())) {
+                                errs.push(FrontendError::Message(pos.clone(), format!("implementation of trait {} for type {} isn't built-in implementation", trait_ident, type_name)));
+                            }
+                            for (ident, impl_var) in impl_vars.vars() {
+                                let mut impl_var_r = impl_var.borrow_mut();
+                                self.evaluate_types_for_impl_var(ident, &mut *impl_var_r, pos.clone(), trait_ident, type_name, tree, true, errs)?;
+                            }
+                        },
+                        Impl::Builtin(_, _, None) => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_impl_defs: no implementation variables"))])),
+                        Impl::Impl(trait_ident, type_name, impl_defs, _) => {
+                            for impl_def in impl_defs {
+                                match &**impl_def {
+                                    ImplDef(ident, impl_var, impl_var_pos) => {
+                                        let mut impl_var_r = impl_var.borrow_mut();
+                                        self.evaluate_types_for_impl_var(ident, &mut *impl_var_r, impl_var_pos.clone(), trait_ident, type_name, tree, false, errs)?;
+                                    },
+                                }
+                            }
+                        },
+                    }
+                },
+                _ => (),
+            }
+        }
+        Ok(())
+    }
     
     fn evaluate_types_for_var(&self, ident: &String, var: &mut Var, pos: Pos, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
@@ -1144,7 +1326,7 @@ impl Typer
                     Some(builtin_var) => {
                         match parse_type_with_path(format!("({} type).vscfl", ident).as_str(), builtin_var.type_source.as_str()) {
                             Ok(type_expr) => {
-                                match parse_where_with_path(format!("({} where).vscfl", ident).as_str(), builtin_var.type_source.as_str()) {
+                                match parse_where_with_path(format!("({} where).vscfl", ident).as_str(), builtin_var.where_source.as_str()) {
                                     Ok(where_tuples) => {
                                         match check_idents_for_type_with_where(&type_expr, &where_tuples, tree) {
                                             Ok(()) => {
@@ -1265,10 +1447,10 @@ impl Typer
                                                     *ret_local_type = Some(new_local_types2[new_local_types2.len() - 1]);
                                                     *local_types = Some(Box::new(new_local_types));
                                                 } else {
-                                                    return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_var: too few argument type values"))]))
+                                                    return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_var: too few type values"))]))
                                                 }
                                             },
-                                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_var: no local types"))])),
+                                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_var: type isn't function type"))])),
                                         }
                                     },
                                     None => *local_types = None,
@@ -2003,6 +2185,247 @@ impl Typer
             },
             Literal::FilledArray(elem_other, _) => f(self, &**elem_other, tree, var_env, local_types, errs)?,
             _ => (),
+        }
+        Ok(())
+    }
+
+    fn local_types_for_local_type(&self, local_type: LocalType, type_values: &[Rc<TypeValue>], typ: &Type, processed_local_types: &BTreeSet<LocalType>) -> FrontendResultWithErrors<Vec<LocalType>>
+    {
+        match typ.type_param_entry(local_type) {
+            Some(type_param_entry) => {
+                let mut local_types: Vec<LocalType> = Vec::new();
+                let type_param_entry_r = type_param_entry.borrow();
+                for type_value in &type_param_entry_r.type_values {
+                    self.add_local_types_for_type_value2(&**type_value, type_values, &mut local_types, processed_local_types)?;
+                }
+                Ok(local_types)
+            },
+            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_types_for_local_type: no type parameter entry"))])),
+        }
+    }
+    
+    fn add_local_types_for_type_value2(&self, type_value: &TypeValue, type_values: &[Rc<TypeValue>], local_types: &mut Vec<LocalType>, processed_local_types: &BTreeSet<LocalType>) -> FrontendResultWithErrors<()>
+    {
+        match type_value {
+            TypeValue::Param(_, local_type) => add_local_type2(*local_type, type_values, local_types, processed_local_types)?,
+            TypeValue::Type(_, _, type_values2) => {
+                for type_value2 in type_values2 {
+                    self.add_local_types_for_type_value2(&**type_value2, type_values, local_types, processed_local_types)?;
+                }
+            },
+        }
+        Ok(())
+    }
+    
+    fn substitue_for_local_type(&self, local_type: LocalType, type_name: &TypeName, type_values: &mut [Rc<TypeValue>], typ: &Type) -> FrontendResultWithErrors<()>
+    {
+        match typ.type_param_entry(local_type) {
+            Some(type_param_entry) => {
+                let type_param_entry_r = type_param_entry.borrow();
+                let mut new_type_values: Vec<Rc<TypeValue>> = Vec::new();
+                for type_value in &type_param_entry_r.type_values {
+                    match type_value.substitute(type_values) {
+                        Ok(Some(new_type_value)) => new_type_values.push(new_type_value),
+                        Ok(None) => new_type_values.push(type_value.clone()),
+                        Err(err) => return Err(FrontendErrors::new(vec![FrontendError::Internal(format!("substitue_for_local_type: {}", err))])),
+                    }
+                }
+                type_values[local_type.index()] = Rc::new(TypeValue::Type(UniqFlag::None, type_name.type_value_name(), new_type_values));
+                Ok(())
+            },
+            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("substitue_for_local_type: no type parameter entry"))])),
+        }
+    }
+    
+    fn new_type_by_substitution(&self, typ: &Type, trait_ident: &String, type_name: &TypeName) -> FrontendResultWithErrors<Type>
+    {
+        let mut type_values: Vec<Rc<TypeValue>> = Vec::new();
+        let mut local_types: Vec<Option<LocalType>> = Vec::new();
+        let mut i = 0;
+        for type_param_entry in typ.type_param_entries() {
+            let type_param_entry_r = type_param_entry.borrow();
+            if type_param_entry_r.trait_names.contains(&TraitName::Name(trait_ident.clone())) {
+                type_values.push(Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Tuple, Vec::new())));
+                local_types.push(None);
+            } else {
+                type_values.push(Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(i))));
+                local_types.push(Some(LocalType::new(i)));
+                i += 1;
+            }
+        }
+        let mut visited_local_types: BTreeSet<LocalType> = BTreeSet::new();
+        for (j, type_param_entry) in typ.type_param_entries().iter().enumerate() {
+            let type_param_entry_r = type_param_entry.borrow();
+            if type_param_entry_r.trait_names.contains(&TraitName::Name(trait_ident.clone())) {
+                dfs_with_result(&LocalType::new(j), &mut visited_local_types, &mut type_values, |local_type, processed_local_types, type_values| {
+                        self.local_types_for_local_type(*local_type, type_values, typ, processed_local_types)
+                }, |local_type, type_values| {
+                        self.substitue_for_local_type(*local_type, type_name, type_values, typ)
+                })?;
+            }
+        }
+        let new_type_value = match typ.type_value().substitute(&type_values) {
+            Ok(Some(type_value)) => type_value,
+            Ok(None) => typ.type_value().clone(),
+            Err(err) => return Err(FrontendErrors::new(vec![FrontendError::Internal(format!("new_type_by_substitution: {}", err))])),
+        };
+        let mut new_type = Type::new_with_type_param_entry_count(new_type_value, typ.type_param_entries().len());
+        i = 0;
+        for type_param_entry in typ.type_param_entries() {
+            let type_param_entry_r = type_param_entry.borrow();
+            if !type_param_entry_r.trait_names.contains(&TraitName::Name(trait_ident.clone())) {
+                match new_type.type_param_entry(LocalType::new(i)) {
+                    Some(new_type_param_entry) => {
+                        let mut new_type_param_entry_r = new_type_param_entry.borrow_mut();
+                        *new_type_param_entry_r = (*type_param_entry_r).clone();
+                        for type_value in &mut new_type_param_entry_r.type_values {
+                            match typ.type_value().substitute(&type_values) {
+                                Ok(Some(type_value2)) => *type_value = type_value2,
+                                Ok(None) => (),
+                                Err(err) => return Err(FrontendErrors::new(vec![FrontendError::Internal(format!("new_type_by_substitution: {}", err))])),
+                            }
+                        }
+                    },
+                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("new_type_by_substitution: no new type parameter entry"))])),
+                }
+                i += 1;
+            }
+        }
+        for j in 0..typ.type_param_entries().len() {
+            for k in (j + 1)..typ.type_param_entries().len() {
+                match (local_types[j], local_types[k]) {
+                    (Some(local_type1), Some(local_type2)) => {
+                        if typ.has_eq_type_params(LocalType::new(j), LocalType::new(k)) {
+                            new_type.set_eq_type_params(local_type1, local_type2);
+                        }
+                    },
+                    _ => (),
+                }
+            }
+        }
+        Ok(new_type)
+    }
+    
+    fn evaluate_types_for_impl_var(&self, ident: &String, impl_var: &mut ImplVar, pos: Pos, trait_ident: &String, type_name: &TypeName, tree: &Tree, is_builtin_impl: bool, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        let new_type = match tree.trait1(trait_ident) {
+            Some(trait1) => {
+                let trait_r = trait1.borrow();
+                match &*trait_r {
+                    Trait(_, _, Some(trait_vars)) => {
+                        match trait_vars.var(ident) {
+                            Some(var) => {
+                                let var_r = var.borrow();
+                                match &*var_r {
+                                    Var::Builtin(_, Some(typ)) => self.new_type_by_substitution(&**typ, trait_ident, type_name)?,
+                                    Var::Var(_, _, _, _, _, _, _, Some(typ), _) => self.new_type_by_substitution(&**typ, trait_ident, type_name)?,
+                                    Var::Fun(_, _, Some(typ)) => self.new_type_by_substitution(&**typ, trait_ident, type_name)?,
+                                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_impl_var: no type"))])),
+                                }
+                            },
+                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_impl_var: no trait variable"))])),
+                        }
+                    },
+                    Trait(_, _, None) => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_impl_var: no trait variables"))])),
+                }
+            },
+            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_impl_var: no trait"))])),
+        };
+        match impl_var {
+            ImplVar::Builtin(typ) => {
+                if !is_builtin_impl {
+                    if !self.builtins.has_impl_var_tuple(&(trait_ident.clone(), type_name.clone(), ident.clone())) {
+                        errs.push(FrontendError::Message(pos, format!("implementation variable {} mustn't built-in variable", ident)))
+                    }
+                }
+                *typ = Some(Box::new(new_type));
+            },
+            ImplVar::Var(expr, local_type, local_types, typ, _) => {
+                let mut type_param_env: Environment<LocalType> = Environment::new();
+                type_param_env.push_new_vars();
+                for (i, type_param_entry) in new_type.type_param_entries().iter().enumerate() {
+                    let type_param_entry_r = type_param_entry.borrow();
+                    match &type_param_entry_r.ident {
+                        Some(type_param_ident) => {
+                            type_param_env.add_var(type_param_ident.clone(), LocalType::new(i));
+                        },
+                        None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_impl_var: no identifier"))])),
+                    }
+                }
+                let mut new_local_types = LocalTypes::new();
+                let new_local_type = new_local_types.set_defined_type(&new_type);
+                let mut var_env: Environment<LocalType> = Environment::new();
+                self.evalute_types_for_expr(&mut **expr, tree, &mut var_env, &mut type_param_env, &mut new_local_types, errs)?;
+                let mut var_env2: Environment<(LocalType, usize, Pos)> = Environment::new();
+                self.set_shareds_for_expr(&**expr, tree, &mut var_env2, &new_local_types, errs)?;
+                *local_type = Some(new_local_type);
+                *local_types = Some(Box::new(new_local_types));
+                *typ = Some(Box::new(new_type));
+            },
+            ImplVar::Fun(impl_fun, typ) => {
+                match &mut **impl_fun {
+                    ImplFun(args, body, ret_local_type, local_types) => {
+                        let mut type_param_env: Environment<LocalType> = Environment::new();
+                        type_param_env.push_new_vars();
+                        for (i, type_param_entry) in new_type.type_param_entries().iter().enumerate() {
+                            let type_param_entry_r = type_param_entry.borrow();
+                            match &type_param_entry_r.ident {
+                                Some(type_param_ident) => {
+                                    type_param_env.add_var(type_param_ident.clone(), LocalType::new(i));
+                                },
+                                None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_impl_var: no identifier"))])),
+                            }
+                        }
+                        let mut new_local_types = LocalTypes::new();
+                        match new_local_types.set_defined_fun_types(&new_type) {
+                            Some(new_local_types2) => {
+                                let mut var_env: Environment<LocalType> = Environment::new();
+                                var_env.push_new_vars();
+                                if new_local_types2.len() >= 1 {
+                                    let mut new_local_types3: Vec<LocalType> = Vec::new();
+                                    for i in 0..args.len() {
+                                        match &mut args[i] {
+                                            ImplArg(arg_ident, arg_local_type, _) => {
+                                                if i < new_local_types2.len() {
+                                                    var_env.add_var(arg_ident.clone(), new_local_types2[i]);
+                                                    *arg_local_type = Some(new_local_types2[i]);
+                                                } else {
+                                                    let new_local_type = new_local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new())));
+                                                    var_env.add_var(arg_ident.clone(), new_local_type);
+                                                    *arg_local_type = Some(new_local_type);
+                                                    new_local_types3.push(new_local_type);
+                                                }
+                                            },
+                                        }
+                                    }
+                                    self.evalute_types_for_expr(&mut **body, tree, &mut var_env, &mut type_param_env, &mut new_local_types, errs)?;
+                                    let mut var_env2: Environment<(LocalType, usize, Pos)> = Environment::new();
+                                    var_env2.push_new_vars();
+                                    for i in 0..args.len() {
+                                        match &args[i] {
+                                            ImplArg(arg_ident, _, pos) => {
+                                                if i < new_local_types2.len() {
+                                                    var_env2.add_var(arg_ident.clone(), (new_local_types2[i], 0, pos.clone()));
+                                                } else {
+                                                    var_env2.add_var(arg_ident.clone(), (new_local_types3[i - new_local_types2.len()], 0, pos.clone()));
+                                                }
+                                            },
+                                        }
+                                    }
+                                    self.set_shareds_for_expr(&**body, tree, &mut var_env2, &new_local_types, errs)?;
+                                    var_env2.foreach_with_result(|ident, tuple| self.set_shared_for_tuple(ident, tuple, tree, &new_local_types, errs))?;
+                                    *ret_local_type = Some(new_local_types2[new_local_types2.len() - 1]);
+                                    *local_types = Some(Box::new(new_local_types));
+                                    *typ = Some(Box::new(new_type));
+                                } else {
+                                    return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_var: too few type values"))]))
+                                }
+                            },
+                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_var: type isn't function type"))])),
+                        }
+                    },
+                }
+            },
         }
         Ok(())
     }

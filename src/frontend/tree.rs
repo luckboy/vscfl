@@ -272,6 +272,19 @@ pub enum TypeName
     Name(String),
 }
 
+impl TypeName
+{
+    pub fn type_value_name(&self) -> TypeValueName
+    {
+        match self {
+            TypeName::Tuple(_) => TypeValueName::Tuple,
+            TypeName::Array(len) => TypeValueName::Array(*len),
+            TypeName::Fun(_) => TypeValueName::Fun,
+            TypeName::Name(ident) => TypeValueName::Name(ident.clone()),
+        }
+    }
+}
+
 impl fmt::Display for TypeName
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
@@ -317,7 +330,7 @@ pub struct ImplDef(pub String, pub Rc<RefCell<ImplVar>>, pub Pos);
 pub enum ImplVar
 {
     Builtin(Option<Box<Type>>),
-    Var(Box<Expr>, Option<Box<LocalTypes>>, Option<Box<Type>>, Option<Value>),
+    Var(Box<Expr>, Option<LocalType>, Option<Box<LocalTypes>>, Option<Box<Type>>, Option<Value>),
     Fun(Box<ImplFun>, Option<Box<Type>>),
 }
 
@@ -682,6 +695,15 @@ impl Type
             type_value,
             type_param_entries: type_param_idents.iter().map(|s| Rc::new(RefCell::new(TypeParamEntry::new_with_ident(s.clone())))).collect(),
             eq_type_param_set: DisjointSet::with_len(type_param_idents.len()),
+        }
+    }
+
+    pub fn new_with_type_param_entry_count(type_value: Rc<TypeValue>, count: usize) -> Self
+    {
+        Type {
+            type_value,
+            type_param_entries: (0..count).map(|_| Rc::new(RefCell::new(TypeParamEntry::new()))).collect(),
+            eq_type_param_set: DisjointSet::with_len(count),
         }
     }
     
