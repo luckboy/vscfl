@@ -505,4 +505,20 @@ impl TypeMatcher
         let type_value2 = Rc::new(TypeValue::Param(UniqFlag::None, local_type2));
         self.match_type_values(&type_value1, &type_value2, tree, local_types)
     }
+
+    pub fn match_for_first_pattern_type(&self, local_type1: LocalType, local_type2: LocalType, tree: &Tree, local_types: &mut LocalTypes) -> FrontendResult<TypeMatcherResult>
+    {
+        let type_value2 = Rc::new(TypeValue::Param(UniqFlag::None, local_type2));
+        let uniq_flag = self.uniq_flag_for_type_value(&type_value2, tree, local_types)?;
+        let type_value1 = Rc::new(TypeValue::Param(uniq_flag, local_type1));
+        self.match_type_values(&type_value1, &type_value2, tree, local_types)
+    }
+
+    pub fn match_for_second_pattern_type(&self, local_type1: LocalType, local_type2: LocalType, tree: &Tree, local_types: &mut LocalTypes) -> FrontendResult<TypeMatcherResult>
+    {
+        let type_value1 = Rc::new(TypeValue::Param(UniqFlag::None, local_type1));
+        let uniq_flag = self.uniq_flag_for_type_value(&type_value1, tree, local_types)?;
+        let type_value2 = Rc::new(TypeValue::Param(uniq_flag, local_type2));
+        self.match_type_values(&type_value1, &type_value2, tree, local_types)
+    }
 }
