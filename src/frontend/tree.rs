@@ -1034,14 +1034,22 @@ impl LocalTypes
             match &self.type_entries[root_idx] {
                 LocalTypeEntry::Param(uniq_flag, shared_flag, old_type_param_entry, _) => {
                     {
-                    let old_type_param_entry_r = old_type_param_entry.borrow();
-                    let mut type_param_entry_r = type_param_entry.borrow_mut();
-                    type_param_entry_r.number = old_type_param_entry_r.number;
-                    type_param_entry_r.ident = old_type_param_entry_r.ident.clone();
+                        let old_type_param_entry_r = old_type_param_entry.borrow();
+                        let mut type_param_entry_r = type_param_entry.borrow_mut();
+                        type_param_entry_r.number = old_type_param_entry_r.number;
+                        type_param_entry_r.ident = old_type_param_entry_r.ident.clone();
                     }
                     self.type_entries[root_idx] = LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, LocalType::new(root_idx));
                 },
-                _ => self.type_entries[root_idx] = LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, LocalType::new(root_idx)),
+                _ => {
+                    self.set_new_value_for_type_param_number_counter();
+                    {
+                        let mut type_param_entry_r = type_param_entry.borrow_mut();
+                        type_param_entry_r.number = Some(self.type_param_number_counter);
+                        type_param_entry_r.ident = None;
+                    }
+                    self.type_entries[root_idx] = LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, LocalType::new(root_idx));
+                },
             }
             true
         } else {
