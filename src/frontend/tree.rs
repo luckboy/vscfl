@@ -210,6 +210,17 @@ pub enum Field
     Named(String, Option<usize>),
 }
 
+impl fmt::Display for Field
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+    {
+        match self {
+            Field::Unnamed(idx) => write!(f, "{}", idx),
+            Field::Named(ident, _) => write!(f, "{}", ident),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Bind(pub Box<Pattern>, pub Box<Expr>);
 
@@ -220,7 +231,7 @@ pub struct Case(pub Box<Pattern>, pub Box<Expr>);
 pub enum Pattern
 {
     Literal(Box<Literal<Pattern>>, Option<LocalType>, Pos),
-    As(Box<Literal<Pattern>>, Box<TypeExpr>, Option<LocalType>, Pos),
+    As(Box<Literal<Pattern>>, Box<TypeExpr>, Option<LocalType>, Option<LocalType>, Pos),
     Const(String, Option<LocalType>, Pos),
     UnnamedFieldCon(String, Vec<Box<Pattern>>, Option<LocalType>, Option<LocalType>, Pos),
     NamedFieldCon(String, Vec<NamedFieldPair<Pattern>>, Option<LocalType>, Option<LocalType>, Pos),
@@ -1013,6 +1024,28 @@ impl LocalTypes
             Ok(true)
         } else {
             Ok(false)
+        }
+    }
+
+    pub fn set_type_param(&mut self, local_type: LocalType, type_param_entry: Rc<RefCell<TypeParamEntry>>) -> bool
+    {
+        if local_type.index() < self.type_entries.len() {
+            let root_idx = self.type_entries.root_of(local_type.index());
+            match &self.type_entries[root_idx] {
+                LocalTypeEntry::Param(uniq_flag, shared_flag, old_type_param_entry, _) => {
+                    {
+                    let old_type_param_entry_r = old_type_param_entry.borrow();
+                    let mut type_param_entry_r = type_param_entry.borrow_mut();
+                    type_param_entry_r.number = old_type_param_entry_r.number;
+                    type_param_entry_r.ident = old_type_param_entry_r.ident.clone();
+                    }
+                    self.type_entries[root_idx] = LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, LocalType::new(root_idx));
+                },
+                _ => self.type_entries[root_idx] = LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, LocalType::new(root_idx)),
+            }
+            true
+        } else {
+            false
         }
     }
 

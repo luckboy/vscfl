@@ -6503,7 +6503,7 @@ a: Int =
                                     match &cases[2] {
                                         Case(pattern, expr) => {
                                             match &**pattern {
-                                                Pattern::As(literal, type_expr, None, pos) => {
+                                                Pattern::As(literal, type_expr, None, None, pos) => {
                                                     assert_eq!(5, pos.line);
                                                     assert_eq!(9, pos.column);
                                                     match &**literal {

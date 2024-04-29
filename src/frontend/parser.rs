@@ -1510,7 +1510,7 @@ impl<'a> Parser<'a>
                 match self.parse_literal_either(true, Self::parse_pattern)? {
                     LiteralEither::Literal(literal) => {
                         match self.lexer.next_token()? {
-                            (Token::As, _) => Ok(Box::new(Pattern::As(literal, self.parse_type_expr()?, None, pos))),
+                            (Token::As, _) => Ok(Box::new(Pattern::As(literal, self.parse_type_expr()?, None, None, pos))),
                             (token2, pos2) => {
                                 self.lexer.undo_token(token2, pos2);
                                 Ok(Box::new(Pattern::Literal(literal, None, pos)))

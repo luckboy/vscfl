@@ -6,6 +6,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 //
 use std::cell::*;
+use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::rc::*;
 use crate::frontend::builtins::*;
@@ -330,6 +331,134 @@ fn add_local_type2(local_type: LocalType, type_values: &[Rc<TypeValue>], local_t
     }
 }
 
+//
+// Inference of types.
+//
+
+fn type_for_var_ident_in<F>(ident: &String, tree: &Tree, mut f: F) -> FrontendResultWithErrors<()>
+    where F: FnMut(&Type) -> FrontendResultWithErrors<()>
+{
+    match tree.var(ident) {
+        Some(var) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Builtin(_, Some(typ)) => f(typ),
+                Var::Var(_, _, _, _, _, _, _, Some(typ), _) => f(typ),
+                Var::Fun(_, _, Some(typ)) => f(typ),
+                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_for_var_ident_in: no type"))])),
+            }
+        },
+        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_for_var_ident_in: no variable"))])),
+    }
+}
+
+fn type_for_fun_ident_in<F>(ident: &String, tree: &Tree, mut f: F) -> FrontendResultWithErrors<()>
+    where F: FnMut(&Type) -> FrontendResultWithErrors<()>
+{
+    match tree.var(ident) {
+        Some(var) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Fun(_, _, Some(typ)) => f(typ),
+                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_for_fun_ident_in: variable isn't function or no type"))])),
+            }
+        },
+        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_for_fun_ident_in: no variable"))])),
+    }
+}
+
+fn type_and_named_fields_for_con_ident_in<F>(ident: &String, tree: &Tree, mut f: F) -> FrontendResultWithErrors<()>
+    where F: FnMut(&Type, &NamedFields) -> FrontendResultWithErrors<()>
+{
+    match tree.var(ident) {
+        Some(var) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Fun(fun, _, Some(typ)) => {
+                    match &**fun {
+                        Fun::Con(con) => {
+                            let con_r = con.borrow();
+                            match &*con_r {
+                                Con::NamedField(_, _, _, Some(named_fields), _) => f(&**typ, &**named_fields),
+                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_and_named_fields_for_con_ident_in: constructor isn't named field contructor or no named fields"))])),
+                            }
+                        },
+                        _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_and_named_fields_for_con_ident_in: function isn't contructor"))])),
+                    }
+                },
+                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_and_named_fields_for_con_ident_in: variable isn't function or no type"))])),
+            }
+        },
+        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_and_named_fields_for_con_ident_in: no variable"))])),
+    }
+}
+
+fn set_type_for_local_types(local_type: LocalType, typ: &Type, local_types: &mut LocalTypes) -> FrontendResultWithErrors<()>
+{
+    match local_types.set_type(local_type, typ) {
+        Ok(true) => Ok(()),
+        Ok(false) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("set_type_for_local_types: no local type"))])),
+        Err(err) => Err(FrontendErrors::new(vec![FrontendError::Internal(format!("set_type_for_local_types: {}", err))])),
+    }
+}
+
+struct ClosureStack
+{
+    stack: Vec<BTreeMap<(String, usize), LocalType>>,
+}
+
+impl ClosureStack
+{
+    fn new() -> Self
+    { ClosureStack { stack: Vec::new(), } }
+    
+    fn push_new_closure(&mut self)
+    { self.stack.push(BTreeMap::new()); }
+    
+    fn merge_and_pop_closure(&mut self, stack_idx: usize)
+    {
+        if self.stack.len() >= 2 {
+            let local_types = &self.stack[self.stack.len() - 1];
+            let mut new_local_types = self.stack[self.stack.len() - 2].clone();
+            for (key @ (_, stack_idx2), local_type) in local_types {
+                if *stack_idx2 < stack_idx {
+                    if !new_local_types.contains_key(key) {
+                        new_local_types.insert(key.clone(), *local_type);
+                    }
+                }
+            }
+            let len = self.stack.len();
+            self.stack[len - 2] = new_local_types;
+        }
+        self.stack.pop();
+    }
+    
+    fn add_local_type(&mut self, key: (String, usize), local_type: LocalType) -> bool
+    {
+        match self.stack.last_mut() {
+            Some(local_types) => {
+                local_types.insert(key, local_type);
+                true
+            },
+            None => false,
+        }
+    }
+    
+    pub fn foreach_with_result<E, F>(&self, mut f: F) -> Result<(), E>
+        where F: FnMut(&(String, usize), LocalType) -> Result<(), E>
+    {
+        match self.stack.last() {
+            Some(local_types) => {
+                for (key, local_type) in local_types {
+                    f(key, *local_type)?;
+                }
+            },
+            None => (),
+        }
+        Ok(())
+    }
+}
+
 pub struct Typer
 {
     type_matcher: TypeMatcher,
@@ -370,16 +499,162 @@ impl Typer
         }
     }
     
-    fn set_shared(&self, ident: &str, local_type: LocalType, pos: Pos, tree: &Tree, local_types: &LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn uniq_flag_and_shared_flag_for_local_type(&self, local_type: LocalType, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<(UniqFlag, SharedFlag)>
+    {
+        match self.type_matcher.uniq_flag_and_shared_flag(local_type, tree, local_types) {
+            Ok(pair) => Ok(pair),
+            Err(err) => Err(FrontendErrors::new(vec![err])),
+        }
+    }
+
+    fn set_shared_for_local_type(&self, ident: &str, local_type: LocalType, pos: Pos, tree: &Tree, local_types: &LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         match self.type_matcher.set_shared(local_type, tree, local_types) {
             Ok(true) => Ok(()),
             Ok(false) => {
-                errs.push(FrontendError::Message(pos, format!("variable {} mustn't shared with type {}", ident, LocalTypeWithLocalTypes(local_type, local_types))));
+                errs.push(FrontendError::Message(pos, format!("variable {} mustn't be shared with type {}", ident, LocalTypeWithLocalTypes(local_type, local_types))));
                 Ok(())
             },
             Err(err) => Err(FrontendErrors::new(vec![err])),
         }
+    }
+
+    fn set_shared_for_local_type_and_fields(&self, local_type: LocalType, pos: Pos, tree: &Tree, local_types: &LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        match self.type_matcher.set_shared(local_type, tree, local_types) {
+            Ok(true) => Ok(()),
+            Ok(false) => {
+                errs.push(FrontendError::Message(pos, format!("type {} mustn't be shared", LocalTypeWithLocalTypes(local_type, local_types))));
+                Ok(())
+            },
+            Err(err) => Err(FrontendErrors::new(vec![err])),
+        }
+    }    
+    
+    fn match_type_values(&self, type_value1: &Rc<TypeValue>, type_value2: &Rc<TypeValue>, pos: &Pos, tree: &Tree, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        match self.type_matcher.match_type_values(type_value1, type_value2, tree, local_types) {
+            Ok(TypeMatcherResult::Matched) => Ok(()),
+            Ok(TypeMatcherResult::Mismatched(infos)) => {
+                errs.push(FrontendError::Message(pos.clone(), format!("can't match type {} with type {}", TypeValueWithLocalTypes(type_value1.clone(), local_types), TypeValueWithLocalTypes(type_value2.clone(), local_types))));
+                for info in &infos {
+                    errs.push(FrontendError::Message(pos.clone(), format!("{}", MismatchedTypeInfoWidthLocalTypes(info, local_types))));
+                }
+                Ok(())
+            },
+            Err(err) => Err(FrontendErrors::new(vec![err])),
+        }
+    }
+ 
+    fn match_local_types(&self, local_type1: LocalType, local_type2: LocalType, pos: &Pos, tree: &Tree, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        match self.type_matcher.matches(local_type1, local_type2, tree, local_types) {
+            Ok(TypeMatcherResult::Matched) => Ok(()),
+            Ok(TypeMatcherResult::Mismatched(infos)) => {
+                errs.push(FrontendError::Message(pos.clone(), format!("can't match type {} with type {}", LocalTypeWithLocalTypes(local_type1, local_types), LocalTypeWithLocalTypes(local_type2, local_types))));
+                for info in &infos {
+                    errs.push(FrontendError::Message(pos.clone(), format!("{}", MismatchedTypeInfoWidthLocalTypes(info, local_types))));
+                }
+                Ok(())
+            },
+            Err(err) => Err(FrontendErrors::new(vec![err])),
+        }
+    }
+
+    fn match_local_types_for_first_pattern_type(&self, local_type1: LocalType, local_type2: LocalType, pos: &Pos, tree: &Tree, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        match self.type_matcher.match_for_first_pattern_type(local_type1, local_type2, tree, local_types) {
+            Ok(TypeMatcherResult::Matched) => Ok(()),
+            Ok(TypeMatcherResult::Mismatched(infos)) => {
+                errs.push(FrontendError::Message(pos.clone(), format!("can't match type {} with type {}", LocalTypeWithLocalTypes(local_type1, local_types), LocalTypeWithLocalTypes(local_type2, local_types))));
+                for info in &infos {
+                    errs.push(FrontendError::Message(pos.clone(), format!("{}", MismatchedTypeInfoWidthLocalTypes(info, local_types))));
+                }
+                Ok(())
+            },
+            Err(err) => Err(FrontendErrors::new(vec![err])),
+        }
+    }    
+
+    fn match_local_types_for_second_pattern_type(&self, local_type1: LocalType, local_type2: LocalType, pos: &Pos, tree: &Tree, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        match self.type_matcher.match_for_second_pattern_type(local_type1, local_type2, tree, local_types) {
+            Ok(TypeMatcherResult::Matched) => Ok(()),
+            Ok(TypeMatcherResult::Mismatched(infos)) => {
+                errs.push(FrontendError::Message(pos.clone(), format!("can't match type {} with type {}", LocalTypeWithLocalTypes(local_type1, local_types), LocalTypeWithLocalTypes(local_type2, local_types))));
+                for info in &infos {
+                    errs.push(FrontendError::Message(pos.clone(), format!("{}", MismatchedTypeInfoWidthLocalTypes(info, local_types))));
+                }
+                Ok(())
+            },
+            Err(err) => Err(FrontendErrors::new(vec![err])),
+        }
+    }    
+    
+    fn match_local_type_entries_for_cast(&self, local_type_entry1: &LocalTypeEntry, local_type_entry2: &LocalTypeEntry, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<bool>
+    {
+        match (local_type_entry1, local_type_entry2) {
+            (LocalTypeEntry::Type(type_value1), LocalTypeEntry::Type(type_value2)) => {
+                match (&**type_value1, &**type_value2) {
+                    (TypeValue::Type(uniq_flag1, type_value_name1, type_values1), TypeValue::Type(uniq_flag2, type_value_name2, type_values2)) => {
+                        if uniq_flag1 != uniq_flag2 {
+                            return Ok(false);
+                        }
+                        let mut is_success = true;
+                        match (type_value_name1, type_value_name2) {
+                            (TypeValueName::Name(ident1), TypeValueName::Name(ident2)) => {
+                                return Ok(self.has_primitive_for_type_ident(ident1, tree)? && self.has_primitive_for_type_ident(ident2, tree)?);
+                            },
+                            (TypeValueName::Tuple, TypeValueName::Tuple) => (),
+                            (TypeValueName::Array(Some(len1)), TypeValueName::Array(Some(len2))) if len1 == len2 => (),
+                            _ => is_success = false,
+                        }
+                        if !is_success {
+                            return Ok(false);
+                        }
+                        if type_values1.len() != type_values2.len() {
+                            return Ok(false);
+                        }
+                        for (type_value1, type_value2) in type_values1.iter().zip(type_values2.iter()) {
+                            if !self.match_type_values_for_cast(type_value1, type_value2, tree, local_types)? {
+                                is_success = false;
+                            }
+                        }
+                        if !is_success {
+                            return Ok(false);
+                        }
+                        Ok(true)
+                    },
+                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("match_local_type_entries_for_cast: no variable"))])),
+                }
+            },
+            _ => Ok(false),
+        }
+    }
+
+    fn match_type_values_for_cast(&self, type_value1: &Rc<TypeValue>, type_value2: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<bool>
+    {
+        let local_type_entry1 = local_types.type_entry_for_type_value(type_value1);
+        let local_type_entry2 = local_types.type_entry_for_type_value(type_value2);
+        match (local_type_entry1, local_type_entry2) {
+            (Some(local_type_entry1), Some(local_type_entry2)) => self.match_local_type_entries_for_cast(&local_type_entry1, &local_type_entry2, tree, local_types),
+            (_, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("match_type_values_for_cast: no local type entry"))])),
+        }
+    }
+
+    fn match_local_types_for_cast(&self, local_type1: LocalType, local_type2: LocalType, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<bool>
+    {
+        let type_value1 = Rc::new(TypeValue::Param(UniqFlag::None, local_type1));
+        let type_value2 = Rc::new(TypeValue::Param(UniqFlag::None, local_type2));
+        self.match_type_values_for_cast(&type_value1, &type_value2, tree, local_types)
+    }
+    
+    fn cast_local_type_to_local_type(&self, local_type1: LocalType, local_type2: LocalType, pos: &Pos, tree: &Tree, local_types: &LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        if !self.match_local_types_for_cast(local_type1, local_type2, tree, local_types)? {
+            errs.push(FrontendError::Message(pos.clone(), format!("can't cast type {} to type {}", LocalTypeWithLocalTypes(local_type1, local_types), LocalTypeWithLocalTypes(local_type2, local_types))));
+        }
+        Ok(())
     }
     
     //
@@ -1378,7 +1653,7 @@ impl Typer
                                         let mut new_local_types = LocalTypes::new();
                                         let new_local_type = new_local_types.set_defined_type(&new_type);
                                         let mut var_env: Environment<LocalType> = Environment::new();
-                                        self.evalute_types_for_expr(&mut **expr, tree, &mut var_env, &mut type_param_env, &mut new_local_types, errs)?;
+                                        self.evaluate_types_for_expr(&mut **expr, tree, &mut var_env, &mut type_param_env, &mut new_local_types, errs)?;
                                         let mut var_env2: Environment<(LocalType, usize, Pos)> = Environment::new();
                                         self.set_shareds_for_expr(&**expr, tree, &mut var_env2, &new_local_types, errs)?;
                                         *local_type = Some(new_local_type);
@@ -1437,7 +1712,7 @@ impl Typer
                                                             },
                                                         }
                                                     }
-                                                    self.evalute_types_for_expr(&mut **body, tree, &mut var_env, &mut type_param_env, &mut new_local_types, errs)?;
+                                                    self.evaluate_types_for_expr(&mut **body, tree, &mut var_env, &mut type_param_env, &mut new_local_types, errs)?;
                                                     let mut var_env2: Environment<(LocalType, usize, Pos)> = Environment::new();
                                                     var_env2.push_new_vars();
                                                     for (arg, new_local_type) in args.iter().zip((&new_local_types2[0..(new_local_types2.len() - 1)]).iter()) {
@@ -1756,13 +2031,13 @@ impl Typer
         }
     }
     
-    fn check_type_value_for_as(&self, type_value: &TypeValue, tree: &Tree) -> FrontendResultWithErrors<bool>
+    fn check_type_value_for_cast(&self, type_value: &TypeValue, tree: &Tree) -> FrontendResultWithErrors<bool>
     {
         match type_value {
-            TypeValue::Type(_, TypeValueName::Tuple | TypeValueName::Array(_), type_values) => {
+            TypeValue::Type(_, TypeValueName::Tuple | TypeValueName::Array(Some(_)), type_values) => {
                 let mut is_for_as = true;
                 for type_value2 in type_values {
-                    if !self.check_type_value_for_as(type_value2, tree)? {
+                    if !self.check_type_value_for_cast(type_value2, tree)? {
                         is_for_as = false;
                     }
                 }
@@ -1772,7 +2047,7 @@ impl Typer
                 let mut is_for_as = self.has_primitive_for_type_ident(ident, tree)?;
                 if is_for_as {
                     for type_value2 in type_values {
-                        if !self.check_type_value_for_as(type_value2, tree)? {
+                        if !self.check_type_value_for_cast(type_value2, tree)? {
                             is_for_as = false;
                         }
                     }
@@ -1783,11 +2058,11 @@ impl Typer
         }
     }
     
-    fn evalute_types_for_expr(&self, expr: &mut Expr, tree: &Tree, var_env: &mut Environment<LocalType>, type_param_env: &mut Environment<LocalType>, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn evaluate_types_for_expr(&self, expr: &mut Expr, tree: &Tree, var_env: &mut Environment<LocalType>, type_param_env: &mut Environment<LocalType>, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         match expr {
             Expr::Literal(literal, local_type, _) => {
-                self.evalute_types_for_literal(&mut **literal, tree, var_env, type_param_env, local_types, errs, Self::evalute_types_for_expr)?;
+                self.evaluate_types_for_literal(&mut **literal, tree, var_env, type_param_env, local_types, errs, Self::evaluate_types_for_expr)?;
                 *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
             },
             Expr::Lambda(args, ret_type_expr, body, ret_local_type, local_type, _, _, _) => {
@@ -1818,7 +2093,7 @@ impl Typer
                     },
                     None => *ret_local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new())))),
                 }
-                self.evalute_types_for_expr(&mut **body, tree, var_env, type_param_env, local_types, errs)?;
+                self.evaluate_types_for_expr(&mut **body, tree, var_env, type_param_env, local_types, errs)?;
                 *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
                 var_env.pop_vars();
             },
@@ -1832,7 +2107,7 @@ impl Typer
                 for expr_named_field_pair in expr_named_field_pairs {
                     match expr_named_field_pair {
                         NamedFieldPair(_, field_expr, _) => {
-                            self.evalute_types_for_expr(&mut **field_expr, tree, var_env, type_param_env, local_types, errs)?;
+                            self.evaluate_types_for_expr(&mut **field_expr, tree, var_env, type_param_env, local_types, errs)?;
                         }
                     }
                 }
@@ -1841,73 +2116,73 @@ impl Typer
             },
             Expr::PrintfApp(exprs, local_type, _) => {
                 for expr2 in exprs {
-                    self.evalute_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
+                    self.evaluate_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
                 }
                 *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
             },
             Expr::App(expr2, exprs, local_type, _) => {
-                self.evalute_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
+                self.evaluate_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
                 for expr3 in exprs {
-                    self.evalute_types_for_expr(&mut **expr3, tree, var_env, type_param_env, local_types, errs)?;
+                    self.evaluate_types_for_expr(&mut **expr3, tree, var_env, type_param_env, local_types, errs)?;
                 }
                 *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
             },
             Expr::GetField(expr2, _, local_type, _) => {
-                self.evalute_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
+                self.evaluate_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
                 *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
             },
             Expr::Get2Field(expr2, _, local_type, _) => {
-                self.evalute_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
+                self.evaluate_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
                 *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
             },
             Expr::SetField(expr2, _, expr3, local_type, _) => {
-                self.evalute_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
-                self.evalute_types_for_expr(&mut **expr3, tree, var_env, type_param_env, local_types, errs)?;
+                self.evaluate_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
+                self.evaluate_types_for_expr(&mut **expr3, tree, var_env, type_param_env, local_types, errs)?;
                 *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
             },
             Expr::UpdateField(expr2, _, expr3, local_type, _) => {
-                self.evalute_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
-                self.evalute_types_for_expr(&mut **expr3, tree, var_env, type_param_env, local_types, errs)?;
+                self.evaluate_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
+                self.evaluate_types_for_expr(&mut **expr3, tree, var_env, type_param_env, local_types, errs)?;
                 *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
             },
             Expr::UpdateGet2Field(expr2, _, expr3, local_type, _) => {
-                self.evalute_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
-                self.evalute_types_for_expr(&mut **expr3, tree, var_env, type_param_env, local_types, errs)?;
+                self.evaluate_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
+                self.evaluate_types_for_expr(&mut **expr3, tree, var_env, type_param_env, local_types, errs)?;
                 *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
             },
             Expr::Uniq(expr2, local_type, _) => {
-                self.evalute_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
+                self.evaluate_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
                 *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
             },
             Expr::Shared(expr2, local_type, _) => {
-                self.evalute_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
+                self.evaluate_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
                 *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
             },
             Expr::Typed(expr2, type_expr, local_type, _) => {
-                self.evalute_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
+                self.evaluate_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
                 match self.evaluate_type_for_type_expr(&**type_expr, tree, type_param_env, &mut None, errs)? {
                     Some(type_value) => *local_type = Some(local_types.add_type_value(type_value)),
                     None => *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new())))),
                 }
             },
             Expr::As(expr2, type_expr, local_type, _) => {
-                self.evalute_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
+                self.evaluate_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
                 match self.evaluate_type_for_type_expr(&**type_expr, tree, type_param_env, &mut None, errs)? {
                     Some(type_value) => {
-                        if self.check_type_value_for_as(&*type_value, tree)? {
+                        if self.check_type_value_for_cast(&*type_value, tree)? {
                             *local_type = Some(local_types.add_type_value(type_value.clone()));
                         } else {
                             *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
-                            errs.push(FrontendError::Message(type_expr_pos(type_expr).clone(), format!("can't cast to type {}", TypeValueWithLocalTypes(type_value, local_types))));
+                            errs.push(FrontendError::Message(type_expr_pos(type_expr).clone(), format!("can't cast to type {} that isn't primive type", TypeValueWithLocalTypes(type_value, local_types))));
                         }
                     },
                     None => *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new())))),
                 }
             },
             Expr::If(expr2, expr3, expr4, local_type, _) => {
-                self.evalute_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
-                self.evalute_types_for_expr(&mut **expr3, tree, var_env, type_param_env, local_types, errs)?;
-                self.evalute_types_for_expr(&mut **expr4, tree, var_env, type_param_env, local_types, errs)?;
+                self.evaluate_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
+                self.evaluate_types_for_expr(&mut **expr3, tree, var_env, type_param_env, local_types, errs)?;
+                self.evaluate_types_for_expr(&mut **expr4, tree, var_env, type_param_env, local_types, errs)?;
                 *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
             },
             Expr::Let(binds, expr2, local_type, _) => {
@@ -1915,23 +2190,23 @@ impl Typer
                 for bind in binds {
                     match bind {
                         Bind(pattern, expr3) => {
-                            self.evalute_types_for_expr(&mut **expr3, tree, var_env, type_param_env, local_types, errs)?;
-                            self.evalute_types_for_pattern(&mut **pattern, tree, var_env, type_param_env, local_types, errs)?;
+                            self.evaluate_types_for_expr(&mut **expr3, tree, var_env, type_param_env, local_types, errs)?;
+                            self.evaluate_types_for_pattern(&mut **pattern, tree, var_env, type_param_env, local_types, errs)?;
                         },
                     }
                 }
-                self.evalute_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
+                self.evaluate_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
                 *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
                 var_env.pop_vars();
             },
             Expr::Match(expr2, cases, local_type, _) => {
-                self.evalute_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
+                self.evaluate_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
                 for case in cases {
                     match case {
                         Case(pattern, expr3) => {
                             var_env.push_new_vars();
-                            self.evalute_types_for_pattern(&mut **pattern, tree, var_env, type_param_env, local_types, errs)?;
-                            self.evalute_types_for_expr(&mut **expr3, tree, var_env, type_param_env, local_types, errs)?;
+                            self.evaluate_types_for_pattern(&mut **pattern, tree, var_env, type_param_env, local_types, errs)?;
+                            self.evaluate_types_for_expr(&mut **expr3, tree, var_env, type_param_env, local_types, errs)?;
                             var_env.pop_vars();
                         },
                     }
@@ -1942,31 +2217,32 @@ impl Typer
         Ok(())
     }
 
-    fn evalute_types_for_pattern(&self, pattern: &mut Pattern, tree: &Tree, var_env: &mut Environment<LocalType>, type_param_env: &mut Environment<LocalType>, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn evaluate_types_for_pattern(&self, pattern: &mut Pattern, tree: &Tree, var_env: &mut Environment<LocalType>, type_param_env: &mut Environment<LocalType>, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         match pattern {
             Pattern::Literal(literal, local_type, _) => {
-                self.evalute_types_for_literal(&mut **literal, tree, var_env, type_param_env, local_types, errs, Self::evalute_types_for_pattern)?;
+                self.evaluate_types_for_literal(&mut **literal, tree, var_env, type_param_env, local_types, errs, Self::evaluate_types_for_pattern)?;
                 *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
             },
-            Pattern::As(literal, type_expr, local_type, _) => {
-                self.evalute_types_for_literal(&mut **literal, tree, var_env, type_param_env, local_types, errs, Self::evalute_types_for_pattern)?;
+            Pattern::As(literal, type_expr, local_type1, local_type2, _) => {
+                self.evaluate_types_for_literal(&mut **literal, tree, var_env, type_param_env, local_types, errs, Self::evaluate_types_for_pattern)?;
+                *local_type1 = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
                 match self.evaluate_type_for_type_expr(&**type_expr, tree, type_param_env, &mut None, errs)? {
                     Some(type_value) => {
-                        if self.check_type_value_for_as(&*type_value, tree)? {
-                            *local_type = Some(local_types.add_type_value(type_value.clone()));
+                        if self.check_type_value_for_cast(&*type_value, tree)? {
+                            *local_type2 = Some(local_types.add_type_value(type_value.clone()));
                         } else {
-                            *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+                            *local_type2 = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
                             errs.push(FrontendError::Message(type_expr_pos(type_expr).clone(), format!("can't cast to type {}", TypeValueWithLocalTypes(type_value, local_types))));
                         }
                     },
-                    None => *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new())))),
+                    None => *local_type2 = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new())))),
                 }
             },
             Pattern::Const(_, local_type, _) => *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new())))),
             Pattern::UnnamedFieldCon(_, patterns, con_local_type, local_type, _) => {
                 for pattern2 in patterns {
-                    self.evalute_types_for_pattern(&mut **pattern2, tree, var_env, type_param_env, local_types, errs)?;
+                    self.evaluate_types_for_pattern(&mut **pattern2, tree, var_env, type_param_env, local_types, errs)?;
                 }
                 *con_local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
                 *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
@@ -1974,7 +2250,7 @@ impl Typer
             Pattern::NamedFieldCon(_, pattern_named_field_pairs, con_local_type, local_type, _) => {
                 for pattern_named_field_pair in pattern_named_field_pairs {
                     match pattern_named_field_pair {
-                        NamedFieldPair(_, pattern2, _) => self.evalute_types_for_pattern(&mut **pattern2, tree, var_env, type_param_env, local_types, errs)?,
+                        NamedFieldPair(_, pattern2, _) => self.evaluate_types_for_pattern(&mut **pattern2, tree, var_env, type_param_env, local_types, errs)?,
                     }
                 }
                 *con_local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
@@ -1989,12 +2265,12 @@ impl Typer
                 let new_local_type = local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new())));
                 var_env.add_var(ident.clone(), new_local_type);
                 *local_type = Some(new_local_type);
-                self.evalute_types_for_pattern(&mut **pattern2, tree, var_env, type_param_env, local_types, errs)?;
+                self.evaluate_types_for_pattern(&mut **pattern2, tree, var_env, type_param_env, local_types, errs)?;
             },
             Pattern::Wildcard(local_type, _) => *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new())))),
             Pattern::Alt(patterns, local_type, _) => {
                 for pattern2 in patterns {
-                    self.evalute_types_for_pattern(&mut **pattern2, tree, var_env, type_param_env, local_types, errs)?;
+                    self.evaluate_types_for_pattern(&mut **pattern2, tree, var_env, type_param_env, local_types, errs)?;
                 }
                 *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
             },
@@ -2003,7 +2279,7 @@ impl Typer
     }
 
 
-    fn evalute_types_for_literal<T, F>(&self, literal: &mut Literal<T>, tree: &Tree, var_env: &mut Environment<LocalType>, type_param_env: &mut Environment<LocalType>, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>, mut f: F) -> FrontendResultWithErrors<()>
+    fn evaluate_types_for_literal<T, F>(&self, literal: &mut Literal<T>, tree: &Tree, var_env: &mut Environment<LocalType>, type_param_env: &mut Environment<LocalType>, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>, mut f: F) -> FrontendResultWithErrors<()>
         where F: FnMut(&Self, &mut T, &Tree, &mut Environment<LocalType>, &mut Environment<LocalType>, &mut LocalTypes, &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         match literal {
@@ -2026,7 +2302,7 @@ impl Typer
     fn set_shared_for_tuple(&self, ident: &String, tuple: &(LocalType, usize, Pos), tree: &Tree, local_types: &LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         if tuple.1 > 1 {
-            self.set_shared(ident.as_str(), tuple.0, tuple.2.clone(), tree, local_types, errs)?;
+            self.set_shared_for_local_type(ident.as_str(), tuple.0, tuple.2.clone(), tree, local_types, errs)?;
         }
         Ok(())
     }
@@ -2145,7 +2421,7 @@ impl Typer
     {
         match pattern {
             Pattern::Literal(literal, _, _) =>  self.set_shareds_for_literal(literal, tree, var_env, local_types, errs, Self::set_shareds_for_pattern)?,
-            Pattern::As(literal, _, _, _) =>  self.set_shareds_for_literal(literal, tree, var_env, local_types, errs, Self::set_shareds_for_pattern)?,
+            Pattern::As(literal, _, _, _, _) =>  self.set_shareds_for_literal(literal, tree, var_env, local_types, errs, Self::set_shareds_for_pattern)?,
             Pattern::Const(_, _, _) => (),
             Pattern::UnnamedFieldCon(_, patterns, _, _, _) => {
                 for pattern2 in patterns {
@@ -2364,7 +2640,7 @@ impl Typer
                 let mut new_local_types = LocalTypes::new();
                 let new_local_type = new_local_types.set_defined_type(&new_type);
                 let mut var_env: Environment<LocalType> = Environment::new();
-                self.evalute_types_for_expr(&mut **expr, tree, &mut var_env, &mut type_param_env, &mut new_local_types, errs)?;
+                self.evaluate_types_for_expr(&mut **expr, tree, &mut var_env, &mut type_param_env, &mut new_local_types, errs)?;
                 let mut var_env2: Environment<(LocalType, usize, Pos)> = Environment::new();
                 self.set_shareds_for_expr(&**expr, tree, &mut var_env2, &new_local_types, errs)?;
                 *local_type = Some(new_local_type);
@@ -2407,7 +2683,7 @@ impl Typer
                                             },
                                         }
                                     }
-                                    self.evalute_types_for_expr(&mut **body, tree, &mut var_env, &mut type_param_env, &mut new_local_types, errs)?;
+                                    self.evaluate_types_for_expr(&mut **body, tree, &mut var_env, &mut type_param_env, &mut new_local_types, errs)?;
                                     let mut var_env2: Environment<(LocalType, usize, Pos)> = Environment::new();
                                     var_env2.push_new_vars();
                                     for i in 0..args.len() {
@@ -2436,6 +2712,442 @@ impl Typer
                 }
             },
         }
+        Ok(())
+    }
+
+    //
+    // Inference of types.
+    //
+
+    fn check_builtin_type_ident(&self, ident: &String, count: usize, pos: Pos, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<bool>
+    {
+        match tree.type_var(ident) {
+            Some(type_var) => {
+                let type_var_r = type_var.borrow();
+                match &*type_var_r {
+                    TypeVar::Builtin(Some(type_args), _, _) => {
+                        if count == type_args.type_arg_idents().len() {
+                            Ok(true)
+                        } else {
+                            errs.push(FrontendError::Message(pos.clone(), format!("number of type arguments of built-in type variable {} isn't equal to number of inferred type arguments", ident)));
+                            Ok(false)
+                        }
+                    },
+                    TypeVar::Builtin(None, _, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_builtin_type_ident: no type arguments"))])),
+                    _ => {
+                        errs.push(FrontendError::Message(pos, format!("type variable {} isn't built-in type variable", ident)));
+                        Ok(false)
+                    },
+                }
+            },
+            None => {
+                errs.push(FrontendError::Message(pos, format!("undefined built-in type variable {}", ident)));
+                Ok(false)
+            }
+        }
+    }
+    
+    fn local_type_for_fields(&self, local_type: LocalType, fields: &mut [Field], pos: &Pos, tree: &Tree, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<LocalType>>
+    {
+        let mut current_local_type = local_type;
+        for field in fields {
+            let field_idx = match field {
+                Field::Unnamed(tmp_field_idx) => Some(*tmp_field_idx),
+                Field::Named(field_ident, field_idx) => {
+                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, current_local_type))) {
+                        Some(LocalTypeEntry::Type(type_value)) => {
+                            match &*type_value {
+                                TypeValue::Type(_, TypeValueName::Name(type_ident), _) => {
+                                    match tree.type_var(type_ident) {
+                                        Some(type_var) => {
+                                            let type_var_r = type_var.borrow();
+                                            match &*type_var_r {
+                                                TypeVar::Builtin(_, Some(fields2), _) => {
+                                                    match fields2.field_index(field_ident) {
+                                                        Some(tmp_field_idx) => {
+                                                            *field_idx = Some(tmp_field_idx);
+                                                            Some(tmp_field_idx)
+                                                        },
+                                                        None => {
+                                                            errs.push(FrontendError::Message(pos.clone(), format!("type {} hasn't field {}", LocalTypeWithLocalTypes(current_local_type, local_types), field_ident)));
+                                                            None
+                                                        },
+                                                    }
+                                                },
+                                                TypeVar::Data(_, cons, _) => {
+                                                    if cons.len() == 1 {
+                                                        let con_r = cons[0].borrow();
+                                                        match &*con_r {
+                                                            Con::NamedField(_, _, _, Some(named_fields), _) => {
+                                                                match named_fields.field_index(field_ident) {
+                                                                    Some(tmp_field_idx) => {
+                                                                        *field_idx = Some(tmp_field_idx);
+                                                                        Some(tmp_field_idx)
+                                                                    },
+                                                                    None => {
+                                                                        errs.push(FrontendError::Message(pos.clone(), format!("type {} hasn't field {}", LocalTypeWithLocalTypes(current_local_type, local_types), field_ident)));
+                                                                        None
+                                                                    },
+                                                                }
+                                                            },
+                                                            Con::NamedField(_, _, _, None, _) => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: type variable isn't type or no fields"))])),
+                                                            _ => {
+                                                                errs.push(FrontendError::Message(pos.clone(), format!("type {} has constructor without named fields", LocalTypeWithLocalTypes(current_local_type, local_types))));
+                                                                None
+                                                            },
+                                                        }
+                                                    } else {
+                                                        errs.push(FrontendError::Message(pos.clone(), format!("type {} has too many constructors for fields", LocalTypeWithLocalTypes(current_local_type, local_types))));
+                                                        None
+                                                    }
+                                                },
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: type variable isn't type or no fields"))])),
+                                            }
+                                        },
+                                        None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: no type variable"))])),
+                                    }
+                                },
+                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: type value isn't type"))]))
+                            }
+                        },
+                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: no local type entry"))])),
+                    }
+                },
+            };
+            match field_idx {
+                Some(field_idx) => {
+                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, current_local_type))) {
+                        Some(LocalTypeEntry::Type(type_value)) => {
+                            match &*type_value {
+                                TypeValue::Type(_, TypeValueName::Name(type_ident), type_values) => {
+                                    match tree.type_var(type_ident) {
+                                        Some(type_var) => {
+                                            let type_var_r = type_var.borrow();
+                                            match &*type_var_r {
+                                                TypeVar::Builtin(_, Some(fields2), _) => {
+                                                    if field_idx < fields2.field_type_values().len() {
+                                                        let new_type_value = match fields2.field_type_values()[field_idx].substitute(type_values) {
+                                                            Ok(Some(tmp_type_value)) => tmp_type_value,
+                                                            Ok(None) => fields2.field_type_values()[field_idx].clone(),
+                                                            Err(err) => return Err(FrontendErrors::new(vec![FrontendError::Internal(format!("local_type_for_fields: {}", err))])),
+                                                        };
+                                                        current_local_type = local_types.add_type_value(new_type_value);
+                                                    } else {
+                                                        errs.push(FrontendError::Message(pos.clone(), format!("type {} hasn't field {}", LocalTypeWithLocalTypes(current_local_type, local_types), field)));
+                                                        return Ok(None);
+                                                    }
+                                                },
+                                                TypeVar::Data(_, cons, _) => {
+                                                    if cons.len() == 1 {
+                                                        let con_r = cons[0].borrow();
+                                                        let con_ident = match &*con_r {
+                                                            Con::UnnamedField(tmp_con_ident, _, _, _) => tmp_con_ident,
+                                                            Con::NamedField(tmp_con_ident, _, _, _, _) => tmp_con_ident,
+                                                        };
+                                                        type_for_fun_ident_in(con_ident, tree, |typ| {
+                                                                match &**typ.type_value() {
+                                                                    TypeValue::Type(_, TypeValueName::Fun, type_values) => {
+                                                                        if type_values.len() >= 1 {
+                                                                            if field_idx < type_values.len() - 1 {
+                                                                                let new_type_value = match type_values[field_idx].substitute(type_values) {
+                                                                                    Ok(Some(tmp_type_value)) => tmp_type_value,
+                                                                                    Ok(None) => type_values[field_idx].clone(),
+                                                                                    Err(err) => return Err(FrontendErrors::new(vec![FrontendError::Internal(format!("local_type_for_fields: {}", err))])),
+                                                                                };
+                                                                                current_local_type = local_types.add_type_value(new_type_value);
+                                                                            } else {
+                                                                                errs.push(FrontendError::Message(pos.clone(), format!("type {} hasn't field {}", LocalTypeWithLocalTypes(current_local_type, local_types), field)));
+                                                                            }
+                                                                        } else {
+                                                                            return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: too few argument type values"))]))
+                                                                        }
+                                                                    },
+                                                                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: type isn't function type"))]))
+                                                                }
+                                                                Ok(())
+                                                        })?;
+                                                    } else {
+                                                        errs.push(FrontendError::Message(pos.clone(), format!("type {} has too many constructors for fields", LocalTypeWithLocalTypes(current_local_type, local_types))));
+                                                        return Ok(None);
+                                                    }
+                                                },
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: type variable isn't type or no fields"))])),
+                                            }
+                                        },
+                                        None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: no type variable"))])),
+                                    }
+                                },
+                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: type value isn't type"))]))
+                            }
+                        },
+                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: no local type entry"))])),
+                    }
+                },
+                _ => return Ok(None),
+            }
+        }
+        Ok(Some(current_local_type))
+    }
+
+    fn infer_types_for_named_field_pairs<T, F>(&self, named_field_pairs: &mut [NamedFieldPair<T>], con_local_type: LocalType, local_type: LocalType, named_fields: &NamedFields, tree: &Tree, var_env: &mut Environment<()>, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>, mut f: F) -> FrontendResultWithErrors<()>
+        where F: FnMut(&Self, &mut T, &Tree, &mut Environment<()>, &mut LocalTypes, &mut Vec<FrontendError>) -> FrontendResultWithErrors<LocalType>
+    {
+        match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, con_local_type))) {
+            Some(LocalTypeEntry::Type(type_value)) => {
+                match &*type_value {
+                    TypeValue::Type(_, TypeValueName::Fun, type_values) => {
+                        for named_field_pair in named_field_pairs {
+                            match named_field_pair {
+                                NamedFieldPair(field_ident, other, field_pos) => {
+                                    match named_fields.field_index(field_ident) {
+                                        Some(field_idx) => {
+                                            let field_local_type = f(self, other, tree, var_env, local_types, errs)?;
+                                            self.match_type_values(&Rc::new(TypeValue::Param(UniqFlag::None, field_local_type)), &type_values[field_idx], field_pos, tree, local_types, errs)?;
+                                        },
+                                        None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_named_field_pairs: no field index"))])),
+                                    }
+                                },
+                            }
+                        }
+                        match type_values.last() {
+                            Some(type_value) => {
+                                local_types.set_type_value(local_type, type_value.clone());
+                            },
+                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_named_field_pairs: no return type value"))])),
+                        }
+                    },
+                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_named_field_pairs: type value isn't type"))])),
+                }
+            },
+            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_named_field_pairs: local type entry isn't type or no local type entry"))])),
+        }
+        Ok(())
+    }
+    
+    
+    fn infer_types_for_expr(&self, expr: &mut Expr, tree: &Tree, var_env: &mut Environment<()>, closure_stack: &mut ClosureStack, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<LocalType>
+    {
+        match expr {
+            Expr::Literal(literal, Some(local_type), _) => {
+                self.infer_types_for_literal(&mut **literal, *local_type, tree, var_env, local_types, errs, |typer, expr, tree, var_env, local_types, errs| {
+                        typer.infer_types_for_expr(expr, tree, var_env, closure_stack, local_types, errs)
+                })?;
+                Ok(*local_type)
+            },
+            Expr::Lambda(args, _, body, Some(ret_local_type), Some(local_type), _, _, pos) => {
+                let stack_idx = var_env.stack_len();
+                var_env.push_new_vars();
+                closure_stack.push_new_closure();
+                for arg in &*args {
+                    match arg {
+                        LambdaArg(ident, _, _, _) => {
+                            var_env.add_var(ident.clone(), ());
+                        },
+                    }
+                }
+                let body_local_type = self.infer_types_for_expr(body, tree, var_env, closure_stack, local_types, errs)?;
+                self.match_local_types(body_local_type, *ret_local_type, pos, tree, local_types, errs)?;
+                let mut uniq_flag = UniqFlag::None;
+                let mut shared_flag = SharedFlag::Shared;
+                let mut closure_local_types: BTreeSet<LocalType> = BTreeSet::new(); 
+                closure_stack.foreach_with_result(|_, closure_local_type| {
+                        let (uniq_flag2, shared_flag2) = self.uniq_flag_and_shared_flag_for_local_type(closure_local_type, tree, local_types)?;
+                        if uniq_flag2 == UniqFlag::Uniq {
+                            uniq_flag = UniqFlag::Uniq;
+                        }
+                        if shared_flag2 == SharedFlag::None {
+                            shared_flag = SharedFlag::None;
+                        }
+                        closure_local_types.insert(closure_local_type);
+                        Ok(())
+                })?;
+                let mut type_values: Vec<Rc<TypeValue>> = Vec::new();
+                for arg in &*args {
+                    match arg {
+                        LambdaArg(_, _, Some(arg_local_type), _) => type_values.push(Rc::new(TypeValue::Param(UniqFlag::None, *arg_local_type))),
+                        LambdaArg(_, _, None, _) => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_expr: no local type"))])),
+                    }
+                }
+                type_values.push(Rc::new(TypeValue::Param(UniqFlag::None, *ret_local_type)));
+                let mut is_in_non_uniq_lambda = false;
+                match (uniq_flag, shared_flag) {
+                    (UniqFlag::None, SharedFlag::None) => {
+                        let mut type_param_entry = TypeParamEntry::new();
+                        type_param_entry.trait_names.insert(TraitName::Fun);
+                        type_param_entry.type_values = type_values;
+                        type_param_entry.closure_local_types = closure_local_types;
+                        local_types.set_type_param(*local_type, Rc::new(RefCell::new(type_param_entry)));
+                        is_in_non_uniq_lambda = true;
+                    },
+                    (UniqFlag::None, SharedFlag::Shared) => {
+                        local_types.set_type_value(*local_type, Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Fun, type_values)));
+                        is_in_non_uniq_lambda = true;
+                    },
+                    (UniqFlag::Uniq, _) => {
+                        local_types.set_type_value(*local_type, Rc::new(TypeValue::Type(UniqFlag::Uniq, TypeValueName::Fun, type_values)));
+                    },
+                    _ => (),
+                };
+                if is_in_non_uniq_lambda {
+                    closure_stack.foreach_with_result(|_, closure_local_type| {
+                            local_types.set_in_non_uniq_lambda(closure_local_type, true);
+                            Ok(())
+                    })?;
+                }
+                closure_stack.merge_and_pop_closure(stack_idx); 
+                var_env.pop_vars();
+                Ok(*local_type)
+            },
+            Expr::Var(ident, Some(local_type), pos) => {
+                match var_env.stack_index(ident) {
+                    Some(stack_idx) => {
+                        closure_stack.add_local_type((ident.clone(), stack_idx), *local_type);
+                    },
+                    None => type_for_var_ident_in(ident, tree, |typ| set_type_for_local_types(*local_type, typ, local_types))?,
+                }
+                Ok(*local_type)
+            },
+            Expr::NamedFieldConApp(ident, expr_named_field_pairs, Some(con_local_type), Some(local_type), pos) => {
+                type_and_named_fields_for_con_ident_in(ident, tree, |typ, named_fields| {
+                        set_type_for_local_types(*local_type, typ, local_types)?;
+                        self.infer_types_for_named_field_pairs(expr_named_field_pairs.as_mut_slice(), *con_local_type, *local_type, named_fields, tree, var_env, local_types, errs, |typer, expr, tree, var_env, local_types, errs| {
+                                typer.infer_types_for_expr(expr, tree, var_env, closure_stack, local_types, errs)
+                        })?;
+                        Ok(())
+                })?;
+                Ok(*local_type)
+            },
+            Expr::PrintfApp(exprs, Some(local_type), pos) => {
+                if self.check_builtin_type_ident(&String::from("Char"), 0, pos.clone(), tree, errs)? && self.check_builtin_type_ident(&String::from("ConstantSlice"), 1, pos.clone(), tree, errs)? {
+                    match exprs.first_mut() {
+                        Some(expr2) => {
+                            let expr2_local_type = self.infer_types_for_expr(&mut **expr2, tree, var_env, closure_stack, local_types, errs)?;
+                            let str_type_value = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("ConstantSlice")), vec![Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("ConstantSlice")), Vec::new()))]));
+                            self.match_type_values(&Rc::new(TypeValue::Param(UniqFlag::None, expr2_local_type)), &str_type_value, pos, tree, local_types, errs)?;
+                            for expr3 in &mut exprs[1..] {
+                                let expr3_local_type = self.infer_types_for_expr(&mut **expr3, tree, var_env, closure_stack, local_types, errs)?;
+                                match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, expr2_local_type))) {
+                                    Some(LocalTypeEntry::Type(type_value)) => {
+                                        match &*type_value {
+                                            TypeValue::Type(_, TypeValueName::Name(expr3_type_ident), _) => {
+                                                if !self.has_primitive_for_type_ident(expr3_type_ident, tree)? {
+                                                    errs.push(FrontendError::Message(pos.clone(), format!("printf must't take values with type {}", LocalTypeWithLocalTypes(expr3_local_type, local_types))));
+                                                }
+                                            },
+                                            _ => errs.push(FrontendError::Message(pos.clone(), format!("printf must't take values with type {}", LocalTypeWithLocalTypes(expr3_local_type, local_types)))),
+                                        }
+                                    },
+                                    Some(LocalTypeEntry::Param(_, _, _, _)) => errs.push(FrontendError::Message(pos.clone(), format!("printf must't take values with type {}", LocalTypeWithLocalTypes(expr3_local_type, local_types)))),
+                                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_expr: no local type entry"))])), 
+                                }
+                            }
+                        },
+                        None => errs.push(FrontendError::Message(pos.clone(), String::from("too few arguments for printf"))),
+                    }
+                    local_types.set_type_value(*local_type, Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Tuple, Vec::new())));
+                }
+                Ok(*local_type)
+            },
+            Expr::App(expr2, exprs, Some(local_type), pos) => {
+                let local_type2 = self.infer_types_for_expr(&mut **expr2, tree, var_env, closure_stack, local_types, errs)?;
+                let mut local_types2: Vec<LocalType> = Vec::new();
+                for expr3 in exprs {
+                    local_types2.push(self.infer_types_for_expr(&mut **expr3, tree, var_env, closure_stack, local_types, errs)?);
+                }
+                let mut type_param_entry = TypeParamEntry::new();
+                type_param_entry.trait_names.insert(TraitName::Fun);
+                type_param_entry.type_values = local_types2.iter().map(|lt| Rc::new(TypeValue::Param(UniqFlag::None, *lt))).collect();
+                type_param_entry.type_values.push(Rc::new(TypeValue::Param(UniqFlag::None, *local_type)));
+                let local_type3 = local_types.add_type_param(Rc::new(RefCell::new(type_param_entry)));
+                self.match_local_types(local_type2, local_type3, pos, tree, local_types, errs)?;
+                Ok(*local_type)
+            },
+            Expr::GetField(expr2, fields, Some(local_type), pos) => {
+                let local_type2 = self.infer_types_for_expr(&mut **expr2, tree, var_env, closure_stack, local_types, errs)?;
+                match self.local_type_for_fields(local_type2, fields, pos, tree, local_types, errs)? {
+                    Some(local_type3) => self.match_local_types(local_type3, *local_type, pos, tree, local_types, errs)?, 
+                    None => (),
+                }
+                Ok(*local_type)
+            },
+            Expr::Get2Field(expr2, fields, Some(local_type), pos) => {
+                let local_type2 = self.infer_types_for_expr(&mut **expr2, tree, var_env, closure_stack, local_types, errs)?;
+                match self.local_type_for_fields(local_type2, fields, pos, tree, local_types, errs)? {
+                    Some(local_type3) => {
+                        // (t3, t2)
+                        let type_value = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Tuple, vec![Rc::new(TypeValue::Param(UniqFlag::None, local_type3)), Rc::new(TypeValue::Param(UniqFlag::None, local_type2))]));
+                        self.match_type_values(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), &type_value, pos, tree, local_types, errs)?;
+                        self.set_shared_for_local_type_and_fields(local_type3, pos.clone(), tree, local_types, errs)?;
+                    }
+                    None => (),
+                }
+                Ok(*local_type)
+            },
+            Expr::SetField(expr2, fields, expr3, Some(local_type), pos) => {
+                let local_type2 = self.infer_types_for_expr(&mut **expr2, tree, var_env, closure_stack, local_types, errs)?;
+                let local_type3 = self.infer_types_for_expr(&mut **expr3, tree, var_env, closure_stack, local_types, errs)?;
+                match self.local_type_for_fields(local_type2, fields, pos, tree, local_types, errs)? {
+                    Some(local_type4) => {
+                        // t4
+                        self.match_local_types(local_type3, local_type4, pos, tree, local_types, errs)?;
+                        // t2
+                        self.match_local_types(local_type2, *local_type, pos, tree, local_types, errs)?;
+                    },
+                    None => (),
+                }
+                Ok(*local_type)
+            },
+            Expr::UpdateField(expr2, fields, expr3, Some(local_type), pos) => {
+                let local_type2 = self.infer_types_for_expr(&mut **expr2, tree, var_env, closure_stack, local_types, errs)?;
+                let local_type3 = self.infer_types_for_expr(&mut **expr3, tree, var_env, closure_stack, local_types, errs)?;
+                match self.local_type_for_fields(local_type2, fields, pos, tree, local_types, errs)? {
+                    Some(local_type4) => {
+                        // (t4) -> t4
+                        let mut type_param_entry = TypeParamEntry::new();
+                        type_param_entry.trait_names.insert(TraitName::Fun);
+                        type_param_entry.type_values = vec![Rc::new(TypeValue::Param(UniqFlag::None, local_type4)); 2];
+                        let fun_local_type = local_types.add_type_param(Rc::new(RefCell::new(type_param_entry)));
+                        self.match_local_types(local_type3, fun_local_type, pos, tree, local_types, errs)?;
+                        // t2
+                        self.match_local_types(local_type2, *local_type, pos, tree, local_types, errs)?;
+                    },
+                    None => (),
+                }
+                Ok(*local_type)
+            },
+            Expr::UpdateGet2Field(expr2, fields, expr3, Some(local_type), pos) => {
+                let local_type2 = self.infer_types_for_expr(&mut **expr2, tree, var_env, closure_stack, local_types, errs)?;
+                let local_type3 = self.infer_types_for_expr(&mut **expr3, tree, var_env, closure_stack, local_types, errs)?;
+                match self.local_type_for_fields(local_type2, fields, pos, tree, local_types, errs)? {
+                    Some(local_type4) => {
+                        // (t4) -> (t5, t4)
+                        let mut type_param_entry = TypeParamEntry::new();
+                        type_param_entry.trait_names.insert(TraitName::Fun);
+                        let local_type5 = local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new())));
+                        let ret_type_value = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Tuple, vec![Rc::new(TypeValue::Param(UniqFlag::None, local_type5)), Rc::new(TypeValue::Param(UniqFlag::None, local_type4))]));
+                        type_param_entry.type_values = vec![Rc::new(TypeValue::Param(UniqFlag::None, local_type4)), ret_type_value];
+                        let fun_local_type = local_types.add_type_param(Rc::new(RefCell::new(type_param_entry)));
+                        self.match_local_types(local_type3, fun_local_type, pos, tree, local_types, errs)?;
+                        // (t5, t2)
+                        let ret_type_value2 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Tuple, vec![Rc::new(TypeValue::Param(UniqFlag::None, local_type5)), Rc::new(TypeValue::Param(UniqFlag::None, local_type2))]));
+                        self.match_type_values(&ret_type_value2, &Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), pos, tree, local_types, errs)?;
+                    },
+                    None => (),
+                }
+                Ok(*local_type)
+            },
+            _ => Ok(LocalType::new(0)),
+        }
+    }
+
+    fn infer_types_for_pattern(&self, pattern: &mut Pattern, tree: &Tree, var_env: &mut Environment<()>, local_types: &mut LocalTypes, must_set_shared: bool, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<LocalType>
+    {
+        Ok(LocalType::new(0))
+    }
+
+    fn infer_types_for_literal<T, F>(&self, literal: &mut Literal<T>, local_type: LocalType, tree: &Tree, var_env: &mut Environment<()>, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>, mut f: F) -> FrontendResultWithErrors<()>
+        where F: FnMut(&Self, &mut T, &Tree, &mut Environment<()>, &mut LocalTypes, &mut Vec<FrontendError>) -> FrontendResultWithErrors<LocalType>
+    {
         Ok(())
     }
 }

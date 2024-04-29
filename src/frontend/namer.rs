@@ -819,7 +819,7 @@ impl Namer
                     namer.check_idents_for_pattern(pattern, tree, var_env, type_param_env, var_idents, is_in_alt_pattern, errs)
                 })?;
             },
-            Pattern::As(literal, type_expr, _, _) => {
+            Pattern::As(literal, type_expr, _, _, _) => {
                 self.check_idents_for_literal(&**literal, tree, var_env, type_param_env, errs, |namer, pattern, tree, var_env, type_param_env, errs| {
                     namer.check_idents_for_pattern(pattern, tree, var_env, type_param_env, var_idents, is_in_alt_pattern, errs)
                 })?;

@@ -458,7 +458,7 @@ impl TypeMatcher
         let local_type_entry2 = local_types.type_entry_for_type_value(type_value2);
         match (local_type_entry1, local_type_entry2) {
             (Some(local_type_entry1), Some(local_type_entry2)) => self.match_local_type_entries_with_infos(&local_type_entry1, &local_type_entry2, tree, local_types, infos),
-            (_, _) => Err(FrontendError::Internal(String::from("no local type entry")))
+            (_, _) => Err(FrontendError::Internal(String::from("match_type_values_with_infos: no local type entry")))
         }
     }
 
