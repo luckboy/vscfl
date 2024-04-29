@@ -1375,7 +1375,7 @@ impl<'a> Parser<'a>
             (Token::Eof, pos) => Err(FrontendError::Message(pos, String::from("unexpected end of file"))),
             (Token::VarIdent(ident), _) => {
                 // var_ident
-                Ok(Field::Named(ident))
+                Ok(Field::Named(ident, None))
             },
             (token, pos) => {
                 // usize

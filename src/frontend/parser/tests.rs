@@ -4787,7 +4787,7 @@ d: Int =
                                                         },
                                                         _ => assert!(false),
                                                     }
-                                                    assert_eq!(vec![Field::Unnamed(0), Field::Named(String::from("y"))], *fields);
+                                                    assert_eq!(vec![Field::Unnamed(0), Field::Named(String::from("y"), None)], *fields);
                                                 },
                                                 _ => assert!(false),
                                             }
@@ -4814,7 +4814,7 @@ d: Int =
                                                         },
                                                         _ => assert!(false),
                                                     }
-                                                    assert_eq!(vec![Field::Unnamed(0), Field::Named(String::from("y"))], *fields);
+                                                    assert_eq!(vec![Field::Unnamed(0), Field::Named(String::from("y"), None)], *fields);
                                                 },
                                                 _ => assert!(false),
                                             }
@@ -4841,7 +4841,7 @@ d: Int =
                                                         },
                                                         _ => assert!(false),
                                                     }
-                                                    assert_eq!(vec![Field::Unnamed(0), Field::Named(String::from("y"))], *fields);
+                                                    assert_eq!(vec![Field::Unnamed(0), Field::Named(String::from("y"), None)], *fields);
                                                     match &**expr2 {
                                                         Expr::Var(var_ident, None, pos) => {
                                                             assert_eq!(5, pos.line);
@@ -4876,7 +4876,7 @@ d: Int =
                                                         },
                                                         _ => assert!(false),
                                                     }
-                                                    assert_eq!(vec![Field::Unnamed(0), Field::Named(String::from("y"))], *fields);
+                                                    assert_eq!(vec![Field::Unnamed(0), Field::Named(String::from("y"), None)], *fields);
                                                     match &**expr2 {
                                                         Expr::Var(var_ident, None, pos) => {
                                                             assert_eq!(6, pos.line);
@@ -4911,7 +4911,7 @@ d: Int =
                                                         },
                                                         _ => assert!(false),
                                                     }
-                                                    assert_eq!(vec![Field::Unnamed(0), Field::Named(String::from("y"))], *fields);
+                                                    assert_eq!(vec![Field::Unnamed(0), Field::Named(String::from("y"), None)], *fields);
                                                     match &**expr2 {
                                                         Expr::Var(var_ident, None, pos) => {
                                                             assert_eq!(7, pos.line);
@@ -4970,7 +4970,7 @@ d: Int =
                                                         },
                                                         _ => assert!(false),
                                                     }
-                                                    assert_eq!(vec![Field::Unnamed(0), Field::Named(String::from("y"))], *fields);
+                                                    assert_eq!(vec![Field::Unnamed(0), Field::Named(String::from("y"), None)], *fields);
                                                 },
                                                 _ => assert!(false),
                                             }

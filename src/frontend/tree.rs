@@ -207,7 +207,7 @@ pub enum Expr
 pub enum Field
 {
     Unnamed(usize),
-    Named(String),
+    Named(String, Option<usize>),
 }
 
 #[derive(Clone, Debug)]
