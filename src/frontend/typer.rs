@@ -2246,10 +2246,11 @@ impl Typer
     {
         let mut type_values: Vec<Rc<TypeValue>> = Vec::new();
         let mut local_types: Vec<Option<LocalType>> = Vec::new();
+        let trait_name = TraitName::Name(trait_ident.clone());
         let mut i = 0;
         for type_param_entry in typ.type_param_entries() {
             let type_param_entry_r = type_param_entry.borrow();
-            if type_param_entry_r.trait_names.contains(&TraitName::Name(trait_ident.clone())) {
+            if type_param_entry_r.trait_names.contains(&trait_name) {
                 type_values.push(Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Tuple, Vec::new())));
                 local_types.push(None);
             } else {
@@ -2259,14 +2260,16 @@ impl Typer
             }
         }
         let mut visited_local_types: BTreeSet<LocalType> = BTreeSet::new();
-        for (j, type_param_entry) in typ.type_param_entries().iter().enumerate() {
-            let type_param_entry_r = type_param_entry.borrow();
-            if type_param_entry_r.trait_names.contains(&TraitName::Name(trait_ident.clone())) {
-                dfs_with_result(&LocalType::new(j), &mut visited_local_types, &mut type_values, |local_type, processed_local_types, type_values| {
-                        self.local_types_for_local_type(*local_type, type_values, typ, processed_local_types)
-                }, |local_type, type_values| {
-                        self.substitue_for_local_type(*local_type, type_name, type_values, typ)
-                })?;
+        for local_type in &local_types {
+            match local_type {
+                Some(local_type) => {
+                    dfs_with_result(local_type, &mut visited_local_types, &mut type_values, |local_type, processed_local_types, type_values| {
+                            self.local_types_for_local_type(*local_type, type_values, typ, processed_local_types)
+                    }, |local_type, type_values| {
+                            self.substitue_for_local_type(*local_type, type_name, type_values, typ)
+                    })?;
+                },
+                None => (),
             }
         }
         let new_type_value = match typ.type_value().substitute(&type_values) {
@@ -2275,25 +2278,26 @@ impl Typer
             Err(err) => return Err(FrontendErrors::new(vec![FrontendError::Internal(format!("new_type_by_substitution: {}", err))])),
         };
         let mut new_type = Type::new_with_type_param_entry_count(new_type_value, typ.type_param_entries().len());
-        i = 0;
-        for type_param_entry in typ.type_param_entries() {
-            let type_param_entry_r = type_param_entry.borrow();
-            if !type_param_entry_r.trait_names.contains(&TraitName::Name(trait_ident.clone())) {
-                match new_type.type_param_entry(LocalType::new(i)) {
-                    Some(new_type_param_entry) => {
-                        let mut new_type_param_entry_r = new_type_param_entry.borrow_mut();
-                        *new_type_param_entry_r = (*type_param_entry_r).clone();
-                        for type_value in &mut new_type_param_entry_r.type_values {
-                            match typ.type_value().substitute(&type_values) {
-                                Ok(Some(type_value2)) => *type_value = type_value2,
-                                Ok(None) => (),
-                                Err(err) => return Err(FrontendErrors::new(vec![FrontendError::Internal(format!("new_type_by_substitution: {}", err))])),
+        for (local_type, type_param_entry) in local_types.iter().zip(typ.type_param_entries().iter()) {
+            match local_type {
+                Some(local_type) => {
+                    let type_param_entry_r = type_param_entry.borrow();
+                    match new_type.type_param_entry(*local_type) {
+                        Some(new_type_param_entry) => {
+                            let mut new_type_param_entry_r = new_type_param_entry.borrow_mut();
+                            *new_type_param_entry_r = (*type_param_entry_r).clone();
+                            for type_value in &mut new_type_param_entry_r.type_values {
+                                match typ.type_value().substitute(&type_values) {
+                                    Ok(Some(type_value2)) => *type_value = type_value2,
+                                    Ok(None) => (),
+                                    Err(err) => return Err(FrontendErrors::new(vec![FrontendError::Internal(format!("new_type_by_substitution: {}", err))])),
+                                }
                             }
-                        }
-                    },
-                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("new_type_by_substitution: no new type parameter entry"))])),
-                }
-                i += 1;
+                        },
+                        None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("new_type_by_substitution: no new type parameter entry"))])),
+                    }
+                },
+                None => (),
             }
         }
         for j in 0..typ.type_param_entries().len() {
