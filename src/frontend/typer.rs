@@ -509,6 +509,18 @@ impl Typer
     pub fn new() -> Self
     { Typer { type_matcher: TypeMatcher::new(), builtins: Builtins::new(), } }
 
+    pub fn new_with_builtins(builtins: Builtins) -> Self
+    { Typer { type_matcher: TypeMatcher::new(), builtins, } }
+    
+    pub fn builtins(&self) -> &Builtins
+    { &self.builtins }
+
+    pub fn builtins_mut(&mut self) -> &mut Builtins
+    { &mut self.builtins }
+    
+    pub fn set_builtins(&mut self, builtins: Builtins)
+    { self.builtins = builtins; }
+
     pub fn evaluate_types_for_type_vars(&self, tree: &Tree) -> FrontendResultWithErrors<()>
     {
         let mut errs: Vec<FrontendError> = Vec::new();
@@ -556,6 +568,13 @@ impl Typer
         }
     }
 
+    pub fn check_types(&self, tree: &Tree) -> FrontendResultWithErrors<()>
+    {
+        self.evaluate_types(tree)?;
+        self.infer_types(tree)?;
+        Ok(())
+    }
+    
     pub fn evalute_type_with_where(&self, ident: &str, type_expr: &TypeExpr, where_tuples: &[WhereTuple], trait_ident: &Option<String>, pos: &Pos, tree: &Tree) -> FrontendResultWithErrors<Type>
     {
         let mut errs: Vec<FrontendError> = Vec::new();
