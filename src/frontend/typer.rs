@@ -509,7 +509,7 @@ impl Typer
     pub fn new() -> Self
     { Typer { type_matcher: TypeMatcher::new(), builtins: Builtins::new(), } }
 
-    pub fn evalaute_types_for_type_vars(&self, tree: &Tree) -> FrontendResultWithErrors<()>
+    pub fn evaluate_types_for_type_vars(&self, tree: &Tree) -> FrontendResultWithErrors<()>
     {
         let mut errs: Vec<FrontendError> = Vec::new();
         self.evaluate_type_args_for_builtin_type_defs(tree, &mut errs)?;
@@ -524,7 +524,7 @@ impl Typer
         }
     }
 
-    pub fn evalaute_types_for_vars(&self, tree: &Tree) -> FrontendResultWithErrors<()>
+    pub fn evaluate_types_for_vars(&self, tree: &Tree) -> FrontendResultWithErrors<()>
     {
         let mut errs: Vec<FrontendError> = Vec::new();
         self.check_type_arg_counts_for_impl_defs(tree, &mut errs)?;
@@ -538,6 +538,13 @@ impl Typer
         }
     }
 
+    pub fn evaluate_types(&self, tree: &Tree) -> FrontendResultWithErrors<()>
+    {
+        self.evaluate_types_for_type_vars(tree)?;
+        self.evaluate_types_for_vars(tree)?;
+        Ok(())
+    }
+
     pub fn infer_types(&self, tree: &Tree) -> FrontendResultWithErrors<()>
     {
         let mut errs: Vec<FrontendError> = Vec::new();
@@ -546,6 +553,25 @@ impl Typer
             Ok(())
         } else {
             Err(FrontendErrors::new(errs))
+        }
+    }
+
+    pub fn evalute_type_with_where(&self, ident: &str, type_expr: &TypeExpr, where_tuples: &[WhereTuple], trait_ident: &Option<String>, pos: &Pos, tree: &Tree) -> FrontendResultWithErrors<Type>
+    {
+        let mut errs: Vec<FrontendError> = Vec::new();
+        let mut type_param_env: Environment<LocalType> = Environment::new();
+        let mut local_type_counter = Some(0usize);
+        type_param_env.push_new_vars();
+        match self.evaluate_type_for_type_expr(type_expr, tree, &mut type_param_env, &mut local_type_counter, &mut errs)? {
+            Some(type_value) => {
+                let mut typ = new_type_from_type_value_and_type_param_env(type_value, &type_param_env, &local_type_counter)?;
+                if self.evaluate_types_for_where_tuples(ident, where_tuples, trait_ident, pos.clone(), tree, &mut type_param_env, &mut typ, &mut errs)? {
+                    Ok(typ)
+                } else  {
+                    Err(FrontendErrors::new(errs))
+                }
+            },
+            None => Err(FrontendErrors::new(errs)),
         }
     }
     
