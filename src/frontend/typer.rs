@@ -31,6 +31,21 @@ fn type_expr_pos(type_expr: &TypeExpr) -> &Pos
     }
 }
 
+fn pattern_pos(pattern: &Pattern) -> &Pos
+{
+    match pattern {
+        Pattern::Literal(_, _, pos) => pos,
+        Pattern::As(_, _, _, _, pos) => pos,
+        Pattern::Const(_, _, pos) => pos,
+        Pattern::UnnamedFieldCon(_, _, _, _, pos) => pos,
+        Pattern::NamedFieldCon(_, _, _, _, pos) => pos,
+        Pattern::Var(_, _, _, pos) => pos,
+        Pattern::At(_, _, _, _, pos) => pos,
+        Pattern::Wildcard(_, pos) => pos,
+        Pattern::Alt(_, _, pos) => pos,
+    }
+}
+
 fn add_error(err: FrontendError, errs2: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
 {
     match err {
@@ -3216,7 +3231,7 @@ impl Typer
                         Bind(pattern, expr3) => {
                             let expr3_local_type = self.infer_types_for_expr(&mut **expr3, tree, var_env, closure_stack, local_types, errs)?;
                             let pattern_local_type = self.infer_types_for_pattern(&mut **pattern, tree, var_env, local_types, false, errs)?;
-                            self.match_local_types_for_first_pattern_type(pattern_local_type, expr3_local_type, pos, tree, local_types, errs)?;
+                            self.match_local_types_for_first_pattern_type(pattern_local_type, expr3_local_type, pattern_pos(pattern), tree, local_types, errs)?;
                         },
                     }
                 }
