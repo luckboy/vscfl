@@ -443,7 +443,7 @@ fn set_type_for_local_types(local_type: LocalType, typ: &Type, local_types: &mut
 
 struct ClosureStack
 {
-    stack: Vec<BTreeMap<(String, usize), LocalType>>,
+    stack: Vec<(BTreeMap<(String, usize), LocalType>, usize)>,
 }
 
 impl ClosureStack
@@ -451,23 +451,24 @@ impl ClosureStack
     fn new() -> Self
     { ClosureStack { stack: Vec::new(), } }
     
-    fn push_new_closure(&mut self)
-    { self.stack.push(BTreeMap::new()); }
+    fn push_new_closure(&mut self, stack_idx: usize)
+    { self.stack.push((BTreeMap::new(), stack_idx)) }
     
-    fn merge_and_pop_closure(&mut self, stack_idx: usize)
+    fn merge_and_pop_closure(&mut self)
     {
         if self.stack.len() >= 2 {
-            let local_types = &self.stack[self.stack.len() - 1];
-            let mut new_local_types = self.stack[self.stack.len() - 2].clone();
-            for (key @ (_, stack_idx2), local_type) in local_types {
-                if *stack_idx2 < stack_idx {
+            let local_types = &self.stack[self.stack.len() - 1].0;
+            let mut new_local_types = self.stack[self.stack.len() - 2].0.clone();
+            let new_stack_idx = self.stack[self.stack.len() - 2].1;
+            for (key @ (_, stack_idx), local_type) in local_types {
+                if *stack_idx < new_stack_idx {
                     if !new_local_types.contains_key(key) {
                         new_local_types.insert(key.clone(), *local_type);
                     }
                 }
             }
             let len = self.stack.len();
-            self.stack[len - 2] = new_local_types;
+            self.stack[len - 2].0 = new_local_types;
         }
         self.stack.pop();
     }
@@ -475,9 +476,13 @@ impl ClosureStack
     fn add_local_type(&mut self, key: (String, usize), local_type: LocalType) -> bool
     {
         match self.stack.last_mut() {
-            Some(local_types) => {
-                local_types.insert(key, local_type);
-                true
+            Some((local_types, stack_idx)) => {
+                if key.1 < *stack_idx {
+                    local_types.insert(key, local_type);
+                    true
+                } else {
+                    false
+                }
             },
             None => false,
         }
@@ -487,7 +492,7 @@ impl ClosureStack
         where F: FnMut(&(String, usize), LocalType) -> Result<(), E>
     {
         match self.stack.last() {
-            Some(local_types) => {
+            Some((local_types, _)) => {
                 for (key, local_type) in local_types {
                     f(key, *local_type)?;
                 }
@@ -3163,7 +3168,7 @@ impl Typer
             Expr::Lambda(args, _, body, Some(ret_local_type), Some(local_type), _, _, pos) => {
                 let stack_idx = var_env.stack_len();
                 var_env.push_new_vars();
-                closure_stack.push_new_closure();
+                closure_stack.push_new_closure(stack_idx);
                 for arg in &*args {
                     match arg {
                         LambdaArg(ident, _, _, _) => {
@@ -3219,7 +3224,7 @@ impl Typer
                             Ok(())
                     })?;
                 }
-                closure_stack.merge_and_pop_closure(stack_idx); 
+                closure_stack.merge_and_pop_closure(); 
                 var_env.pop_vars();
                 Ok(*local_type)
             },
