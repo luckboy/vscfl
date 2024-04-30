@@ -507,24 +507,32 @@ impl Typer
         }
     }
 
-    fn set_shared_for_local_type(&self, ident: &str, local_type: LocalType, pos: Pos, tree: &Tree, local_types: &LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn shared_flag_for_local_type(&self, local_type: LocalType, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<SharedFlag>
+    {
+        match self.type_matcher.shared_flag(local_type, tree, local_types) {
+            Ok(shared_flag) => Ok(shared_flag),
+            Err(err) => Err(FrontendErrors::new(vec![err])),
+        }
+    }
+    
+    fn set_shared_for_local_type(&self, ident: &str, local_type: LocalType, pos: &Pos, tree: &Tree, local_types: &LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         match self.type_matcher.set_shared(local_type, tree, local_types) {
             Ok(true) => Ok(()),
             Ok(false) => {
-                errs.push(FrontendError::Message(pos, format!("variable {} mustn't be shared with type {}", ident, LocalTypeWithLocalTypes(local_type, local_types))));
+                errs.push(FrontendError::Message(pos.clone(), format!("variable {} mustn't be shared with type {}", ident, LocalTypeWithLocalTypes(local_type, local_types))));
                 Ok(())
             },
             Err(err) => Err(FrontendErrors::new(vec![err])),
         }
     }
 
-    fn set_shared_for_local_type_and_fields(&self, local_type: LocalType, pos: Pos, tree: &Tree, local_types: &LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn set_shared_for_local_type_and_fields(&self, local_type: LocalType, pos: &Pos, tree: &Tree, local_types: &LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         match self.type_matcher.set_shared(local_type, tree, local_types) {
             Ok(true) => Ok(()),
             Ok(false) => {
-                errs.push(FrontendError::Message(pos, format!("type {} mustn't be shared", LocalTypeWithLocalTypes(local_type, local_types))));
+                errs.push(FrontendError::Message(pos.clone(), format!("value must be shared with type {}", LocalTypeWithLocalTypes(local_type, local_types))));
                 Ok(())
             },
             Err(err) => Err(FrontendErrors::new(vec![err])),
@@ -1730,7 +1738,7 @@ impl Typer
                                                     return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_var: too few type values"))]))
                                                 }
                                             },
-                                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_var: type isn't function type"))])),
+                                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_var: type value isn't function type"))])),
                                         }
                                     },
                                     None => *local_types = None,
@@ -2302,7 +2310,7 @@ impl Typer
     fn set_shared_for_tuple(&self, ident: &String, tuple: &(LocalType, usize, Pos), tree: &Tree, local_types: &LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         if tuple.1 > 1 {
-            self.set_shared_for_local_type(ident.as_str(), tuple.0, tuple.2.clone(), tree, local_types, errs)?;
+            self.set_shared_for_local_type(ident.as_str(), tuple.0, &tuple.2, tree, local_types, errs)?;
         }
         Ok(())
     }
@@ -2706,7 +2714,7 @@ impl Typer
                                     return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_var: too few type values"))]))
                                 }
                             },
-                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_var: type isn't function type"))])),
+                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_var: type value isn't function type"))])),
                         }
                     },
                 }
@@ -2810,7 +2818,11 @@ impl Typer
                                 _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: type value isn't type"))]))
                             }
                         },
-                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: no local type entry"))])),
+                        Some(_) => {
+                            errs.push(FrontendError::Message(pos.clone(), format!("type {} hasn't field {}", LocalTypeWithLocalTypes(current_local_type, local_types), field_ident)));
+                            None
+                        },
+                        None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: no local type entry"))])),
                     }
                 },
             };
@@ -2862,7 +2874,7 @@ impl Typer
                                                                             return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: too few argument type values"))]))
                                                                         }
                                                                     },
-                                                                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: type isn't function type"))]))
+                                                                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: type value isn't function type"))]))
                                                                 }
                                                                 Ok(())
                                                         })?;
@@ -2880,7 +2892,11 @@ impl Typer
                                 _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: type value isn't type"))]))
                             }
                         },
-                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: no local type entry"))])),
+                        Some(_) => {
+                            errs.push(FrontendError::Message(pos.clone(), format!("type {} hasn't field {}", LocalTypeWithLocalTypes(current_local_type, local_types), field)));
+                            return Ok(None);
+                        },
+                        None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: no local type entry"))])),
                     }
                 },
                 _ => return Ok(None),
@@ -2923,7 +2939,6 @@ impl Typer
         }
         Ok(())
     }
-    
     
     fn infer_types_for_expr(&self, expr: &mut Expr, tree: &Tree, var_env: &mut Environment<()>, closure_stack: &mut ClosureStack, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<LocalType>
     {
@@ -3018,34 +3033,34 @@ impl Typer
                 Ok(*local_type)
             },
             Expr::PrintfApp(exprs, Some(local_type), pos) => {
-                if self.check_builtin_type_ident(&String::from("Char"), 0, pos.clone(), tree, errs)? && self.check_builtin_type_ident(&String::from("ConstantSlice"), 1, pos.clone(), tree, errs)? {
-                    match exprs.first_mut() {
-                        Some(expr2) => {
+                match exprs.first_mut() {
+                    Some(expr2) => {
+                        if self.check_builtin_type_ident(&String::from("Char"), 0, pos.clone(), tree, errs)? && self.check_builtin_type_ident(&String::from("ConstantSlice"), 1, pos.clone(), tree, errs)? {
                             let expr2_local_type = self.infer_types_for_expr(&mut **expr2, tree, var_env, closure_stack, local_types, errs)?;
                             let str_type_value = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("ConstantSlice")), vec![Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("ConstantSlice")), Vec::new()))]));
                             self.match_type_values(&Rc::new(TypeValue::Param(UniqFlag::None, expr2_local_type)), &str_type_value, pos, tree, local_types, errs)?;
-                            for expr3 in &mut exprs[1..] {
-                                let expr3_local_type = self.infer_types_for_expr(&mut **expr3, tree, var_env, closure_stack, local_types, errs)?;
-                                match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, expr2_local_type))) {
-                                    Some(LocalTypeEntry::Type(type_value)) => {
-                                        match &*type_value {
-                                            TypeValue::Type(_, TypeValueName::Name(expr3_type_ident), _) => {
-                                                if !self.has_primitive_for_type_ident(expr3_type_ident, tree)? {
-                                                    errs.push(FrontendError::Message(pos.clone(), format!("printf must't take values with type {}", LocalTypeWithLocalTypes(expr3_local_type, local_types))));
-                                                }
-                                            },
-                                            _ => errs.push(FrontendError::Message(pos.clone(), format!("printf must't take values with type {}", LocalTypeWithLocalTypes(expr3_local_type, local_types)))),
-                                        }
-                                    },
-                                    Some(LocalTypeEntry::Param(_, _, _, _)) => errs.push(FrontendError::Message(pos.clone(), format!("printf must't take values with type {}", LocalTypeWithLocalTypes(expr3_local_type, local_types)))),
-                                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_expr: no local type entry"))])), 
-                                }
+                        }
+                        for expr3 in &mut exprs[1..] {
+                            let expr3_local_type = self.infer_types_for_expr(&mut **expr3, tree, var_env, closure_stack, local_types, errs)?;
+                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, expr3_local_type))) {
+                                Some(LocalTypeEntry::Type(type_value)) => {
+                                    match &*type_value {
+                                        TypeValue::Type(_, TypeValueName::Name(expr3_type_ident), _) => {
+                                            if !self.has_primitive_for_type_ident(expr3_type_ident, tree)? {
+                                                errs.push(FrontendError::Message(pos.clone(), format!("printf must't take values with type {}", LocalTypeWithLocalTypes(expr3_local_type, local_types))));
+                                            }
+                                        },
+                                        _ => errs.push(FrontendError::Message(pos.clone(), format!("printf mustn't take values with type {}", LocalTypeWithLocalTypes(expr3_local_type, local_types)))),
+                                    }
+                                },
+                                Some(LocalTypeEntry::Param(_, _, _, _)) => errs.push(FrontendError::Message(pos.clone(), format!("printf must't take values with type {}", LocalTypeWithLocalTypes(expr3_local_type, local_types)))),
+                                None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_expr: no local type entry"))])), 
                             }
-                        },
-                        None => errs.push(FrontendError::Message(pos.clone(), String::from("too few arguments for printf"))),
-                    }
-                    local_types.set_type_value(*local_type, Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Tuple, Vec::new())));
+                        }
+                    },
+                    None => errs.push(FrontendError::Message(pos.clone(), String::from("too few arguments for printf"))),
                 }
+                local_types.set_type_value(*local_type, Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Tuple, Vec::new())));
                 Ok(*local_type)
             },
             Expr::App(expr2, exprs, Some(local_type), pos) => {
@@ -3077,7 +3092,7 @@ impl Typer
                         // (t3, t2)
                         let type_value = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Tuple, vec![Rc::new(TypeValue::Param(UniqFlag::None, local_type3)), Rc::new(TypeValue::Param(UniqFlag::None, local_type2))]));
                         self.match_type_values(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), &type_value, pos, tree, local_types, errs)?;
-                        self.set_shared_for_local_type_and_fields(local_type3, pos.clone(), tree, local_types, errs)?;
+                        self.set_shared_for_local_type_and_fields(local_type3, pos, tree, local_types, errs)?;
                     }
                     None => (),
                 }
@@ -3136,7 +3151,97 @@ impl Typer
                 }
                 Ok(*local_type)
             },
-            _ => Ok(LocalType::new(0)),
+            Expr::Uniq(expr2, Some(local_type), pos) => {
+                let local_type2 = self.infer_types_for_expr(&mut **expr2, tree, var_env, closure_stack, local_types, errs)?;
+                match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type2))) {
+                    Some(LocalTypeEntry::Type(type_value)) => {
+                        match &*type_value {
+                            TypeValue::Type(_, type_value_name, type_values) => {
+                                let new_type_value = Rc::new(TypeValue::Type(UniqFlag::Uniq, type_value_name.clone(), type_values.clone()));
+                                self.match_type_values(&new_type_value, &Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), pos, tree, local_types, errs)?;
+                            },
+                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_expr: type value isn't type"))])),
+                        }
+                    },
+                    Some(_) => errs.push(FrontendError::Message(pos.clone(), format!("type {} is type parameter", LocalTypeWithLocalTypes(local_type2, local_types)))),
+                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_expr: no local type entry"))])),
+                }
+                Ok(*local_type)
+            },
+            Expr::Shared(expr2, Some(local_type), pos) => {
+                let local_type2 = self.infer_types_for_expr(&mut **expr2, tree, var_env, closure_stack, local_types, errs)?;
+                match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type2))) {
+                    Some(LocalTypeEntry::Type(type_value)) => {
+                        match &*type_value {
+                            TypeValue::Type(_, type_value_name, type_values) => {
+                                let new_type_value = Rc::new(TypeValue::Type(UniqFlag::None, type_value_name.clone(), type_values.clone()));
+                                self.match_type_values(&new_type_value, &Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), pos, tree, local_types, errs)?;
+                                if self.shared_flag_for_local_type(*local_type, tree, local_types)? == SharedFlag::None {
+                                    errs.push(FrontendError::Message(pos.clone(), format!("type {} is unique type", LocalTypeWithLocalTypes(local_type2, local_types))));
+                                }
+                            },
+                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_expr: type value isn't type"))])),
+                        }
+                    },
+                    Some(_) => errs.push(FrontendError::Message(pos.clone(), format!("type {} is type parameter", LocalTypeWithLocalTypes(local_type2, local_types)))),
+                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_expr: no local type entry"))])),
+                }
+                Ok(*local_type)
+            },
+            Expr::Typed(expr2, _, Some(local_type), pos) => {
+                let local_type2 = self.infer_types_for_expr(&mut **expr2, tree, var_env, closure_stack, local_types, errs)?;
+                self.match_local_types(local_type2, *local_type, pos, tree, local_types, errs)?;
+                Ok(*local_type)
+            },
+            Expr::As(expr2, _, Some(local_type), pos) => {
+                let local_type2 = self.infer_types_for_expr(&mut **expr2, tree, var_env, closure_stack, local_types, errs)?;
+                self.cast_local_type_to_local_type(local_type2, *local_type, pos, tree, local_types, errs)?;
+                Ok(*local_type)
+            },
+            Expr::If(expr2, expr3, expr4, Some(local_type), pos) => {
+                let local_type2 = self.infer_types_for_expr(&mut **expr2, tree, var_env, closure_stack, local_types, errs)?;
+                if self.check_builtin_type_ident(&String::from("Bool"), 0, pos.clone(), tree, errs)? {
+                    self.match_type_values(&Rc::new(TypeValue::Param(UniqFlag::None, local_type2)), &Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Bool")), Vec::new())), pos, tree, local_types, errs)?;
+                }
+                let local_type3 = self.infer_types_for_expr(&mut **expr2, tree, var_env, closure_stack, local_types, errs)?;
+                let local_type4 = self.infer_types_for_expr(&mut **expr2, tree, var_env, closure_stack, local_types, errs)?;
+                self.match_local_types(local_type3, local_type4, pos, tree, local_types, errs)?;
+                self.match_local_types(local_type3, *local_type, pos, tree, local_types, errs)?;
+                Ok(*local_type)
+            },
+            Expr::Let(binds, expr2, Some(local_type), pos) => {
+                var_env.push_new_vars();
+                for bind in binds {
+                    match bind {
+                        Bind(pattern, expr3) => {
+                            let expr3_local_type = self.infer_types_for_expr(&mut **expr3, tree, var_env, closure_stack, local_types, errs)?;
+                            let pattern_local_type = self.infer_types_for_pattern(&mut **pattern, tree, var_env, local_types, false, errs)?;
+                            self.match_local_types_for_first_pattern_type(pattern_local_type, expr3_local_type, pos, tree, local_types, errs)?;
+                        },
+                    }
+                }
+                let local_type2 = self.infer_types_for_expr(&mut **expr2, tree, var_env, closure_stack, local_types, errs)?;
+                self.match_local_types(local_type2, *local_type, pos, tree, local_types, errs)?;
+                var_env.pop_vars();
+                Ok(*local_type)
+            },
+            Expr::Match(expr2, cases, Some(local_type), pos) => {
+                let local_type2 = self.infer_types_for_expr(&mut **expr2, tree, var_env, closure_stack, local_types, errs)?;
+                for case in cases {
+                    match case {
+                        Case(pattern, expr3) => {
+                            var_env.push_new_vars();
+                            let pattern_local_type = self.infer_types_for_pattern(&mut **pattern, tree, var_env, local_types, false, errs)?;
+                            self.match_local_types_for_second_pattern_type(local_type2, pattern_local_type, pos, tree, local_types, errs)?;
+                            let expr3_local_type = self.infer_types_for_expr(&mut **expr3, tree, var_env, closure_stack, local_types, errs)?;
+                            self.match_local_types(expr3_local_type, *local_type, pos, tree, local_types, errs)?;
+                            var_env.pop_vars();
+                        },
+                    }
+                }
+                Ok(*local_type)
+            }
+            _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_expr: no local type"))])),
         }
     }
 
