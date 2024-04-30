@@ -206,8 +206,8 @@ pub enum Expr
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum Field
 {
-    Unnamed(usize),
-    Named(String, Option<usize>),
+    Unnamed(usize, Option<LocalType>),
+    Named(String, Option<LocalType>),
 }
 
 impl fmt::Display for Field
@@ -215,7 +215,7 @@ impl fmt::Display for Field
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
     {
         match self {
-            Field::Unnamed(idx) => write!(f, "{}", idx),
+            Field::Unnamed(idx, _) => write!(f, "{}", idx),
             Field::Named(ident, _) => write!(f, "{}", ident),
         }
     }
@@ -1032,7 +1032,7 @@ impl LocalTypes
         if local_type.index() < self.type_entries.len() {
             let root_idx = self.type_entries.root_of(local_type.index());
             match &self.type_entries[root_idx] {
-                LocalTypeEntry::Param(uniq_flag, shared_flag, old_type_param_entry, _) => {
+                LocalTypeEntry::Param(_, _, old_type_param_entry, _) => {
                     {
                         let old_type_param_entry_r = old_type_param_entry.borrow();
                         let mut type_param_entry_r = type_param_entry.borrow_mut();
@@ -1086,23 +1086,26 @@ impl LocalTypes
         }
     }
     
-    pub fn set_shared_for_type_param(&self, local_type: LocalType) -> bool
+    pub fn set_uniq_flag(&mut self, local_type: LocalType, uniq_flag: UniqFlag) -> bool
     {
         if local_type.index() < self.type_entries.len() {
             let root_idx = self.type_entries.root_of(local_type.index());
             match &self.type_entries[root_idx] {
-                LocalTypeEntry::Param(_, _, type_param_entry, _) => {
-                    let mut type_param_entry_r = type_param_entry.borrow_mut();
-                    type_param_entry_r.trait_names.insert(TraitName::Shared);
-                    true
+                LocalTypeEntry::Param(defined_flag, _, type_param_entry, _) => {
+                    self.type_entries[root_idx] = LocalTypeEntry::Param(*defined_flag, uniq_flag, type_param_entry.clone(), LocalType::new(root_idx));
                 },
-                _ => false,
+                LocalTypeEntry::Type(type_value) => {
+                    let mut new_type_value = (**type_value).clone();
+                    new_type_value.set_uniq_flag(uniq_flag);
+                    self.type_entries[root_idx] = LocalTypeEntry::Type(Rc::new(new_type_value));
+                },
             }
+            true
         } else {
             false
         }
     }
-    
+
     pub fn has_in_non_uniq_lambda(&self, local_type: LocalType) -> bool
     {
         if local_type.index() < self.eq_type_param_entries.len() {

@@ -62,7 +62,7 @@ impl FrontendErrors
     pub fn errors(&self) -> &[FrontendError]
     { &self.errors }
     
-    pub fn append_to(&mut self, errs: &mut Vec<FrontendError>)
+    pub(crate) fn append_to(&mut self, errs: &mut Vec<FrontendError>)
     { errs.append(&mut self.errors); }
 }
 

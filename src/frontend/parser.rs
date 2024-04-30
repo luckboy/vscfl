@@ -1380,7 +1380,7 @@ impl<'a> Parser<'a>
             (token, pos) => {
                 // usize
                 self.lexer.undo_token(token, pos);
-                Ok(Field::Unnamed(self.parse_usize()?))
+                Ok(Field::Unnamed(self.parse_usize()?, None))
             },
         }
     }
