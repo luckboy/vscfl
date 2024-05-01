@@ -607,9 +607,9 @@ impl Typer
         }
     }
 
-    fn uniq_flag_for_type_value(&self, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<UniqFlag>
+    fn real_uniq_flag_for_type_value(&self, type_value: &Rc<TypeValue>, local_types: &LocalTypes) -> FrontendResultWithErrors<UniqFlag>
     {
-        match self.type_matcher.uniq_flag_for_type_value(type_value, tree, local_types) {
+        match self.type_matcher.real_uniq_flag_for_type_value(type_value, local_types) {
             Ok(uniq_flag) => Ok(uniq_flag),
             Err(err) => Err(FrontendErrors::new(vec![err])),
         }
@@ -2896,7 +2896,7 @@ impl Typer
                                             if !is_pattern {
                                                 self.match_type_values(&Rc::new(TypeValue::Param(UniqFlag::None, field_local_type)), &type_values[field_idx], field_pos, tree, local_types, errs)?;
                                             } else {
-                                                let uniq_flag = self.uniq_flag_for_type_value(&type_values[field_idx], tree, local_types)?;
+                                                let uniq_flag = self.real_uniq_flag_for_type_value(&type_values[field_idx], local_types)?;
                                                 if uniq_flag == UniqFlag::Uniq {
                                                     local_types.set_uniq(field_local_type);
                                                 }
@@ -3492,7 +3492,7 @@ impl Typer
                                         if type_values.len() >= 1 {
                                             for (pattern2, type_value) in patterns.iter_mut().zip(type_values.iter()) {
                                                 let field_local_type = self.infer_types_for_pattern(&mut **pattern2, tree, var_env, var_local_types, local_types, can_add_var_local_type, errs)?;
-                                                let uniq_flag = self.uniq_flag_for_type_value(type_value, tree, local_types)?;
+                                                let uniq_flag = self.real_uniq_flag_for_type_value(type_value, local_types)?;
                                                 if uniq_flag == UniqFlag::Uniq {
                                                     local_types.set_uniq(field_local_type);
                                                 }

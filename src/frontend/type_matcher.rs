@@ -145,6 +145,26 @@ impl TypeMatcher
         }
     }
 
+    pub fn real_uniq_flag_for_type_value(&self, type_value: &Rc<TypeValue>, local_types: &LocalTypes) -> FrontendResult<UniqFlag>
+    {
+        match local_types.type_entry_for_type_value(type_value) {
+            Some(LocalTypeEntry::Param(_, uniq_flag, _, _)) => Ok(uniq_flag),
+            Some(LocalTypeEntry::Type(type_value)) => {
+                match &*type_value {
+                    TypeValue::Param(_, _) => Err(FrontendError::Internal(String::from("real_uniq_flag_for_type_value: type parameter in local type entry"))),
+                    TypeValue::Type(uniq_flag, _, _) => Ok(*uniq_flag),
+                }
+            },
+            None => Err(FrontendError::Internal(String::from("real_uniq_flag_for_type_value: no local type entry"))),
+        }
+    }
+    
+    pub fn real_uniq_flag(&self, local_type: LocalType, local_types: &LocalTypes) -> FrontendResult<UniqFlag>
+    {
+        let type_value = Rc::new(TypeValue::Param(UniqFlag::None, local_type));
+        self.real_uniq_flag_for_type_value(&type_value, local_types)
+    }
+    
     pub fn set_shared_for_type_value(&self, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<bool>
     {
         match local_types.type_entry_for_type_value(&type_value) {
@@ -511,7 +531,7 @@ impl TypeMatcher
     {
         let type_value1 = Rc::new(TypeValue::Param(UniqFlag::None, local_type1));
         let type_value2 = Rc::new(TypeValue::Param(UniqFlag::None, local_type2));
-        let uniq_flag = self.uniq_flag_for_type_value(&type_value2, tree, local_types)?;
+        let uniq_flag = self.real_uniq_flag_for_type_value(&type_value2, local_types)?;
         if uniq_flag == UniqFlag::Uniq {
             local_types.set_uniq(local_type1);
         }
@@ -522,7 +542,7 @@ impl TypeMatcher
     {
         let type_value1 = Rc::new(TypeValue::Param(UniqFlag::None, local_type1));
         let type_value2 = Rc::new(TypeValue::Param(UniqFlag::None, local_type2));
-        let uniq_flag = self.uniq_flag_for_type_value(&type_value1, tree, local_types)?;
+        let uniq_flag = self.real_uniq_flag_for_type_value(&type_value1, local_types)?;
         if uniq_flag == UniqFlag::Uniq {
             local_types.set_uniq(local_type2);
         }
