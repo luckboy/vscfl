@@ -301,7 +301,7 @@ impl TypeMatcher
                 }
                 let is_in_non_uniq_lambda = local_types.has_in_non_uniq_lambda(*local_type1) | local_types.has_in_non_uniq_lambda(*local_type2);
                 let (root_local_type, eq_root_local_type) = local_types.join_local_types(*local_type1, *local_type2);
-                local_types.set_type_param_entry(root_local_type, type_param_entry2.clone(), DefinedFlag::Undefined);
+                local_types.set_type_param_entry(root_local_type, type_param_entry2.clone(), DefinedFlag::Defined);
                 local_types.set_in_non_uniq_lambda(eq_root_local_type, is_in_non_uniq_lambda);
                 let shared_flag = self.shared_flag_for_type_value2(&Rc::new(TypeValue::Param(uniq_flag, root_local_type)), None, tree, local_types)?;
                 Ok(Some(shared_flag))
