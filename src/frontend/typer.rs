@@ -2835,34 +2835,6 @@ impl Typer
     // Inference of types.
     //
 
-    fn check_builtin_type_ident(&self, ident: &String, count: usize, pos: Pos, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<bool>
-    {
-        match tree.type_var(ident) {
-            Some(type_var) => {
-                let type_var_r = type_var.borrow();
-                match &*type_var_r {
-                    TypeVar::Builtin(Some(type_args), _, _) => {
-                        if count == type_args.type_arg_idents().len() {
-                            Ok(true)
-                        } else {
-                            errs.push(FrontendError::Message(pos.clone(), format!("number of type arguments of built-in type variable {} isn't equal to number of inferred type arguments", ident)));
-                            Ok(false)
-                        }
-                    },
-                    TypeVar::Builtin(None, _, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_builtin_type_ident: no type arguments"))])),
-                    _ => {
-                        errs.push(FrontendError::Message(pos, format!("type variable {} isn't built-in type variable", ident)));
-                        Ok(false)
-                    },
-                }
-            },
-            None => {
-                errs.push(FrontendError::Message(pos, format!("undefined built-in type variable {}", ident)));
-                Ok(false)
-            }
-        }
-    }
-
     fn infer_types_for_defs(&self, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         for def in tree.defs() {
@@ -2987,6 +2959,34 @@ impl Typer
         }
         Ok(())
     }
+
+    fn check_builtin_type_ident(&self, ident: &String, count: usize, pos: Pos, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<bool>
+    {
+        match tree.type_var(ident) {
+            Some(type_var) => {
+                let type_var_r = type_var.borrow();
+                match &*type_var_r {
+                    TypeVar::Builtin(Some(type_args), _, _) => {
+                        if count == type_args.type_arg_idents().len() {
+                            Ok(true)
+                        } else {
+                            errs.push(FrontendError::Message(pos.clone(), format!("number of type arguments of built-in type variable {} isn't equal to number of inferred type arguments", ident)));
+                            Ok(false)
+                        }
+                    },
+                    TypeVar::Builtin(None, _, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_builtin_type_ident: no type arguments"))])),
+                    _ => {
+                        errs.push(FrontendError::Message(pos, format!("type variable {} isn't built-in type variable", ident)));
+                        Ok(false)
+                    },
+                }
+            },
+            None => {
+                errs.push(FrontendError::Message(pos, format!("undefined built-in type variable {}", ident)));
+                Ok(false)
+            }
+        }
+    }    
     
     fn local_type_for_fields(&self, local_type: LocalType, fields: &mut [Field], pos: &Pos, tree: &Tree, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<LocalType>>
     {
