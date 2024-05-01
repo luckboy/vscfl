@@ -294,6 +294,7 @@ impl TypeMatcher
                 for closure_local_type in &type_param_entry1_r.closure_local_types {
                     if !type_param_entry2_r.closure_local_types.contains(closure_local_type) {
                         infos.push(MismatchedTypeInfo::NoClosure(*closure_local_type, *local_type2));
+                        is_success = false;
                     }
                 }
                 if !is_success {
