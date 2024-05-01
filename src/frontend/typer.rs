@@ -2926,7 +2926,7 @@ impl Typer
                                             } else {
                                                 let uniq_flag = self.uniq_flag_for_type_value(&type_values[field_idx], tree, local_types)?;
                                                 if uniq_flag == UniqFlag::Uniq {
-                                                    local_types.set_uniq_flag(field_local_type, UniqFlag::Uniq);
+                                                    local_types.set_uniq(field_local_type);
                                                 }
                                                 self.match_type_values(&Rc::new(TypeValue::Param(UniqFlag::None, field_local_type)), &type_values[field_idx], field_pos, tree, local_types, errs)?;
                                             }
@@ -3494,7 +3494,7 @@ impl Typer
                                                 let field_local_type = self.infer_types_for_pattern(&mut **pattern2, tree, var_env, var_local_types, local_types, can_add_var_local_type, errs)?;
                                                 let uniq_flag = self.uniq_flag_for_type_value(type_value, tree, local_types)?;
                                                 if uniq_flag == UniqFlag::Uniq {
-                                                    local_types.set_uniq_flag(field_local_type, UniqFlag::Uniq);
+                                                    local_types.set_uniq(field_local_type);
                                                 }
                                                 self.match_type_values(&Rc::new(TypeValue::Param(UniqFlag::None, field_local_type)), type_value, pattern_pos(&**pattern2), tree, local_types, errs)?;
                                             }

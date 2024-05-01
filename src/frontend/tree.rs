@@ -1086,17 +1086,19 @@ impl LocalTypes
         }
     }
     
-    pub fn set_uniq_flag(&mut self, local_type: LocalType, uniq_flag: UniqFlag) -> bool
+    pub fn set_uniq(&mut self, local_type: LocalType) -> bool
     {
         if local_type.index() < self.type_entries.len() {
             let root_idx = self.type_entries.root_of(local_type.index());
             match &self.type_entries[root_idx] {
-                LocalTypeEntry::Param(defined_flag, _, type_param_entry, _) => {
-                    self.type_entries[root_idx] = LocalTypeEntry::Param(*defined_flag, uniq_flag, type_param_entry.clone(), LocalType::new(root_idx));
+                LocalTypeEntry::Param(defined_flag, uniq_flag, type_param_entry, _) => {
+                    let new_local_type = LocalType::new(self.type_entries.len());
+                    self.type_entries.push(LocalTypeEntry::Param(*defined_flag, *uniq_flag, type_param_entry.clone(), new_local_type));
+                    self.type_entries[root_idx] = LocalTypeEntry::Type(Rc::new(TypeValue::Param(UniqFlag::Uniq, new_local_type)));
                 },
                 LocalTypeEntry::Type(type_value) => {
                     let mut new_type_value = (**type_value).clone();
-                    new_type_value.set_uniq_flag(uniq_flag);
+                    new_type_value.set_uniq_flag(UniqFlag::Uniq);
                     self.type_entries[root_idx] = LocalTypeEntry::Type(Rc::new(new_type_value));
                 },
             }

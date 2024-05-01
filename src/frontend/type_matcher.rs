@@ -513,7 +513,7 @@ impl TypeMatcher
         let type_value2 = Rc::new(TypeValue::Param(UniqFlag::None, local_type2));
         let uniq_flag = self.uniq_flag_for_type_value(&type_value2, tree, local_types)?;
         if uniq_flag == UniqFlag::Uniq {
-            local_types.set_uniq_flag(local_type1, UniqFlag::Uniq);
+            local_types.set_uniq(local_type1);
         }
         self.match_type_values(&type_value1, &type_value2, tree, local_types)
     }
@@ -524,7 +524,7 @@ impl TypeMatcher
         let type_value2 = Rc::new(TypeValue::Param(UniqFlag::None, local_type2));
         let uniq_flag = self.uniq_flag_for_type_value(&type_value1, tree, local_types)?;
         if uniq_flag == UniqFlag::Uniq {
-            local_types.set_uniq_flag(local_type2, UniqFlag::Uniq);
+            local_types.set_uniq(local_type2);
         }
         self.match_type_values(&type_value1, &type_value2, tree, local_types)
     }
