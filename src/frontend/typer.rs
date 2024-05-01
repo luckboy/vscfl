@@ -325,11 +325,11 @@ fn add_local_type(local_type: LocalType, pos: Pos, typ: &Type, local_types: &mut
     }
 }
 
-fn new_type_from_type_value_and_type_param_env(type_value: Rc<TypeValue>, type_param_env: &Environment<LocalType>, local_type_counter: &Option<usize>) -> FrontendResultWithErrors<Type>
+fn new_type_from_type_value_and_type_param_env(type_value: Rc<TypeValue>, type_param_env: &Environment<LocalType>, local_type_counter: Option<usize>) -> FrontendResultWithErrors<Type>
 {
     match local_type_counter {
         Some(local_type_counter) => {
-            let mut idents: Vec<Option<String>> = vec![None; *local_type_counter];
+            let mut idents: Vec<Option<String>> = vec![None; local_type_counter];
             type_param_env.foreach(|ident, local_type| idents[local_type.index()] = Some(ident.clone()));
             let mut idents2: Vec<String> = Vec::new();
             for ident in idents {
@@ -588,7 +588,7 @@ impl Typer
         type_param_env.push_new_vars();
         match self.evaluate_type_for_type_expr(type_expr, tree, &mut type_param_env, &mut local_type_counter, &mut errs)? {
             Some(type_value) => {
-                let mut typ = new_type_from_type_value_and_type_param_env(type_value, &type_param_env, &local_type_counter)?;
+                let mut typ = new_type_from_type_value_and_type_param_env(type_value, &type_param_env, local_type_counter)?;
                 if self.evaluate_types_for_where_tuples(ident, where_tuples, trait_ident, pos.clone(), tree, &mut type_param_env, &mut typ, &mut errs)? {
                     Ok(typ)
                 } else  {
@@ -1731,7 +1731,7 @@ impl Typer
                                                 type_param_env.push_new_vars();
                                                 match self.evaluate_type_for_type_expr(&type_expr, tree, &mut type_param_env, &mut local_type_counter, errs)? {
                                                     Some(type_value) => {
-                                                        let mut new_type = new_type_from_type_value_and_type_param_env(type_value, &type_param_env, &local_type_counter)?;
+                                                        let mut new_type = new_type_from_type_value_and_type_param_env(type_value, &type_param_env, local_type_counter)?;
                                                         if self.evaluate_types_for_where_tuples(ident.as_str(), where_tuples.as_slice(), trait_ident, pos, tree, &mut type_param_env, &mut new_type, errs)? {
                                                             if self.shared_flag_for_type(&new_type, tree)? == SharedFlag::Shared {
                                                                 *typ = Some(Box::new(new_type));
@@ -1761,7 +1761,7 @@ impl Typer
                 type_param_env.push_new_vars();
                 match self.evaluate_type_for_type_expr(&**type_expr, tree, &mut type_param_env, &mut local_type_counter, errs)? {
                     Some(type_value) => {
-                        let mut new_type = new_type_from_type_value_and_type_param_env(type_value, &type_param_env, &local_type_counter)?;
+                        let mut new_type = new_type_from_type_value_and_type_param_env(type_value, &type_param_env, local_type_counter)?;
                         if self.evaluate_types_for_where_tuples(ident.as_str(), where_tuples.as_slice(), trait_ident, pos, tree, &mut type_param_env, &mut new_type, errs)? {
                             if self.shared_flag_for_type(&new_type, tree)? == SharedFlag::Shared {
                                 match expr {
@@ -1810,7 +1810,7 @@ impl Typer
                         }
                         if is_success {
                             let fun_type_value = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Fun, type_values.clone()));
-                            let mut new_type = new_type_from_type_value_and_type_param_env(fun_type_value, &type_param_env, &local_type_counter)?;
+                            let mut new_type = new_type_from_type_value_and_type_param_env(fun_type_value, &type_param_env, local_type_counter)?;
                             if self.evaluate_types_for_where_tuples(ident.as_str(), where_tuples.as_slice(), trait_ident, pos, tree, &mut type_param_env, &mut new_type, errs)? {
                                 match body {
                                     Some(body) => {
