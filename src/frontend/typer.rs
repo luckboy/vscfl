@@ -3536,7 +3536,7 @@ impl Typer
                 }
                 let mut var_local_types2: Vec<(String, LocalType, Pos)> = Vec::new();
                 let local_type2 = self.infer_types_for_pattern(&mut **pattern2, tree, var_env, &mut var_local_types2, local_types, true, errs)?;
-                self.match_local_types_for_second_pattern_type(*local_type, local_type2, pos, tree, local_types, errs)?;
+                self.match_local_types(*local_type, local_type2, pos, tree, local_types, errs)?;
                 for (ident2, var_local_type2, pos2) in &var_local_types2 {
                     self.set_shared_for_local_type_and_var(ident2.as_str(), *var_local_type2, pos2, tree, local_types, errs)?;
                 }
