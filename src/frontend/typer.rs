@@ -3275,7 +3275,9 @@ impl Typer
                     },
                     None => errs.push(FrontendError::Message(pos.clone(), String::from("too few arguments for printf"))),
                 }
-                local_types.set_type_value(*local_type, Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Tuple, Vec::new())));
+                if self.check_builtin_type_ident(&String::from("Int"), 0, pos.clone(), tree, errs)? {
+                    local_types.set_type_value(*local_type, Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Int")), Vec::new())));
+                }
                 Ok(*local_type)
             },
             Expr::App(expr2, exprs, Some(local_type), pos) => {
