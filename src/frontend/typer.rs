@@ -707,7 +707,7 @@ impl Typer
         }
     }    
     
-    fn match_local_type_entries_for_cast(&self, local_type_entry1: &LocalTypeEntry, local_type_entry2: &LocalTypeEntry, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<bool>
+    fn match_local_type_entries_for_casting(&self, local_type_entry1: &LocalTypeEntry, local_type_entry2: &LocalTypeEntry, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<bool>
     {
         match (local_type_entry1, local_type_entry2) {
             (LocalTypeEntry::Type(type_value1), LocalTypeEntry::Type(type_value2)) => {
@@ -732,7 +732,7 @@ impl Typer
                             return Ok(false);
                         }
                         for (type_value1, type_value2) in type_values1.iter().zip(type_values2.iter()) {
-                            if !self.match_type_values_for_cast(type_value1, type_value2, tree, local_types)? {
+                            if !self.match_type_values_for_casting(type_value1, type_value2, tree, local_types)? {
                                 is_success = false;
                             }
                         }
@@ -741,33 +741,33 @@ impl Typer
                         }
                         Ok(true)
                     },
-                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("match_local_type_entries_for_cast: no variable"))])),
+                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("match_local_type_entries_for_casting: no variable"))])),
                 }
             },
             _ => Ok(false),
         }
     }
 
-    fn match_type_values_for_cast(&self, type_value1: &Rc<TypeValue>, type_value2: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<bool>
+    fn match_type_values_for_casting(&self, type_value1: &Rc<TypeValue>, type_value2: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<bool>
     {
         let local_type_entry1 = local_types.type_entry_for_type_value(type_value1);
         let local_type_entry2 = local_types.type_entry_for_type_value(type_value2);
         match (local_type_entry1, local_type_entry2) {
-            (Some(local_type_entry1), Some(local_type_entry2)) => self.match_local_type_entries_for_cast(&local_type_entry1, &local_type_entry2, tree, local_types),
-            (_, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("match_type_values_for_cast: no local type entry"))])),
+            (Some(local_type_entry1), Some(local_type_entry2)) => self.match_local_type_entries_for_casting(&local_type_entry1, &local_type_entry2, tree, local_types),
+            (_, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("match_type_values_for_casting: no local type entry"))])),
         }
     }
 
-    fn match_local_types_for_cast(&self, local_type1: LocalType, local_type2: LocalType, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<bool>
+    fn match_local_types_for_casting(&self, local_type1: LocalType, local_type2: LocalType, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<bool>
     {
         let type_value1 = Rc::new(TypeValue::Param(UniqFlag::None, local_type1));
         let type_value2 = Rc::new(TypeValue::Param(UniqFlag::None, local_type2));
-        self.match_type_values_for_cast(&type_value1, &type_value2, tree, local_types)
+        self.match_type_values_for_casting(&type_value1, &type_value2, tree, local_types)
     }
     
-    fn cast_local_type_to_local_type(&self, local_type1: LocalType, local_type2: LocalType, pos: &Pos, tree: &Tree, local_types: &LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn cast_local_type(&self, local_type1: LocalType, local_type2: LocalType, pos: &Pos, tree: &Tree, local_types: &LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
-        if !self.match_local_types_for_cast(local_type1, local_type2, tree, local_types)? {
+        if !self.match_local_types_for_casting(local_type1, local_type2, tree, local_types)? {
             errs.push(FrontendError::Message(pos.clone(), format!("can't cast type {} to type {}", LocalTypeWithLocalTypes(local_type1, local_types), LocalTypeWithLocalTypes(local_type2, local_types))));
         }
         Ok(())
@@ -3412,7 +3412,7 @@ impl Typer
             },
             Expr::As(expr2, _, Some(local_type), pos) => {
                 let local_type2 = self.infer_types_for_expr(&mut **expr2, tree, var_env, closure_stack, local_types, errs)?;
-                self.cast_local_type_to_local_type(local_type2, *local_type, pos, tree, local_types, errs)?;
+                self.cast_local_type(local_type2, *local_type, pos, tree, local_types, errs)?;
                 Ok(*local_type)
             },
             Expr::If(expr2, expr3, expr4, Some(local_type), pos) => {
@@ -3477,7 +3477,7 @@ impl Typer
                 self.infer_types_for_literal(&mut **literal, *literal_local_type, pos, tree, var_env, local_types, false, errs, |typer, pattern, tree, var_env, local_types, errs| {
                         typer.infer_types_for_pattern(pattern, tree, var_env, var_local_types, local_types, can_add_var_local_type, errs)
                 }, pattern_pos)?;
-                self.cast_local_type_to_local_type(*literal_local_type, *local_type, pos, tree, local_types, errs)?;
+                self.cast_local_type(*literal_local_type, *local_type, pos, tree, local_types, errs)?;
                 Ok(*local_type)
             },
             Pattern::Const(ident, Some(local_type), _) => {
