@@ -932,10 +932,10 @@ impl Namer
                                         match &*var_r {
                                             Var::Builtin(_, _) => (),
                                             Var::Var(_, type_expr, _, _, _, _, _, _, _) => self.check_idents_for_type_expr(&**type_expr, tree, &mut type_param_env, true, false, errs)?,
-                                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_idents_for_impl_var: variable is function"))])),
+                                            _ => (),
                                         }
                                     },
-                                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no variable"))])),
+                                    None => (),
                                 }
                             },
                             _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_idents_for_impl_var: no trait variables"))])),
@@ -950,6 +950,7 @@ impl Namer
                     ImplFun(impl_args, body, _, _) => {
                         let mut var_env: Environment<()> = Environment::new();
                         let mut type_param_env: Environment<()> = Environment::new();
+                        var_env.push_new_vars();
                         type_param_env.push_new_vars();
                         match tree.traits.get(trait_ident) {
                             Some(trait1) => {
@@ -969,13 +970,13 @@ impl Namer
                                                                 self.check_idents_for_args(args.as_slice(), tree, &mut tmp_var_env, &mut type_param_env, false, errs)?;
                                                                 self.check_idents_for_type_expr(&**ret_type_expr, tree, &mut type_param_env, true, false, errs)?;
                                                             },
-                                                            _ => (),
+                                                            Fun::Con(_) => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_idents_for_impl_var: variable is constructor"))])),
                                                         }
                                                     },
-                                                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_idents_for_impl_var: isn't variable"))])),
+                                                    _ => (),
                                                 }
                                             },
-                                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("no variable"))])),
+                                            None => (),
                                         }
                                     },
                                     _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_idents_for_impl_var: no trait variables"))])),
