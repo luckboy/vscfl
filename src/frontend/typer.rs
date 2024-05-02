@@ -230,7 +230,7 @@ fn type_value_and_type_arg_count_for_type_var_ident(ident: &String, pos: Pos, tr
     }
 }
 
-fn shared_flag_for_type_var_ident(ident: &String, tree: &Tree) -> FrontendResultWithErrors<Option<SharedFlag>>
+fn shared_flag_for_type_ident_and_evaluation(ident: &String, tree: &Tree) -> FrontendResultWithErrors<Option<SharedFlag>>
 {
     match tree.type_var(ident) {
         Some(type_var) => {
@@ -238,10 +238,10 @@ fn shared_flag_for_type_var_ident(ident: &String, tree: &Tree) -> FrontendResult
             match &mut *type_var_r {
                 TypeVar::Builtin(_, _, shared_flag) => Ok(*shared_flag),
                 TypeVar::Data(_, _, shared_flag) => Ok(*shared_flag),
-                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_flag_for_type_var_ident: type variable is type synonym"))])),
+                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_flag_for_type_ident_and_evaluation: type variable is type synonym"))])),
             }
         },
-        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_flag_for_type_var_ident: no type variable"))])),
+        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_flag_for_type_ident_and_evaluation: no type variable"))])),
     }
 }
 
@@ -278,7 +278,7 @@ fn type_arg_count_for_trait_ident(ident: &String, tree: &Tree) -> FrontendResult
     }
 }
 
-fn shared_flag_for_type_var_ident2(ident: &String, tree: &Tree) -> FrontendResultWithErrors<SharedFlag>
+fn shared_flag_for_type_ident(ident: &String, tree: &Tree) -> FrontendResultWithErrors<SharedFlag>
 {
     match tree.type_var(ident) {
         Some(type_var) => {
@@ -286,10 +286,10 @@ fn shared_flag_for_type_var_ident2(ident: &String, tree: &Tree) -> FrontendResul
             match &mut *type_var_r {
                 TypeVar::Builtin(_, _, Some(shared_flag)) => Ok(*shared_flag),
                 TypeVar::Data(_, _, Some(shared_flag)) => Ok(*shared_flag),
-                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_flag_for_type_var_ident2: type variable is type synonym or no shared flag"))])),
+                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_flag_for_type_ident: type variable is type synonym or no shared flag"))])),
             }
         },
-        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_flag_for_type_var_ident2: no type variable"))])),
+        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_flag_for_type_ident: no type variable"))])),
     }
 }
 
@@ -299,11 +299,11 @@ fn shared_flag_for_type_name(type_name: &TypeName, tree: &Tree) -> FrontendResul
         TypeName::Tuple(_) => Ok(SharedFlag::Shared),
         TypeName::Array(_) => Ok(SharedFlag::Shared),
         TypeName::Fun(_) => Ok(SharedFlag::Shared),
-        TypeName::Name(ident) => shared_flag_for_type_var_ident2(ident, tree),
+        TypeName::Name(ident) => shared_flag_for_type_ident(ident, tree),
     }
 }
 
-fn add_local_type(local_type: LocalType, pos: Pos, typ: &Type, local_types: &mut Vec<LocalType>, processed_local_types: &BTreeSet<LocalType>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+fn add_local_type_for_recursion(local_type: LocalType, pos: Pos, typ: &Type, local_types: &mut Vec<LocalType>, processed_local_types: &BTreeSet<LocalType>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
 {
     if !processed_local_types.contains(&local_type) {
         local_types.push(local_type);
@@ -317,10 +317,10 @@ fn add_local_type(local_type: LocalType, pos: Pos, typ: &Type, local_types: &mut
                         errs.push(FrontendError::Message(pos, format!("trait definition of type parameter {} is recursive", ident)));
                         Ok(())
                     },
-                    None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_local_type: no identifier"))]))
+                    None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_local_type_for_recursion: no identifier"))]))
                 }
             },
-            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_local_type: no type parameter entry"))])),
+            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_local_type_for_recursion: no type parameter entry"))])),
         }
     }
 }
@@ -353,7 +353,7 @@ fn merge_tuples(tuple1: &(LocalType, usize, Pos), tuple2: &(LocalType, usize, Po
     }
 }
 
-fn add_local_type2(local_type: LocalType, type_values: &[Rc<TypeValue>], local_types: &mut Vec<LocalType>, processed_local_types: &BTreeSet<LocalType>) -> FrontendResultWithErrors<()>
+fn add_local_type_for_substitution(local_type: LocalType, type_values: &[Rc<TypeValue>], local_types: &mut Vec<LocalType>, processed_local_types: &BTreeSet<LocalType>) -> FrontendResultWithErrors<()>
 {
     if !processed_local_types.contains(&local_type) {
         if local_type.index() < type_values.len() {
@@ -363,10 +363,10 @@ fn add_local_type2(local_type: LocalType, type_values: &[Rc<TypeValue>], local_t
             }
             Ok(())
         } else {
-            Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_local_type2: no type value"))]))
+            Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_local_type_for_substitution: no type value"))]))
         }
     } else {
-        Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_local_type2: trait definition of type parameter is recursive"))]))
+        Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_local_type_for_substitution: trait definition of type parameter is recursive"))]))
     }
 }
 
@@ -1358,7 +1358,7 @@ impl Typer
             TypeValue::Type(UniqFlag::None, TypeValueName::Fun, _) => Ok(Some(SharedFlag::Shared)),
             TypeValue::Type(UniqFlag::None, type_value_name, type_values) => {
                 let shared_flag = match type_value_name {
-                    TypeValueName::Name(ident) => shared_flag_for_type_var_ident(ident, tree)?,
+                    TypeValueName::Name(ident) => shared_flag_for_type_ident_and_evaluation(ident, tree)?,
                     _ => Some(SharedFlag::Shared),
                 };
                 match shared_flag {
@@ -1884,7 +1884,7 @@ impl Typer
             TypeValue::Type(UniqFlag::None, TypeValueName::Fun, _) => Ok(SharedFlag::Shared),
             TypeValue::Type(UniqFlag::None, type_value_name, type_values) => {
                 let mut shared_flag = match type_value_name {
-                    TypeValueName::Name(ident) => shared_flag_for_type_var_ident2(ident, tree)?,
+                    TypeValueName::Name(ident) => shared_flag_for_type_ident(ident, tree)?,
                     _ => SharedFlag::Shared,
                 };
                 if shared_flag == SharedFlag::Shared {
@@ -1909,7 +1909,7 @@ impl Typer
                 match &type_param_entry_r.pos {
                     Some(pos) => {
                         for type_value in &type_param_entry_r.type_values {
-                            self.add_local_types_for_type_value(&**type_value, pos, typ, &mut local_types, processed_local_types, errs)?;
+                            self.add_local_types_for_type_value_and_recursion(&**type_value, pos, typ, &mut local_types, processed_local_types, errs)?;
                         }
                         Ok(local_types)
                     },
@@ -1920,13 +1920,13 @@ impl Typer
         }
     }
     
-    fn add_local_types_for_type_value(&self, type_value: &TypeValue, pos: &Pos, typ: &Type, local_types: &mut Vec<LocalType>, processed_local_types: &BTreeSet<LocalType>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn add_local_types_for_type_value_and_recursion(&self, type_value: &TypeValue, pos: &Pos, typ: &Type, local_types: &mut Vec<LocalType>, processed_local_types: &BTreeSet<LocalType>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         match type_value {
-            TypeValue::Param(_, local_type) => add_local_type(*local_type, pos.clone(), typ, local_types, processed_local_types, errs)?,
+            TypeValue::Param(_, local_type) => add_local_type_for_recursion(*local_type, pos.clone(), typ, local_types, processed_local_types, errs)?,
             TypeValue::Type(_, _, type_values) => {
                 for type_value2 in type_values {
-                    self.add_local_types_for_type_value(&**type_value2, pos, typ, local_types, processed_local_types, errs)?;
+                    self.add_local_types_for_type_value_and_recursion(&**type_value2, pos, typ, local_types, processed_local_types, errs)?;
                 }
             },
         }
@@ -2593,7 +2593,7 @@ impl Typer
                 let mut local_types: Vec<LocalType> = Vec::new();
                 let type_param_entry_r = type_param_entry.borrow();
                 for type_value in &type_param_entry_r.type_values {
-                    self.add_local_types_for_type_value2(&**type_value, type_values, &mut local_types, processed_local_types)?;
+                    self.add_local_types_for_type_value_and_substitution(&**type_value, type_values, &mut local_types, processed_local_types)?;
                 }
                 Ok(local_types)
             },
@@ -2601,20 +2601,20 @@ impl Typer
         }
     }
     
-    fn add_local_types_for_type_value2(&self, type_value: &TypeValue, type_values: &[Rc<TypeValue>], local_types: &mut Vec<LocalType>, processed_local_types: &BTreeSet<LocalType>) -> FrontendResultWithErrors<()>
+    fn add_local_types_for_type_value_and_substitution(&self, type_value: &TypeValue, type_values: &[Rc<TypeValue>], local_types: &mut Vec<LocalType>, processed_local_types: &BTreeSet<LocalType>) -> FrontendResultWithErrors<()>
     {
         match type_value {
-            TypeValue::Param(_, local_type) => add_local_type2(*local_type, type_values, local_types, processed_local_types)?,
+            TypeValue::Param(_, local_type) => add_local_type_for_substitution(*local_type, type_values, local_types, processed_local_types)?,
             TypeValue::Type(_, _, type_values2) => {
                 for type_value2 in type_values2 {
-                    self.add_local_types_for_type_value2(&**type_value2, type_values, local_types, processed_local_types)?;
+                    self.add_local_types_for_type_value_and_substitution(&**type_value2, type_values, local_types, processed_local_types)?;
                 }
             },
         }
         Ok(())
     }
     
-    fn substitue_for_local_type(&self, local_type: LocalType, type_name: &TypeName, type_values: &mut [Rc<TypeValue>], typ: &Type) -> FrontendResultWithErrors<()>
+    fn substitute_for_local_type(&self, local_type: LocalType, type_name: &TypeName, type_values: &mut [Rc<TypeValue>], typ: &Type) -> FrontendResultWithErrors<()>
     {
         match typ.type_param_entry(local_type) {
             Some(type_param_entry) => {
@@ -2624,13 +2624,13 @@ impl Typer
                     match type_value.substitute(type_values) {
                         Ok(Some(new_type_value)) => new_type_values.push(new_type_value),
                         Ok(None) => new_type_values.push(type_value.clone()),
-                        Err(err) => return Err(FrontendErrors::new(vec![FrontendError::Internal(format!("substitue_for_local_type: {}", err))])),
+                        Err(err) => return Err(FrontendErrors::new(vec![FrontendError::Internal(format!("substitute_for_local_type: {}", err))])),
                     }
                 }
                 type_values[local_type.index()] = Rc::new(TypeValue::Type(UniqFlag::None, type_name.type_value_name(), new_type_values));
                 Ok(())
             },
-            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("substitue_for_local_type: no type parameter entry"))])),
+            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("substitute_for_local_type: no type parameter entry"))])),
         }
     }
     
@@ -2658,7 +2658,7 @@ impl Typer
                     dfs_with_result(local_type, &mut visited_local_types, &mut type_values, |local_type, processed_local_types, type_values| {
                             self.local_types_for_local_type(*local_type, type_values, typ, processed_local_types)
                     }, |local_type, type_values| {
-                            self.substitue_for_local_type(*local_type, type_name, type_values, typ)
+                            self.substitute_for_local_type(*local_type, type_name, type_values, typ)
                     })?;
                 },
                 None => (),
