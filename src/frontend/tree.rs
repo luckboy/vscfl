@@ -285,7 +285,7 @@ pub enum TypeName
 
 impl TypeName
 {
-    pub fn type_value_name(&self) -> TypeValueName
+    pub fn to_type_value_name(&self) -> TypeValueName
     {
         match self {
             TypeName::Tuple(_) => TypeValueName::Tuple,

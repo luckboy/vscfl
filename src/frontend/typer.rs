@@ -2628,7 +2628,7 @@ impl Typer
                         Err(err) => return Err(FrontendErrors::new(vec![FrontendError::Internal(format!("substitute_for_local_type: {}", err))])),
                     }
                 }
-                type_values[local_type.index()] = Rc::new(TypeValue::Type(UniqFlag::None, type_name.type_value_name(), new_type_values));
+                type_values[local_type.index()] = Rc::new(TypeValue::Type(UniqFlag::None, type_name.to_type_value_name(), new_type_values));
                 Ok(())
             },
             None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("substitute_for_local_type: no type parameter entry"))])),
