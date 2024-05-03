@@ -441,6 +441,7 @@ fn set_type_for_local_types(local_type: LocalType, typ: &Type, local_types: &mut
     }
 }
 
+#[derive(Clone)]
 struct ClosureStack
 {
     stack: Vec<(BTreeMap<(String, usize), LocalType>, usize)>,
