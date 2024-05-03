@@ -1652,11 +1652,11 @@ impl Typer
                                                                                     return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_impls_for_impl_defs: too few type values"))]))
                                                                                 }
                                                                             },
-                                                                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_impls_for_impl_defs: type ins't function type"))])),
+                                                                            _ => errs.push(FrontendError::Message(impl_var_pos.clone(), format!("type of built-in variable {} isn't function type", impl_var_ident))),
                                                                         }
                                                                     },
                                                                     (Var::Builtin(_, None), ImplVar::Fun(_, _)) => {
-                                                                        errs.push(FrontendError::Message(pos.clone(), format!("unevaluated type of variable {}", impl_var_ident)));
+                                                                        errs.push(FrontendError::Message(impl_var_pos.clone(), format!("unevaluated type of built-in variable {}", impl_var_ident)));
                                                                     },
                                                                     _ => (),
                                                                 }
@@ -2822,7 +2822,7 @@ impl Typer
                                     return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_var: too few type values"))]))
                                 }
                             },
-                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_var: type value isn't function type"))])),
+                            None => (),
                         }
                     },
                 }
