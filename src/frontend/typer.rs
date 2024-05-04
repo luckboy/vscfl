@@ -1776,15 +1776,21 @@ impl Typer
                                         *local_type = Some(new_local_type);
                                         *local_types = Some(Box::new(new_local_types));
                                     },
-                                    None => *local_types = None,
+                                    None => {
+                                        *local_type = None;
+                                        *local_types = None;
+                                    },
                                 }
                                 *typ = Some(Box::new(new_type));
                             } else {
+                                *typ = None;
                                 errs.push(FrontendError::Message(type_expr_pos(&type_expr).clone(), format!("variable {} mustn't be non-shared with type {}", ident, new_type)))
                             }
+                        } else {
+                            *typ = None;
                         }
                     },
-                    None => (),
+                    None => *typ = None,
                 }
             },
             Var::Fun(fun, trait_ident, typ) => {
@@ -1850,10 +1856,22 @@ impl Typer
                                             None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_var: type value isn't function type"))])),
                                         }
                                     },
-                                    None => *local_types = None,
+                                    None => {
+                                        for arg in args {
+                                            match arg {
+                                                Arg(_, _, arg_local_type, _) => *arg_local_type = None,
+                                            }
+                                        }
+                                        *ret_local_type = None;
+                                        *local_types = None;
+                                    },
                                 }
+                                *typ = Some(Box::new(new_type));
+                            } else {
+                                *typ = None;
                             }
-                            *typ = Some(Box::new(new_type));
+                        } else {
+                            *typ = None;
                         }
                     },
                     Fun::Con(_) => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_var: variable is contructor"))])),
@@ -2722,7 +2740,7 @@ impl Typer
                                     Var::Builtin(_, Some(typ)) => self.new_type_by_substitution(&**typ, trait_ident, type_name)?,
                                     Var::Var(_, _, _, _, _, _, _, Some(typ), _) => self.new_type_by_substitution(&**typ, trait_ident, type_name)?,
                                     Var::Fun(_, _, Some(typ)) => self.new_type_by_substitution(&**typ, trait_ident, type_name)?,
-                                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_impl_var: no type"))])),
+                                    _ => return Ok(()),
                                 }
                             },
                             None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_impl_var: no trait variable"))])),
@@ -2823,7 +2841,16 @@ impl Typer
                                     return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_var: too few type values"))]))
                                 }
                             },
-                            None => (),
+                            None => {
+                                for arg in args {
+                                    match arg {
+                                        ImplArg(_, arg_local_type, _) => *arg_local_type = None,
+                                    }
+                                }
+                                *ret_local_type = None;
+                                *local_types = None;
+                                *typ = None;
+                            },
                         }
                     },
                 }
