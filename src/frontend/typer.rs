@@ -939,7 +939,7 @@ impl Typer
                     None => (),
                 }
             },
-            TypeVar::Builtin(None, _, _) => errs.push(FrontendError::Message(pos, format!("built-in type {} hasn't evalauted type arguments", ident))),
+            TypeVar::Builtin(None, _, _) => errs.push(FrontendError::Message(pos, format!("built-in type {} hasn't evaluated type arguments", ident))),
             TypeVar::Data(type_args, cons, _) => {
                 for (i, type_arg) in type_args.iter().enumerate() {
                     let mut type_param_env: Environment<LocalType> = Environment::new();
@@ -2740,7 +2740,10 @@ impl Typer
                                     Var::Builtin(_, Some(typ)) => self.new_type_by_substitution(&**typ, trait_ident, type_name)?,
                                     Var::Var(_, _, _, _, _, _, _, Some(typ), _) => self.new_type_by_substitution(&**typ, trait_ident, type_name)?,
                                     Var::Fun(_, _, Some(typ)) => self.new_type_by_substitution(&**typ, trait_ident, type_name)?,
-                                    _ => return Ok(()),
+                                    _ => {
+                                        errs.push(FrontendError::Message(pos, format!("variable {} hasn't evaluated type", ident)));
+                                        return Ok(());
+                                    },
                                 }
                             },
                             None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_impl_var: no trait variable"))])),
