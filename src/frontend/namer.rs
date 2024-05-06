@@ -262,7 +262,7 @@ impl Namer
                                                 add_error_for_var(con_ident.as_str(), con_pos.clone(), &*defined_var_r, errs);
                                             },
                                             None => {
-                                                tree.vars.insert(ident.clone(), Rc::new(RefCell::new(Var::Fun(Box::new(Fun::Con(con.clone())), None, None))));
+                                                tree.vars.insert(con_ident.clone(), Rc::new(RefCell::new(Var::Fun(Box::new(Fun::Con(con.clone())), None, None))));
                                             },
                                         }
                                         match &mut *con_r {
