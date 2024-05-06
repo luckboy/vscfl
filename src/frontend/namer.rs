@@ -275,7 +275,7 @@ impl Namer
                                                     match type_expr_named_field_pair {
                                                         NamedFieldPair(field_ident, _, field_pos) => {
                                                             if !field_idents.contains(field_ident) {
-                                                                new_named_fields.set_field_index(field_ident.clone(), field_idx);
+                                                                new_named_fields.add_field_index(field_ident.clone(), field_idx);
                                                                 field_idents.insert(field_ident.clone());
                                                                 field_idx += 1;
                                                             } else {
