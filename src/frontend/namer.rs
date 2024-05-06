@@ -1031,3 +1031,6 @@ pub fn check_idents_for_type_with_where(type_expr: &TypeExpr, where_tuples: &[Wh
     let namer = Namer::new();
     namer.check_idents_for_type_with_where(type_expr, where_tuples, tree)
 }
+
+#[cfg(test)]
+mod tests;
