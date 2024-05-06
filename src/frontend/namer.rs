@@ -268,19 +268,14 @@ impl Namer
                                         match &mut *con_r {
                                             Con::UnnamedField(_, _, _, _) => (),
                                             Con::NamedField(_, type_expr_named_field_pairs, _, named_fields, _) => {
-                                                *named_fields = Some(Box::new(NamedFields::new()));
+                                                let mut new_named_fields = NamedFields::new();
                                                 let mut field_idents: BTreeSet<String> = BTreeSet::new();
                                                 let mut field_idx = 0usize;
                                                 for type_expr_named_field_pair in type_expr_named_field_pairs {
                                                     match type_expr_named_field_pair {
                                                         NamedFieldPair(field_ident, _, field_pos) => {
                                                             if !field_idents.contains(field_ident) {
-                                                                match named_fields {
-                                                                    Some(named_fields) => {
-                                                                        named_fields.set_field_index(field_ident.clone(), field_idx);
-                                                                    },
-                                                                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_defs: no named fields"))])),
-                                                                }
+                                                                new_named_fields.set_field_index(field_ident.clone(), field_idx);
                                                                 field_idents.insert(field_ident.clone());
                                                                 field_idx += 1;
                                                             } else {
@@ -289,6 +284,7 @@ impl Namer
                                                         },
                                                     }
                                                 }
+                                                *named_fields = Some(Box::new(new_named_fields));
                                             },
                                         };
                                     }
