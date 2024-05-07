@@ -2009,13 +2009,6 @@ impl Typer
                                             }
                                         }
                                         type_param_entry_r.pos = Some(where_tuple_pos.clone());
-                                        if !tmp_is_success {
-                                            type_param_entry_r.trait_names.clear();
-                                            type_param_entry_r.type_values.clear();
-                                            type_param_entry_r.pos = None;
-                                            is_success = false;
-                                            continue;
-                                        }
                                         let new_local_type_counter = match local_type_counter {
                                             Some(tmp_local_type_counter) => *tmp_local_type_counter,
                                             None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_where_tuples: no local type counter"))])),
@@ -2034,6 +2027,12 @@ impl Typer
                                             }
                                         }
                                         typ.add_type_params(type_param_idents2.as_slice());
+                                        if !tmp_is_success {
+                                            type_param_entry_r.trait_names.clear();
+                                            type_param_entry_r.type_values.clear();
+                                            type_param_entry_r.pos = None;
+                                            is_success = false;
+                                        }
                                     },
                                     None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_where_tuples: no type parameter entry"))])),
                                 }
