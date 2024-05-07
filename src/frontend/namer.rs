@@ -279,7 +279,7 @@ impl Namer
                                                                 field_idents.insert(field_ident.clone());
                                                                 field_idx += 1;
                                                             } else {
-                                                                errs.push(FrontendError::Message(field_pos.clone(), format!("undefined field {}", field_ident)));
+                                                                errs.push(FrontendError::Message(field_pos.clone(), format!("already defined field {}", field_ident)));
                                                             }
                                                         },
                                                     }

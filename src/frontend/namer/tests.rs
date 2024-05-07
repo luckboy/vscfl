@@ -972,3 +972,1360 @@ X: Int = 1;
         Err(_) => assert!(false),
     }
 }
+
+#[test]
+fn test_namer_check_idents_checks_identifiers_for_nested_let_expressions()
+{
+    let s = "
+builtin type Int;
+builtin op_add;
+builtin op_sub;
+a: Int =
+    let x = 1;
+        y = let z = x;
+            in  z + x;
+        y = y - x;
+    in  let z = 1;
+            x = 2;
+        in  x + y - z;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_checks_identifiers_for_nested_match_expressions()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+data T = C(Int, Float);
+builtin op_add;
+builtin op_sub;
+a: Int =
+    C(1, 1.5) match {
+        C(1, x) => x match { 1.5 => 1; y => y as Int };
+        C(2, x) => x match { 2.5 => 3; y => y as Int };
+        _ => 3.5;
+    };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_checks_identifiers_for_type_expressions_in_expressions()
+{
+    let s = "
+data T<t, u> = C() | D(t, u);
+x: T<t, u> = C(): T<t, u>;
+f(x: T<t, u>) -> (T<t, u>, u) = (x, x.0);
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_checks_identifiers_for_implementation_variable_with_type_parameters()
+{
+    let s = "
+builtin type Int;
+builtin z;
+trait T<t, u>
+{
+    x: (t, u) where t: T<u, Int>;
+};
+data U<t, u> = C();
+impl T for U
+{
+    x = (C(): U<u, Int>, z);
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_checks_identifiers_for_implementation_function_with_type_parameters()
+{
+    let s = "
+builtin type Int;
+trait T<t, u>
+{
+    f(x: t, y: u) -> t where t: T<u, Int>;
+};
+data U<t, u> = C();
+impl T for U
+{
+    f(x, y) = x: U<u, Int>;
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_already_defined_errors_for_types()
+{
+    let s = "
+builtin type Int;
+builtin type Int;
+data T = C();
+data T = D();
+type U = Int;
+type U = Int;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(3, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(2, pos.line);
+                    assert_eq!(1, pos.column);
+                    assert_eq!(String::from("already defined built-in type Int"), *msg);
+                },
+                _ => assert!(false),
+            }
+            match &errs.errors()[1] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(4, pos.line);
+                    assert_eq!(1, pos.column);
+                    assert_eq!(String::from("already defined type T"), *msg);
+                },
+                _ => assert!(false),
+            }
+            match &errs.errors()[2] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(6, pos.line);
+                    assert_eq!(1, pos.column);
+                    assert_eq!(String::from("already defined type synonym U"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_already_defined_errors_for_variable()
+{
+    let s = "
+builtin type Int;
+builtin op_add;
+builtin op_sub;
+builtin op_sub;
+x: Int = 1;
+x: Int = 2;
+f(x: Int, y: Int) -> Int = x + y;
+f(x: Int, y: Int) -> Int = x - y;
+data T = C();
+data U = C();
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(4, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(4, pos.line);
+                    assert_eq!(1, pos.column);
+                    assert_eq!(String::from("already defined built-in variable op_sub"), *msg);
+                },
+                _ => assert!(false),
+            }
+            match &errs.errors()[1] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(6, pos.line);
+                    assert_eq!(1, pos.column);
+                    assert_eq!(String::from("already defined variable x"), *msg);
+                },
+                _ => assert!(false),
+            }
+            match &errs.errors()[2] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(8, pos.line);
+                    assert_eq!(1, pos.column);
+                    assert_eq!(String::from("already defined function f"), *msg);
+                },
+                _ => assert!(false),
+            }
+            match &errs.errors()[3] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(10, pos.line);
+                    assert_eq!(10, pos.column);
+                    assert_eq!(String::from("already defined constructor C"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_function_must_be_variable_in_implementation()
+{
+    let s = "
+builtin type Int;
+trait T
+{
+    x: t where t: T;
+};
+impl T for Int
+{
+    x(y) = y;
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(2, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(8, pos.line);
+                    assert_eq!(5, pos.column);
+                    assert_eq!(String::from("function x must be variable in implementation T"), *msg);
+                },
+                _ => assert!(false),
+            }
+            match &errs.errors()[1] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(6, pos.line);
+                    assert_eq!(1, pos.column);
+                    assert_eq!(String::from("undefined required variable x in implementation T"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_variable_must_be_function_in_implementation()
+{
+    let s = "
+builtin type Int;
+trait T
+{
+    f(x: t) -> Int where t: T;
+};
+impl T for Int
+{
+    f = 1;
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(2, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(8, pos.line);
+                    assert_eq!(5, pos.column);
+                    assert_eq!(String::from("variable f must be function in implementation T"), *msg);
+                },
+                _ => assert!(false),
+            }
+            match &errs.errors()[1] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(6, pos.line);
+                    assert_eq!(1, pos.column);
+                    assert_eq!(String::from("undefined required function f in implementation T"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_undefined_required_variable_in_implementation()
+{
+    let s = "
+builtin type Int;
+trait T
+{
+    x: t where t: T;
+};
+impl T for Int
+{};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(6, pos.line);
+                    assert_eq!(1, pos.column);
+                    assert_eq!(String::from("undefined required variable x in implementation T"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_undefined_required_function_in_implementation()
+{
+    let s = "
+builtin type Int;
+trait T
+{
+    f(x: t) -> Int where t: T;
+};
+impl T for Int
+{};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(6, pos.line);
+                    assert_eq!(1, pos.column);
+                    assert_eq!(String::from("undefined required function f in implementation T"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_undefined_trait_for_implementation()
+{
+    let s = "
+builtin type Int;
+impl T for Int
+{};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(2, pos.line);
+                    assert_eq!(1, pos.column);
+                    assert_eq!(String::from("undefined trait T"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_too_few_arguments_for_implementation()
+{
+    let s = "
+builtin type Int;
+trait T
+{
+    f(x: t, y: t) -> Int where t: T;
+};
+impl T for Int
+{
+    f(x) = 1;
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(8, pos.line);
+                    assert_eq!(5, pos.column);
+                    assert_eq!(String::from("too few arguments"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_too_many_arguments_for_implementation()
+{
+    let s = "
+builtin type Int;
+trait T
+{
+    f(x: t, y: t) -> Int where t: T;
+};
+impl T for Int
+{
+    f(x, y, z) = 1;
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(8, pos.line);
+                    assert_eq!(5, pos.column);
+                    assert_eq!(String::from("too many arguments"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_already_defined_field()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+data T = C { x: Int, y: Float, x: Int, };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(3, pos.line);
+                    assert_eq!(32, pos.column);
+                    assert_eq!(String::from("already defined field x"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_already_defined_type_argument()
+{
+    let s = "
+data T<t, t> = C(t);
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(1, pos.line);
+                    assert_eq!(11, pos.column);
+                    assert_eq!(String::from("already defined type argument t"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_already_defined_type_argument_for_type_synonym()
+{
+    let s = "
+builtin type Int;
+type T<t, t> = Int;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(2, pos.line);
+                    assert_eq!(11, pos.column);
+                    assert_eq!(String::from("already defined type argument t"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+
+#[test]
+fn test_namer_check_idents_complains_on_undefined_type_parameter()
+{
+    let s = "
+type T<t> = u;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(1, pos.line);
+                    assert_eq!(13, pos.column);
+                    assert_eq!(String::from("undefined type parameter u"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_undefined_type_variable()
+{
+    let s = "
+type T = Int;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(1, pos.line);
+                    assert_eq!(10, pos.column);
+                    assert_eq!(String::from("undefined type variable Int"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_undefined_type_variable_for_type_application()
+{
+    let s = "
+type T = U<Int>;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(2, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(1, pos.line);
+                    assert_eq!(10, pos.column);
+                    assert_eq!(String::from("undefined type variable U"), *msg);
+                },
+                _ => assert!(false),
+            }
+            match &errs.errors()[1] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(1, pos.line);
+                    assert_eq!(12, pos.column);
+                    assert_eq!(String::from("undefined type variable Int"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_undefined_trait_for_where()
+{
+    let s = "
+builtin type Int;
+f(x: t) -> Int where t: T = 1;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(2, pos.line);
+                    assert_eq!(22, pos.column);
+                    assert_eq!(String::from("undefined trait T"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_already_defined_argument()
+{
+    let s = "
+builtin type Int;
+f(x: Int, x: Int) -> Int = x;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(2, pos.line);
+                    assert_eq!(11, pos.column);
+                    assert_eq!(String::from("already defined argument x"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_already_defined_argument_for_lambda()
+{
+    let s = "
+builtin type Int;
+x: (Int, Int)-> Int = |x, x| x;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(2, pos.line);
+                    assert_eq!(27, pos.column);
+                    assert_eq!(String::from("already defined argument x"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_undefined_variable()
+{
+    let s = "
+builtin type Int;
+x: Int = y;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(2, pos.line);
+                    assert_eq!(10, pos.column);
+                    assert_eq!(String::from("undefined variable y"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_undefined_constructor()
+{
+    let s = "
+builtin type Int;
+x: Int = C { x: 1, y: 2, };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(2, pos.line);
+                    assert_eq!(10, pos.column);
+                    assert_eq!(String::from("undefined constructor C"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_undefined_field()
+{
+    let s = "
+builtin type Int;
+data T = C { x: Int, y: Int, };
+x: Int = C { x: 1, y: 2, z: 3, };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(3, pos.line);
+                    assert_eq!(26, pos.column);
+                    assert_eq!(String::from("undefined field z"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_undefined_variable_for_pattern()
+{
+    let s = "
+builtin type Int;
+x: Int =
+    1 match {
+        X => 1;
+    };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(4, pos.line);
+                    assert_eq!(9, pos.column);
+                    assert_eq!(String::from("undefined variable X"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_undefined_constructor_for_pattern()
+{
+    let s = "
+builtin type Int;
+x: Int =
+    1 match {
+        C(x, y) => 1;
+    };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(4, pos.line);
+                    assert_eq!(9, pos.column);
+                    assert_eq!(String::from("undefined constructor C"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_too_few_fields()
+{
+    let s = "
+builtin type Int;
+data T = C(Int, Int);
+x: Int =
+    1 match {
+        C(x) => 1;
+    };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(5, pos.line);
+                    assert_eq!(9, pos.column);
+                    assert_eq!(String::from("too few fields"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_too_many_fields()
+{
+    let s = "
+builtin type Int;
+data T = C(Int, Int);
+x: Int =
+    1 match {
+        C(x, y, z) => 1;
+    };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(5, pos.line);
+                    assert_eq!(9, pos.column);
+                    assert_eq!(String::from("too many fields"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_undefined_constructor_for_pattern_and_named_field_constructor()
+{
+    let s = "
+builtin type Int;
+x: Int =
+    1 match {
+        C { x: x, y: y, } => 1;
+    };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(4, pos.line);
+                    assert_eq!(9, pos.column);
+                    assert_eq!(String::from("undefined constructor C"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_undefined_field_for_pattern()
+{
+    let s = "
+builtin type Int;
+data T = C { x: Int, y: Int, };
+x: Int = 
+    1 match {
+        C { x: x, y: y, z: z, } => 1;
+    };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(5, pos.line);
+                    assert_eq!(25, pos.column);
+                    assert_eq!(String::from("undefined field z"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_already_used_field()
+{
+    let s = "
+builtin type Int;
+data T = C { x: Int, y: Int, };
+x: Int = 
+    1 match {
+        C { x: x, y: y, y: 1, } => 1;
+    };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(5, pos.line);
+                    assert_eq!(25, pos.column);
+                    assert_eq!(String::from("already used field y"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_already_variable_in_pattern()
+{
+    let s = "
+builtin type Int;
+data T = C(Int, Int);
+x: Int = 
+    1 match {
+        C(x, x) => 1;
+    };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(5, pos.line);
+                    assert_eq!(14, pos.column);
+                    assert_eq!(String::from("already variable x in pattern"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_variable_pattern_must_not_be_in_alternative_pattern()
+{
+    let s = "
+builtin type Int;
+data T = C(Int) | D(Int);
+x: Int = 
+    1 match {
+        C(x) | D(y) => 1;
+    };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(2, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(5, pos.line);
+                    assert_eq!(11, pos.column);
+                    assert_eq!(String::from("variable pattern mustn't be in alternative pattern"), *msg);
+                },
+                _ => assert!(false),
+            }
+            match &errs.errors()[1] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(5, pos.line);
+                    assert_eq!(18, pos.column);
+                    assert_eq!(String::from("variable pattern mustn't be in alternative pattern"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_undefined_type_variable_for_as_expression()
+{
+    let s = "
+builtin type Int;
+x: Int = 1 as Float;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(2, pos.line);
+                    assert_eq!(15, pos.column);
+                    assert_eq!(String::from("undefined type variable Float"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_undefined_type_variable_for_typed_expression()
+{
+    let s = "
+builtin type Int;
+f() -> Int = 1.5: Float;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(2, pos.line);
+                    assert_eq!(19, pos.column);
+                    assert_eq!(String::from("undefined type variable Float"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_undefined_type_parameter_for_typed_expression()
+{
+    let s = "
+builtin type Int;
+f(x: t) -> t = x: u;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(2, pos.line);
+                    assert_eq!(19, pos.column);
+                    assert_eq!(String::from("undefined type parameter u"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
