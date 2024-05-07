@@ -851,9 +851,11 @@ fn test_namer_check_idents_checks_identifiers_for_where_tuples()
 builtin type Int;
 builtin type Float;
 trait T<t, u> {};
-f(x: (t, u)) -> Int
+f(x: (t, u, v)) -> Int
     where t: shared + -> + T <Int, Float>,
           u: shared + -> + T <Int, Float>,
+          v: T<w, x>,
+          w: shared,
           t == u = 1;
 ";
     let s2 = &s[1..];
