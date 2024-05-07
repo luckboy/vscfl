@@ -739,6 +739,14 @@ impl Type
         LocalType::new(self.eq_type_param_set.root_of(local_type1.index()))
     }
     
+    pub fn add_type_params(&mut self, type_param_idents: &[String])
+    {
+        for type_param_ident in type_param_idents {
+            self.type_param_entries.push(Rc::new(RefCell::new(TypeParamEntry::new_with_ident(type_param_ident.clone()))));
+            self.eq_type_param_set.add_singleton();
+        }
+    }
+    
     pub fn to_string(&self) -> String
     {
         self.type_value.to_string(|type_value, s| {

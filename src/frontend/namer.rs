@@ -699,7 +699,7 @@ impl Namer
                         check_trait_name(trait_name, pos.clone(), &tree, errs);
                     }
                     for type_expr in type_exprs {
-                        self.check_idents_for_type_expr(&**type_expr, tree, type_param_env, false, true, errs)?;
+                        self.check_idents_for_type_expr(&**type_expr, tree, type_param_env, true, true, errs)?;
                     }
                 }
                 WhereTuple::Eq(type_params) => {
