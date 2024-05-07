@@ -892,24 +892,25 @@ g: Int = x;
 h: Int = let z = 1 in z;
 i: T = C(x, 2.5);
 j: T = D { y: 1.5f, z: 1, x: x, };
-k: Int = e(x, y);
-l: Int =
+k: Int = printf(\"%d\n\", x);
+l: Int = e(x, y);
+m: Int =
     let _ = abc.0.z;
         _ = abc.0.z ->;
         _ = abc.0.z <- x;
         _ = abc.0.z <-> e;
         _ = abc.0.z <-> e ->;
     in  1;
-m() -> uniq Int = uniq x;
-n() -> Int = shared m();
-o(x: t) -> (t, Float) = (x, 1.5): (t, Float);
-p: Float = x as Float;
-q: Int = if def then x else y;
-r: Int =
+n() -> uniq Int = uniq x;
+o() -> Int = shared m();
+p(x: t) -> (t, Float) = (x, 1.5): (t, Float);
+q: Float = x as Float;
+r: Int = if def then x else y;
+s: Int =
     let z1 = 1;
         z2 = 2;
     in  z1 + z2;
-s: Int = C(1, 2.5) match {
+t: Int = C(1, 2.5) match {
         C(z1, z2) => z1 + (z2 as Int);
         D { z: z, x: x, y: _ } => z - x;
     };
