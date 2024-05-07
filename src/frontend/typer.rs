@@ -2653,7 +2653,7 @@ impl Typer
         }
     }
     
-    fn new_type_by_substitution(&self, typ: &Type, trait_ident: &String, type_name: &TypeName) -> FrontendResultWithErrors<Type>
+    fn new_type_by_substitution(&self, typ: &Type, trait_ident: &String, type_name: &TypeName) -> FrontendResultWithErrors<(Type, Vec<(String, Rc<TypeValue>)>)>
     {
         let mut type_values: Vec<Rc<TypeValue>> = Vec::new();
         let mut local_types: Vec<Option<LocalType>> = Vec::new();
@@ -2723,12 +2723,22 @@ impl Typer
                 }
             }
         }
-        Ok(new_type)
+        let mut new_type_values: Vec<(String, Rc<TypeValue>)> = Vec::new();
+        for j in 0..typ.type_param_entries().len() {
+            if local_types[j].is_none() {
+                let type_param_entry_r = typ.type_param_entries()[j].borrow();
+                match &type_param_entry_r.ident {
+                    Some(type_param_ident) => new_type_values.push((type_param_ident.clone(), type_values[j].clone())),
+                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("new_type_by_substitution: no identifier"))])),
+                }
+            }
+        }
+        Ok((new_type, new_type_values))
     }
     
     fn evaluate_types_for_impl_var(&self, ident: &String, impl_var: &mut ImplVar, pos: Pos, trait_ident: &String, type_name: &TypeName, tree: &Tree, is_builtin_impl: bool, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
-        let new_type = match tree.trait1(trait_ident) {
+        let (new_type, new_type_values) = match tree.trait1(trait_ident) {
             Some(trait1) => {
                 let trait_r = trait1.borrow();
                 match &*trait_r {
@@ -2777,6 +2787,10 @@ impl Typer
                 }
                 let mut new_local_types = LocalTypes::new();
                 let new_local_type = new_local_types.set_defined_type(&new_type);
+                for (type_param_ident, new_type_value) in new_type_values {
+                    let new_local_type = new_local_types.add_type_value(new_type_value.clone());
+                    type_param_env.add_var(type_param_ident.clone(), new_local_type);
+                }
                 let mut var_env: Environment<LocalType> = Environment::new();
                 self.evaluate_types_for_expr(&mut **expr, tree, &mut var_env, &mut type_param_env, &mut new_local_types, errs)?;
                 let mut var_env2: Environment<(LocalType, usize, Pos)> = Environment::new();
@@ -2802,6 +2816,10 @@ impl Typer
                         let mut new_local_types = LocalTypes::new();
                         match new_local_types.set_defined_fun_types(&new_type) {
                             Some(new_local_types2) => {
+                                for (type_param_ident, new_type_value) in new_type_values {
+                                    let new_local_type = new_local_types.add_type_value(new_type_value.clone());
+                                    type_param_env.add_var(type_param_ident.clone(), new_local_type);
+                                }
                                 let mut var_env: Environment<LocalType> = Environment::new();
                                 var_env.push_new_vars();
                                 if new_local_types2.len() >= 1 {
