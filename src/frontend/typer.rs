@@ -1191,9 +1191,13 @@ impl Typer
             TypeExpr::Uniq(type_expr2, _) => {
                 match self.evaluate_type_for_type_expr(&**type_expr2, tree, type_param_env, local_type_counter, errs)? {
                     Some(type_value) => {
-                        let mut type_value3 = (*type_value).clone();
-                        type_value3.set_uniq_flag(UniqFlag::Uniq);
-                        Ok(Some(Rc::new(type_value3)))
+                        if type_value.uniq_flag() == UniqFlag::None {
+                            let mut type_value3 = (*type_value).clone();
+                            type_value3.set_uniq_flag(UniqFlag::Uniq);
+                            Ok(Some(Rc::new(type_value3)))
+                        } else {
+                            Ok(Some(type_value))
+                        }
                     },
                     None => Ok(None),
                 }
