@@ -408,7 +408,7 @@ impl Namer
                                                                     new_impl_vars.add_var(impl_var_ident.clone(), impl_var.clone());
                                                                 }
                                                             },
-                                                            None => errs.push(FrontendError::Message(pos.clone(), format!("undefined variable {} in trait {}", impl_var_ident, trait_ident))),
+                                                            None => errs.push(FrontendError::Message(impl_var_pos.clone(), format!("undefined variable {} in trait {}", impl_var_ident, trait_ident))),
                                                         }
                                                     },
                                                 }

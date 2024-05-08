@@ -1545,8 +1545,8 @@ impl T for Int
             assert_eq!(1, errs.errors().len());
             match &errs.errors()[0] {
                 FrontendError::Message(pos, msg) => {
-                    assert_eq!(6, pos.line);
-                    assert_eq!(1, pos.column);
+                    assert_eq!(9, pos.line);
+                    assert_eq!(5, pos.column);
                     assert_eq!(String::from("undefined variable y in trait T"), *msg);
                 },
                 _ => assert!(false),
@@ -1585,8 +1585,8 @@ impl T for Int
             assert_eq!(1, errs.errors().len());
             match &errs.errors()[0] {
                 FrontendError::Message(pos, msg) => {
-                    assert_eq!(6, pos.line);
-                    assert_eq!(1, pos.column);
+                    assert_eq!(9, pos.line);
+                    assert_eq!(5, pos.column);
                     assert_eq!(String::from("undefined variable g in trait T"), *msg);
                 },
                 _ => assert!(false),
