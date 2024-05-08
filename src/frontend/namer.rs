@@ -197,6 +197,7 @@ impl Namer
     {
         let mut errs: Vec<FrontendError> = Vec::new();
         let mut type_param_env: Environment<()> = Environment::new();
+        type_param_env.push_new_vars();
         self.check_idents_for_type_args2(type_args, &mut type_param_env, &mut errs)?;
         if errs.is_empty() {
             Ok(())
@@ -464,7 +465,10 @@ impl Namer
                 Def::Trait(_, trait1, _) => {
                     let trait_r = trait1.borrow();
                     match &*trait_r {
-                        Trait(_, trait_defs, _) => {
+                        Trait(type_args, trait_defs, _) => {
+                            let mut type_param_env: Environment<()> = Environment::new();
+                            type_param_env.push_new_vars();
+                            self.check_idents_for_type_args2(type_args.as_slice(), &mut type_param_env, errs)?;
                             for trait_def in trait_defs {
                                 match &**trait_def {
                                     TraitDef(_, var, _) => {

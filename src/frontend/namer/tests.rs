@@ -1612,6 +1612,36 @@ type T<t, t> = Int;
     }
 }
 
+#[test]
+fn test_namer_check_idents_complains_on_already_defined_type_argument_for_trait()
+{
+    let s = "
+trait T<t, t> { };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(1, pos.line);
+                    assert_eq!(12, pos.column);
+                    assert_eq!(String::from("already defined type argument t"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
 
 #[test]
 fn test_namer_check_idents_complains_on_undefined_type_parameter()
@@ -2329,5 +2359,100 @@ f(x: t) -> t = x: u;
             }
         },
         _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_for_type_args_checks_identifiers()
+{
+    let s = "t, u";
+    let mut cursor = Cursor::new(s.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let namer = Namer::new();
+    match parser.parse_type_args() {
+        Ok(type_args) => {
+            match namer.check_idents_for_type_args(type_args.as_slice()) {
+                Ok(()) => assert!(true),
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_for_type_with_type_args_checks_identifiers()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let s3 = "(Int, t, Float, u)";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            match namer.check_idents_for_type_with_type_args(&type_expr, &[String::from("t"), String::from("u")], &tree) {
+                Ok(()) => assert!(true),
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_for_type_with_where_checks_identifiers()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+trait T<t> {};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let s3 = "(Int, t, Float, u)";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "t: T <Int>, u: T <v>";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
     }
 }
