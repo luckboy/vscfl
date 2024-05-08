@@ -2776,8 +2776,16 @@ impl Typer
                                     Var::Builtin(_, Some(typ)) => self.new_type_by_substitution(&**typ, trait_ident, type_name)?,
                                     Var::Var(_, _, _, _, _, _, _, Some(typ), _) => self.new_type_by_substitution(&**typ, trait_ident, type_name)?,
                                     Var::Fun(_, _, Some(typ)) => self.new_type_by_substitution(&**typ, trait_ident, type_name)?,
-                                    _ => {
-                                        errs.push(FrontendError::Message(pos, format!("variable {} hasn't evaluated type", ident)));
+                                    Var::Builtin(_, None) => {
+                                        errs.push(FrontendError::Message(pos, format!("built-in variable {} hasn't evaluated type in trait {}", ident, trait_ident)));
+                                        return Ok(());
+                                    },
+                                    Var::Var(_, _, _, _, _, _, _, None, _) => {
+                                        errs.push(FrontendError::Message(pos, format!("variable {} hasn't evaluated type in trait {}", ident, trait_ident)));
+                                        return Ok(());
+                                    },
+                                    Var::Fun(_, _, None) => {
+                                        errs.push(FrontendError::Message(pos, format!("function {} hasn't evaluated type in trait {}", ident, trait_ident)));
                                         return Ok(());
                                     },
                                 }
