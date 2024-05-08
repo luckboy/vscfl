@@ -1517,6 +1517,86 @@ impl T for Int
 }
 
 #[test]
+fn test_namer_check_idents_complains_on_undefined_variable_in_trait()
+{
+    let s = "
+builtin type Int;
+trait T
+{
+    x: t where t: T;
+};
+impl T for Int
+{
+    x = 1;
+    y = 2;
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(6, pos.line);
+                    assert_eq!(1, pos.column);
+                    assert_eq!(String::from("undefined variable y in trait T"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_namer_check_idents_complains_on_undefined_variable_in_trait_for_function()
+{
+    let s = "
+builtin type Int;
+trait T
+{
+    f(x: t) -> Int where t: T;
+};
+impl T for Int
+{
+    f(x) = x;
+    g(x) = x;
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(6, pos.line);
+                    assert_eq!(1, pos.column);
+                    assert_eq!(String::from("undefined variable g in trait T"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
 fn test_namer_check_idents_complains_on_already_defined_field()
 {
     let s = "
