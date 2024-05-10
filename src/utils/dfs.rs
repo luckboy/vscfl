@@ -55,3 +55,6 @@ pub fn dfs<T: Clone + Ord, U, F, G>(from: &T, visiteds: &mut BTreeSet<T>, data: 
     where F: FnMut(&T, &BTreeSet<T>, &mut U) -> Vec<T>,
         G: FnMut(&T, &mut U)
 { let _res: Result<(), ()> = dfs_with_result(from, visiteds, data, |u, processeds, data| Ok(f(u, processeds, data)), |u, data| Ok(g(u, data))); }
+
+#[cfg(test)]
+mod tests;
