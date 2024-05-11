@@ -10,6 +10,7 @@ use std::cmp::min;
 use std::collections::BTreeSet;
 use std::fmt;
 use std::rc::*;
+use crate::frontend::builtins::*;
 use crate::frontend::error::*;
 use crate::frontend::tree::*;
 
@@ -547,5 +548,103 @@ impl TypeMatcher
             local_types.set_uniq(local_type2);
         }
         self.match_type_values(&type_value1, &type_value2, tree, local_types)
+    }
+
+    fn has_primitive_for_type_ident(&self, ident: &String, tree: &Tree, builtins: &Builtins) -> FrontendResult<bool>
+    {
+        match tree.type_var(ident) {
+            Some(type_var) => {
+                let mut type_var_r = type_var.borrow_mut();
+                match &mut *type_var_r {
+                    TypeVar::Builtin(_, _, _) => {
+                        match builtins.type_var(ident) {
+                            Some(builtin_type_var) => Ok(builtin_type_var.is_primitive),
+                            None => Ok(false),
+                        }
+                    },
+                    TypeVar::Data(_, _, _) => Ok(false),
+                    _ => Err(FrontendError::Internal(String::from("has_primitive_for_type_ident: type variable is type synonym"))),
+                }
+            },
+            None => Err(FrontendError::Internal(String::from("has_primitive_for_type_ident: no type variable"))),
+        }
+    }
+    
+    fn match_local_type_entries_for_casting(&self, local_type_entry1: &LocalTypeEntry, local_type_entry2: &LocalTypeEntry, tree: &Tree, local_types: &LocalTypes, builtins: &Builtins) -> FrontendResult<Option<SharedFlag>>
+    {
+        match (local_type_entry1, local_type_entry2) {
+            (LocalTypeEntry::Type(type_value1), LocalTypeEntry::Type(type_value2)) => {
+                match (&**type_value1, &**type_value2) {
+                    (TypeValue::Type(_, type_value_name1, type_values1), TypeValue::Type(_, type_value_name2, type_values2)) => {
+                        let mut is_success = true;
+                        match (type_value_name1, type_value_name2) {
+                            (TypeValueName::Name(ident1), TypeValueName::Name(ident2)) => {
+                                if !self.has_primitive_for_type_ident(ident1, tree, builtins)? || !self.has_primitive_for_type_ident(ident2, tree, builtins)? {
+                                    is_success = false;
+                                }
+                            },
+                            (TypeValueName::Tuple, TypeValueName::Tuple) => (),
+                            (TypeValueName::Array(Some(len1)), TypeValueName::Array(Some(len2))) if len1 == len2 => (),
+                            _ => is_success = false,
+                        }
+                        if !is_success {
+                            return Ok(None);
+                        }
+                        if type_values1.len() != type_values2.len() {
+                            return Ok(None);
+                        }
+                        let mut type_arg_shared_flag = SharedFlag::Shared;
+                        for (type_value1, type_value2) in type_values1.iter().zip(type_values2.iter()) {
+                            match self.match_type_values_for_casting2(type_value1, type_value2, tree, local_types, builtins)? {
+                                Some(tmp_shared_flag) => {
+                                    if tmp_shared_flag == SharedFlag::None {
+                                        type_arg_shared_flag = SharedFlag::None;
+                                    }
+                                },
+                                None => is_success = false,
+                            }
+                        }
+                        if !is_success {
+                            return Ok(None);
+                        }
+                        let shared_flag1 = self.shared_flag_for_type_value2(type_value1, Some(type_arg_shared_flag), tree, local_types)?;
+                        let shared_flag2 = self.shared_flag_for_type_value2(type_value2, Some(type_arg_shared_flag), tree, local_types)?;
+                        if shared_flag1 != shared_flag2 {
+                            return Ok(None);
+                        }
+                        let shared_flag = shared_flag1;
+                        Ok(Some(shared_flag))
+                    },
+                    _ => Err(FrontendError::Internal(String::from("match_local_type_entries_for_casting: no variable"))),
+                }
+            },
+            _ => Ok(None),
+        }
+    }
+
+    fn match_type_values_for_casting2(&self, type_value1: &Rc<TypeValue>, type_value2: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes, builtins: &Builtins) -> FrontendResult<Option<SharedFlag>>
+    {
+        let local_type_entry1 = local_types.type_entry_for_type_value(type_value1);
+        let local_type_entry2 = local_types.type_entry_for_type_value(type_value2);
+        match (local_type_entry1, local_type_entry2) {
+            (Some(local_type_entry1), Some(local_type_entry2)) => self.match_local_type_entries_for_casting(&local_type_entry1, &local_type_entry2, tree, local_types, builtins),
+            (_, _) => Err(FrontendError::Internal(String::from("match_type_values_for_casting2: no local type entry"))),
+        }
+    }
+
+    pub fn match_type_values_for_casting(&self, type_value1: &Rc<TypeValue>, type_value2: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes, builtins: &Builtins) -> FrontendResult<bool>
+    {
+        match self.match_type_values_for_casting2(type_value1, type_value2, tree, local_types, builtins) {
+            Ok(Some(_)) => Ok(true),
+            Ok(None) => Ok(false),
+            Err(err) => Err(err),
+        }
+    }
+
+    pub fn match_for_casting(&self, local_type1: LocalType, local_type2: LocalType, tree: &Tree, local_types: &LocalTypes, builtins: &Builtins) -> FrontendResult<bool>
+    {
+        let type_value1 = Rc::new(TypeValue::Param(UniqFlag::None, local_type1));
+        let type_value2 = Rc::new(TypeValue::Param(UniqFlag::None, local_type2));
+        self.match_type_values_for_casting(&type_value1, &type_value2, tree, local_types, builtins)
     }
 }
