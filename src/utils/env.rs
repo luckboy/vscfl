@@ -209,3 +209,6 @@ impl<T: Clone> Environment<T>
         where F: FnMut(&String, &T)
     { let _res: Result<(), ()> = self.foreach_with_result(|ident, value| Ok(f(ident, value))); }
 }
+
+#[cfg(test)]
+mod tests;
