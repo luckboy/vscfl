@@ -594,16 +594,18 @@ impl TypeValue
                     },
                     TypeValueName::Name(ident) => {
                         s.push_str(ident.as_str());
-                        s.push('<');
-                        let mut is_first = true;
-                        for arg in &args {
-                            if !is_first {
-                                s.push_str(", ");
+                        if !args.is_empty() {
+                            s.push('<');
+                            let mut is_first = true;
+                            for arg in &args {
+                                if !is_first {
+                                    s.push_str(", ");
+                                }
+                                arg.add_to_string(s, f);
+                                is_first = false;
                             }
-                            arg.add_to_string(s, f);
-                            is_first = false;
+                            s.push('>');
                         }
-                        s.push('>');
                     },
                 }
             },
