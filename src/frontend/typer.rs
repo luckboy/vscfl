@@ -2192,28 +2192,28 @@ impl Typer
         }
     }
     
-    fn check_type_value_for_cast(&self, type_value: &TypeValue, tree: &Tree) -> FrontendResultWithErrors<bool>
+    fn check_type_value_for_casting(&self, type_value: &TypeValue, tree: &Tree) -> FrontendResultWithErrors<bool>
     {
         match type_value {
             TypeValue::Type(_, TypeValueName::Tuple | TypeValueName::Array(Some(_)), type_values) => {
-                let mut is_for_as = true;
+                let mut is_for_casting = true;
                 for type_value2 in type_values {
-                    if !self.check_type_value_for_cast(type_value2, tree)? {
-                        is_for_as = false;
+                    if !self.check_type_value_for_casting(type_value2, tree)? {
+                        is_for_casting = false;
                     }
                 }
-                Ok(is_for_as)
+                Ok(is_for_casting)
             },
             TypeValue::Type(_, TypeValueName::Name(ident), type_values) => {
-                let mut is_for_as = self.has_primitive_for_type_ident(ident, tree)?;
-                if is_for_as {
+                let mut is_for_casting = self.has_primitive_for_type_ident(ident, tree)?;
+                if is_for_casting {
                     for type_value2 in type_values {
-                        if !self.check_type_value_for_cast(type_value2, tree)? {
-                            is_for_as = false;
+                        if !self.check_type_value_for_casting(type_value2, tree)? {
+                            is_for_casting = false;
                         }
                     }
                 }
-                Ok(is_for_as)
+                Ok(is_for_casting)
             },
             _ => Ok(false),
         }
@@ -2330,7 +2330,7 @@ impl Typer
                 self.evaluate_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
                 match self.evaluate_type_for_type_expr(&**type_expr, tree, type_param_env, &mut None, errs)? {
                     Some(type_value) => {
-                        if self.check_type_value_for_cast(&*type_value, tree)? {
+                        if self.check_type_value_for_casting(&*type_value, tree)? {
                             *local_type = Some(local_types.add_type_value(type_value.clone()));
                         } else {
                             *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
@@ -2390,7 +2390,7 @@ impl Typer
                 *local_type1 = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
                 match self.evaluate_type_for_type_expr(&**type_expr, tree, type_param_env, &mut None, errs)? {
                     Some(type_value) => {
-                        if self.check_type_value_for_cast(&*type_value, tree)? {
+                        if self.check_type_value_for_casting(&*type_value, tree)? {
                             *local_type2 = Some(local_types.add_type_value(type_value.clone()));
                         } else {
                             *local_type2 = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
