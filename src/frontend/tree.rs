@@ -1005,6 +1005,7 @@ impl LocalTypes
     pub fn set_type(&mut self, local_type: LocalType, typ: &Type) -> Result<bool, TypeValueError>
     {
         if local_type.index() < self.type_entries.len() {
+            let mut new_type_param_entries: Vec<Rc<RefCell<TypeParamEntry>>> = Vec::new();
             let mut type_values: Vec<Rc<TypeValue>> = Vec::new();
             let idx = self.type_entries.len();
             for type_param_entry in &typ.type_param_entries {
@@ -1015,13 +1016,15 @@ impl LocalTypes
                 let mut new_type_param_entry = type_param_entry_r.clone();
                 new_type_param_entry.number = Some(self.type_param_number_counter);
                 new_type_param_entry.ident = None;
-                self.type_entries.push(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, Rc::new(RefCell::new(new_type_param_entry)), tmp_local_type));
+                let tmp_type_param_entry = Rc::new(RefCell::new(new_type_param_entry));
+                new_type_param_entries.push(tmp_type_param_entry.clone());
+                self.type_entries.push(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, tmp_type_param_entry, tmp_local_type));
                 self.eq_type_param_entries.push(EqTypeParamEntry::new());
                 self.type_param_number_counter += 1;
             }
             for i in idx..(idx + typ.eq_type_param_set.len()) {
                 for j in (i + 1)..(idx + typ.eq_type_param_set.len()) {
-                    if typ.eq_type_param_set.is_joined(i, j) {
+                    if typ.eq_type_param_set.is_joined(i - idx, j - idx) {
                         self.eq_type_param_entries.join(i, j);
                     }
                 }
@@ -1030,6 +1033,15 @@ impl LocalTypes
             match typ.type_value.substitute(type_values.as_slice())? {
                 Some(new_type_value) => self.type_entries[root_idx] = LocalTypeEntry::Type(new_type_value),
                 None => self.type_entries[root_idx] = LocalTypeEntry::Type(typ.type_value.clone()),
+            }
+            for new_type_param_entry in &new_type_param_entries {
+                let mut new_type_param_entry_r = new_type_param_entry.borrow_mut();
+                for type_value in &mut new_type_param_entry_r.type_values {
+                    match type_value.substitute(type_values.as_slice())? {
+                        Some(new_type_value) => *type_value = new_type_value,
+                        None => (),
+                    }
+                }
             }
             Ok(true)
         } else {
