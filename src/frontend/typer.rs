@@ -2118,26 +2118,6 @@ impl Typer
         }
     }
 
-    fn has_primitive_for_type_ident(&self, ident: &String, tree: &Tree) -> FrontendResultWithErrors<bool>
-    {
-        match tree.type_var(ident) {
-            Some(type_var) => {
-                let mut type_var_r = type_var.borrow_mut();
-                match &mut *type_var_r {
-                    TypeVar::Builtin(_, _, _) => {
-                        match self.builtins.type_var(ident) {
-                            Some(builtin_type_var) => Ok(builtin_type_var.is_primitive),
-                            None => Ok(false),
-                        }
-                    },
-                    TypeVar::Data(_, _, _) => Ok(false),
-                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_primitive_for_type_ident: type variable is type synonym"))])),
-                }
-            },
-            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_primitive_for_type_ident: no type variable"))])),
-        }
-    }
-    
     fn evaluate_types_for_expr(&self, expr: &mut Expr, tree: &Tree, var_env: &mut Environment<LocalType>, type_param_env: &mut Environment<LocalType>, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         match expr {
@@ -2975,6 +2955,26 @@ impl Typer
             }
         }
     }    
+
+    fn has_primitive_for_type_ident(&self, ident: &String, tree: &Tree) -> FrontendResultWithErrors<bool>
+    {
+        match tree.type_var(ident) {
+            Some(type_var) => {
+                let mut type_var_r = type_var.borrow_mut();
+                match &mut *type_var_r {
+                    TypeVar::Builtin(_, _, _) => {
+                        match self.builtins.type_var(ident) {
+                            Some(builtin_type_var) => Ok(builtin_type_var.is_primitive),
+                            None => Ok(false),
+                        }
+                    },
+                    TypeVar::Data(_, _, _) => Ok(false),
+                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_primitive_for_type_ident: type variable is type synonym"))])),
+                }
+            },
+            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_primitive_for_type_ident: no type variable"))])),
+        }
+    }
     
     fn local_type_for_fields(&self, local_type: LocalType, fields: &mut [Field], pos: &Pos, tree: &Tree, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<LocalType>>
     {
