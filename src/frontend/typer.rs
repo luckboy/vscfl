@@ -2138,33 +2138,6 @@ impl Typer
         }
     }
     
-    fn check_type_value_for_casting(&self, type_value: &TypeValue, tree: &Tree) -> FrontendResultWithErrors<bool>
-    {
-        match type_value {
-            TypeValue::Type(_, TypeValueName::Tuple | TypeValueName::Array(Some(_)), type_values) => {
-                let mut is_for_casting = true;
-                for type_value2 in type_values {
-                    if !self.check_type_value_for_casting(type_value2, tree)? {
-                        is_for_casting = false;
-                    }
-                }
-                Ok(is_for_casting)
-            },
-            TypeValue::Type(_, TypeValueName::Name(ident), type_values) => {
-                let mut is_for_casting = self.has_primitive_for_type_ident(ident, tree)?;
-                if is_for_casting {
-                    for type_value2 in type_values {
-                        if !self.check_type_value_for_casting(type_value2, tree)? {
-                            is_for_casting = false;
-                        }
-                    }
-                }
-                Ok(is_for_casting)
-            },
-            _ => Ok(false),
-        }
-    }
-    
     fn evaluate_types_for_expr(&self, expr: &mut Expr, tree: &Tree, var_env: &mut Environment<LocalType>, type_param_env: &mut Environment<LocalType>, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         match expr {
@@ -2275,14 +2248,7 @@ impl Typer
             Expr::As(expr2, type_expr, local_type, _) => {
                 self.evaluate_types_for_expr(&mut **expr2, tree, var_env, type_param_env, local_types, errs)?;
                 match self.evaluate_type_for_type_expr(&**type_expr, tree, type_param_env, &mut None, errs)? {
-                    Some(type_value) => {
-                        if self.check_type_value_for_casting(&*type_value, tree)? {
-                            *local_type = Some(local_types.add_type_value(type_value.clone()));
-                        } else {
-                            *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
-                            errs.push(FrontendError::Message(type_expr_pos(type_expr).clone(), format!("can't cast to type {} that isn't primive type", TypeValueWithLocalTypes(type_value, local_types))));
-                        }
-                    },
+                    Some(type_value) => *local_type = Some(local_types.add_type_value(type_value.clone())),
                     None => *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new())))),
                 }
             },
@@ -2335,14 +2301,7 @@ impl Typer
                 self.evaluate_types_for_literal(&mut **literal, tree, var_env, type_param_env, local_types, errs, Self::evaluate_types_for_pattern)?;
                 *local_type1 = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
                 match self.evaluate_type_for_type_expr(&**type_expr, tree, type_param_env, &mut None, errs)? {
-                    Some(type_value) => {
-                        if self.check_type_value_for_casting(&*type_value, tree)? {
-                            *local_type2 = Some(local_types.add_type_value(type_value.clone()));
-                        } else {
-                            *local_type2 = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
-                            errs.push(FrontendError::Message(type_expr_pos(type_expr).clone(), format!("can't cast to type {}", TypeValueWithLocalTypes(type_value, local_types))));
-                        }
-                    },
+                    Some(type_value) => *local_type2 = Some(local_types.add_type_value(type_value.clone())),
                     None => *local_type2 = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new())))),
                 }
             },
