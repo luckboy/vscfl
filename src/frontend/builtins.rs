@@ -9,6 +9,14 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use crate::frontend::tree::*;
 
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub enum RefTypeFlag
+{
+    None,
+    Ref,
+    Slice,
+}
+
 #[derive(Clone, Debug)]
 pub struct BuiltinTypeVar
 {
@@ -16,21 +24,21 @@ pub struct BuiltinTypeVar
     pub field_type_sources: Vec<String>,
     pub field_indices: Vec<(String, usize)>,
     pub shared_flag: SharedFlag,
-    pub is_ref_type: bool,
+    pub ref_type_flag: RefTypeFlag,
     pub is_primitive: bool,
     pub is_printable: bool,
 }
 
 impl BuiltinTypeVar
 {
-    pub fn new(type_arg_src: String, field_type_srcs: Vec<String>, field_idxs: Vec<(String, usize)>, shared_flag: SharedFlag, is_ref_type: bool, is_primitive: bool, is_printable: bool) -> Self
+    pub fn new(type_arg_src: String, field_type_srcs: Vec<String>, field_idxs: Vec<(String, usize)>, shared_flag: SharedFlag, ref_type_flag: RefTypeFlag, is_primitive: bool, is_printable: bool) -> Self
     {
         BuiltinTypeVar {
             type_arg_source: type_arg_src,
             field_type_sources: field_type_srcs,
             field_indices: field_idxs,
             shared_flag,
-            is_ref_type,
+            ref_type_flag,
             is_primitive,
             is_printable,
         }

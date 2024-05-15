@@ -1415,7 +1415,7 @@ impl Typer
         }
     }
     
-    fn has_ref_type_for_type_ident(&self, ident: &String, tree: &Tree) -> FrontendResultWithErrors<bool>
+    fn ref_type_flag_for_type_ident(&self, ident: &String, tree: &Tree) -> FrontendResultWithErrors<RefTypeFlag>
     {
         match tree.type_var(ident) {
             Some(type_var) => {
@@ -1423,15 +1423,15 @@ impl Typer
                 match &mut *type_var_r {
                     TypeVar::Builtin(_, _, _) => {
                         match self.builtins.type_var(ident) {
-                            Some(builtin_type_var) => Ok(builtin_type_var.is_ref_type),
-                            None => Ok(false),
+                            Some(builtin_type_var) => Ok(builtin_type_var.ref_type_flag),
+                            None => Ok(RefTypeFlag::None),
                         }
                     },
-                    TypeVar::Data(_, _, _) => Ok(false),
-                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_ref_type_for_type_ident: type variable is type synonym"))])),
+                    TypeVar::Data(_, _, _) => Ok(RefTypeFlag::None),
+                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("ref_type_flag_for_type_ident: type variable is type synonym"))])),
                 }
             },
-            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_ref_type_for_type_ident: no type variable"))])),
+            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("ref_type_flag_for_type_ident: no type variable"))])),
         }
     }
     
@@ -1439,14 +1439,14 @@ impl Typer
     {
         match type_value {
             TypeValue::Type(_, type_value_name, type_values) => {
-                let is_ref_type = match type_value_name {
+                let ref_type_flag = match type_value_name {
                     TypeValueName::Name(ident) => {
                         add_data_ident(ident, pos.clone(), tree, idents, processed_idents, errs)?;
-                        self.has_ref_type_for_type_ident(ident, tree)?
+                        self.ref_type_flag_for_type_ident(ident, tree)?
                     },
-                    _ => false,
+                    _ => RefTypeFlag::None,
                 };
-                if !is_ref_type {
+                if ref_type_flag == RefTypeFlag::None {
                     for type_value2 in type_values {
                         self.add_data_type_idents_for_type_value(&**type_value2, pos, tree, idents, processed_idents, errs)?;
                     }
@@ -2983,9 +2983,29 @@ impl Typer
             let field_idx = match field {
                 Field::Unnamed(tmp_field_idx, _) => Some(*tmp_field_idx),
                 Field::Named(field_ident, _) => {
-                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, current_local_type))) {
-                        Some(LocalTypeEntry::Type(type_value)) => {
-                            match &*type_value {
+                    let type_value = match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, current_local_type))) {
+                        Some(LocalTypeEntry::Type(tmp_type_value)) => {
+                            match &*tmp_type_value {
+                                TypeValue::Type(_, TypeValueName::Name(tmp_type_ident), tmp_type_values) => {
+                                    if self.ref_type_flag_for_type_ident(tmp_type_ident, tree)? == RefTypeFlag::Ref {
+                                        match tmp_type_values.first() {
+                                            Some(tmp_type_value) => tmp_type_value.clone(),
+                                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: no type value"))]))
+                                        }
+                                    } else {
+                                        tmp_type_value.clone()
+                                    }
+                                },
+                                TypeValue::Type(_, _, _) => tmp_type_value.clone(),
+                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: type value isn't type"))]))
+                            }
+                        },
+                        Some(_) => Rc::new(TypeValue::Param(UniqFlag::None, current_local_type)),
+                        None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: no local type entry"))])),
+                    };
+                    match local_types.type_entry_for_type_value(&type_value) {
+                        Some(LocalTypeEntry::Type(type_value2)) => {
+                            match &*type_value2 {
                                 TypeValue::Type(_, TypeValueName::Name(type_ident), _) => {
                                     match tree.type_var(type_ident) {
                                         Some(type_var) => {
@@ -3047,9 +3067,33 @@ impl Typer
             };
             match field_idx {
                 Some(field_idx) => {
-                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, current_local_type))) {
-                        Some(LocalTypeEntry::Type(type_value)) => {
-                            match &*type_value {
+                    let (type_value, ref_type_tuple)  = match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, current_local_type))) {
+                        Some(LocalTypeEntry::Type(tmp_type_value)) => {
+                            match &*tmp_type_value {
+                                TypeValue::Type(tmp_uniq_flag, TypeValueName::Name(tmp_type_ident), tmp_type_values) => {
+                                    if self.ref_type_flag_for_type_ident(tmp_type_ident, tree)? == RefTypeFlag::Ref {
+                                        match tmp_type_values.first() {
+                                            Some(tmp_type_value) => {
+                                                let mut new_tmp_type_values: Vec<Rc<TypeValue>> = Vec::new();
+                                                new_tmp_type_values.extend_from_slice(&tmp_type_values[1..]);
+                                                (tmp_type_value.clone(), Some((*tmp_uniq_flag, tmp_type_ident.clone(), new_tmp_type_values)))
+                                            },
+                                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: no type value"))]))
+                                        }
+                                    } else {
+                                        (tmp_type_value.clone(), None)
+                                    }
+                                },
+                                TypeValue::Type(_, _, _) => (tmp_type_value.clone(), None),
+                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: type value isn't type"))]))
+                            }
+                        },
+                        Some(_) => (Rc::new(TypeValue::Param(UniqFlag::None, current_local_type)), None),
+                        None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: no local type entry"))])),
+                    };
+                    match local_types.type_entry_for_type_value(&type_value) {
+                        Some(LocalTypeEntry::Type(type_value2)) => {
+                            match &*type_value2 {
                                 TypeValue::Type(_, TypeValueName::Tuple, type_values) => {
                                     if field_idx < type_values.len() {
                                         current_local_type = local_types.add_type_value(type_values[field_idx].clone());
@@ -3132,6 +3176,15 @@ impl Typer
                             return Ok(None);
                         },
                         None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("local_type_for_fields: no local type entry"))])),
+                    }
+                    match &ref_type_tuple {
+                        Some((ref_uniq_flag, ref_type_ident, ref_type_values)) => {
+                            let mut new_ref_type_values: Vec<Rc<TypeValue>> = vec![Rc::new(TypeValue::Param(UniqFlag::None, current_local_type))];
+                            new_ref_type_values.extend_from_slice(ref_type_values.as_slice());
+                            let new_type_value = Rc::new(TypeValue::Type(*ref_uniq_flag, TypeValueName::Name(ref_type_ident.clone()), new_ref_type_values));
+                            current_local_type = local_types.add_type_value(new_type_value);
+                        },
+                        None => (),
                     }
                 },
                 _ => return Ok(None),
