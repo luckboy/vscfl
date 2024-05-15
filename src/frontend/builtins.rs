@@ -17,12 +17,13 @@ pub struct BuiltinTypeVar
     pub field_indices: Vec<(String, usize)>,
     pub shared_flag: SharedFlag,
     pub is_ref_type: bool,
-    pub is_primitive: bool
+    pub is_primitive: bool,
+    pub is_printable: bool,
 }
 
 impl BuiltinTypeVar
 {
-    pub fn new(type_arg_src: String, field_type_srcs: Vec<String>, field_idxs: Vec<(String, usize)>, shared_flag: SharedFlag, is_ref_type: bool, is_primitive: bool) -> Self
+    pub fn new(type_arg_src: String, field_type_srcs: Vec<String>, field_idxs: Vec<(String, usize)>, shared_flag: SharedFlag, is_ref_type: bool, is_primitive: bool, is_printable: bool) -> Self
     {
         BuiltinTypeVar {
             type_arg_source: type_arg_src,
@@ -31,6 +32,7 @@ impl BuiltinTypeVar
             shared_flag,
             is_ref_type,
             is_primitive,
+            is_printable,
         }
     }
 }

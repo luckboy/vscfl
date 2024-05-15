@@ -2956,7 +2956,7 @@ impl Typer
         }
     }    
 
-    fn has_primitive_for_type_ident(&self, ident: &String, tree: &Tree) -> FrontendResultWithErrors<bool>
+    fn has_printable_for_type_ident(&self, ident: &String, tree: &Tree) -> FrontendResultWithErrors<bool>
     {
         match tree.type_var(ident) {
             Some(type_var) => {
@@ -2969,10 +2969,10 @@ impl Typer
                         }
                     },
                     TypeVar::Data(_, _, _) => Ok(false),
-                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_primitive_for_type_ident: type variable is type synonym"))])),
+                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_printable_for_type_ident: type variable is type synonym"))])),
                 }
             },
-            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_primitive_for_type_ident: no type variable"))])),
+            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_printable_for_type_ident: no type variable"))])),
         }
     }
     
@@ -3248,9 +3248,28 @@ impl Typer
                             match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, expr3_local_type))) {
                                 Some(LocalTypeEntry::Type(type_value)) => {
                                     match &*type_value {
-                                        TypeValue::Type(_, TypeValueName::Name(expr3_type_ident), _) => {
-                                            if !self.has_primitive_for_type_ident(expr3_type_ident, tree)? {
+                                        TypeValue::Type(_, TypeValueName::Name(expr3_type_ident), expr3_type_values) => {
+                                            if !self.has_printable_for_type_ident(expr3_type_ident, tree)? {
                                                 errs.push(FrontendError::Message(expr_pos(&**expr3).clone(), format!("printf must't take values with type {}", LocalTypeWithLocalTypes(expr3_local_type, local_types))));
+                                            }
+                                            match expr3_type_values.first() {
+                                                Some(expr3_type_value) => {
+                                                    match local_types.type_entry_for_type_value(expr3_type_value) {
+                                                        Some(LocalTypeEntry::Type(type_value2)) => {
+                                                            match &*type_value2 {
+                                                                TypeValue::Type(_, TypeValueName::Name(expr3_type_ident2), _) => {
+                                                                    if !self.check_builtin_type_ident(&String::from("Char"), 0, pos.clone(), tree, errs)? || expr3_type_ident2 != &String::from("Char") {
+                                                                        errs.push(FrontendError::Message(expr_pos(&**expr3).clone(), format!("printf mustn't take values with type {}", LocalTypeWithLocalTypes(expr3_local_type, local_types))))
+                                                                    }
+                                                                },
+                                                                _ => errs.push(FrontendError::Message(expr_pos(&**expr3).clone(), format!("printf mustn't take values with type {}", LocalTypeWithLocalTypes(expr3_local_type, local_types)))),
+                                                            }
+                                                        },
+                                                        Some(LocalTypeEntry::Param(_, _, _, _)) => errs.push(FrontendError::Message(expr_pos(expr3).clone(), format!("printf must't take values with type {}", LocalTypeWithLocalTypes(expr3_local_type, local_types)))),
+                                                        None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_expr: no local type entry"))])), 
+                                                    }
+                                                },
+                                                None => (),
                                             }
                                         },
                                         _ => errs.push(FrontendError::Message(expr_pos(&**expr3).clone(), format!("printf mustn't take values with type {}", LocalTypeWithLocalTypes(expr3_local_type, local_types)))),
