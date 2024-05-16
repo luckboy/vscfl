@@ -75,7 +75,7 @@ impl Builtins
         // Type variables.
         //
         let mut type_vars: HashMap<String, BuiltinTypeVar> = HashMap::new();
-        // Type variables for standard library.
+        // Type variables for language.
         type_vars.insert(String::from("Bool"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
         type_vars.insert(String::from("Char"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, true, true));
         type_vars.insert(String::from("Short"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, true, true));
@@ -145,7 +145,7 @@ impl Builtins
         //
         // Variables.
         //
-        // Variables for standard library.
+        // Variables for language.
         let mut vars: HashMap<String, BuiltinVar> = HashMap::new();
         for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
             for n in [2, 3, 4, 8, 16] {
@@ -173,11 +173,20 @@ impl Builtins
         vars.insert(String::from("uniq_private_ref"), BuiltinVar::new(String::from("(t) -> UniqPrivateRef<t>"), String::new()));
         vars.insert(String::from("uniq_local_ref"), BuiltinVar::new(String::from("(t) -> UniqLocalRef<t>"), String::new()));
         vars.insert(String::from("uniq_global_ref"), BuiltinVar::new(String::from("(t) -> UniqGlobalRef<t>"), String::new()));
+        // Variables for OpenCl.
+        vars.insert(String::from("get_work_dim"), BuiltinVar::new(String::from("() -> Uint"), String::new()));
+        vars.insert(String::from("get_global_size"), BuiltinVar::new(String::from("(Uint) -> SizeT"), String::new()));
+        vars.insert(String::from("get_global_id"), BuiltinVar::new(String::from("(Uint) -> SizeT"), String::new()));
+        vars.insert(String::from("get_local_size"), BuiltinVar::new(String::from("(Uint) -> SizeT"), String::new()));
+        vars.insert(String::from("get_local_id"), BuiltinVar::new(String::from("(Uint) -> SizeT"), String::new()));
+        vars.insert(String::from("get_num_groups"), BuiltinVar::new(String::from("(Uint) -> SizeT"), String::new()));
+        vars.insert(String::from("get_group_id"), BuiltinVar::new(String::from("(Uint) -> SizeT"), String::new()));
+        vars.insert(String::from("get_global_offset"), BuiltinVar::new(String::from("(Uint) -> SizeT"), String::new()));
         //
         // Implementations.
         //
         let mut impl_pairs: HashSet<(String, TypeName)> = HashSet::new();
-        // Implementations for standard library.
+        // Implementations for language.
         // OpNeg
         for s in ["Char", "Short", "Int", "Long", "Half", "Float", "Double", "PtrdiffT", "IntptrT"] {
             impl_pairs.insert((String::from("OpNeg"), TypeName::Name(String::from(s))));
@@ -331,6 +340,19 @@ impl Builtins
         for s in ["UniqSlice", "UniqPrivateSlice", "UniqLocalSlice", "UniqGlobalSlice"] {
             impl_pairs.insert((String::from("OpUpdateNth"), TypeName::Name(String::from(s))));
         }
+        // Implementations for standard library.
+        // ShlN
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((format!("Shl{}", n), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // ShrN
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((format!("Shr{}", n), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
         // SliceFrom
         impl_pairs.insert((String::from("SliceFrom"), TypeName::Array(None)));
         // PrivateSliceFrom
@@ -359,14 +381,6 @@ impl Builtins
         impl_pairs.insert((String::from("GetGlobalRef"), TypeName::Name(String::from("GlobalSlice"))));
         // GetConstantRef
         impl_pairs.insert((String::from("GetConstantRef"), TypeName::Name(String::from("ConstantSlice"))));
-        // GetUniqRef
-        impl_pairs.insert((String::from("GetUniqRef"), TypeName::Name(String::from("UniqSlice"))));
-        // GetUniqPrivateRef
-        impl_pairs.insert((String::from("GetUniqPrivateRef"), TypeName::Name(String::from("UniqPrivateSlice"))));
-        // GetUniqLocalRef
-        impl_pairs.insert((String::from("GetUniqLocalRef"), TypeName::Name(String::from("UniqLocalSlice"))));
-        // GetUniqGlobalRef
-        impl_pairs.insert((String::from("GetUniqGlobalRef"), TypeName::Name(String::from("UniqGlobalSlice"))));
         // UpdateUniqRef
         impl_pairs.insert((String::from("UpdateUniqRef"), TypeName::Name(String::from("UniqSlice"))));
         // UpdateUniqPrivateRef
@@ -375,14 +389,24 @@ impl Builtins
         impl_pairs.insert((String::from("UpdateUniqLocalRef"), TypeName::Name(String::from("UniqLocalSlice"))));
         // UpdateUniqGlobalRef
         impl_pairs.insert((String::from("UpdateUniqGlobalRef"), TypeName::Name(String::from("UniqGlobalSlice"))));
-        // GetSub
-        for s in ["Ref", "PrivateRef", "LocalRef", "GlobalRef", "ConstantRef", "UniqRef", "UniqPrivateRef", "UniqLocalRef", "UniqGlobalRef"] {
-            impl_pairs.insert((String::from("GetSub"), TypeName::Name(String::from(s))));
-        }
-        // UpdateSub
-        for s in ["UniqSlice", "UniqPrivateSlice", "UniqLocalSlice", "UniqGlobalSlice"] {
-            impl_pairs.insert((String::from("UpdateSub"), TypeName::Name(String::from(s))));
-        }
+        // GetSlice
+        impl_pairs.insert((String::from("GetSlice"), TypeName::Name(String::from("Slice"))));
+        // GetPrivateSlice
+        impl_pairs.insert((String::from("GetPrivateSlice"), TypeName::Name(String::from("PrivateSlice"))));
+        // GetLocalSlice
+        impl_pairs.insert((String::from("GetLocalSlice"), TypeName::Name(String::from("LocalSlice"))));
+        // GetGlobalSlice
+        impl_pairs.insert((String::from("GetGlobalSlice"), TypeName::Name(String::from("GlobalSlice"))));
+        // GetConstantSlice
+        impl_pairs.insert((String::from("GetConstantSlice"), TypeName::Name(String::from("ConstantSlice"))));
+        // UpdateUniqSlice
+        impl_pairs.insert((String::from("UpdateUniqSlice"), TypeName::Name(String::from("UniqSlice"))));
+        // UpdateUniqPrivateSlice
+        impl_pairs.insert((String::from("UpdateUniqPrivateSlice"), TypeName::Name(String::from("UniqPrivateSlice"))));
+        // UpdateUniqLocalSlice
+        impl_pairs.insert((String::from("UpdateUniqLocalSlice"), TypeName::Name(String::from("UniqLocalSlice"))));
+        // UpdateUniqGlobalSlice
+        impl_pairs.insert((String::from("UpdateUniqGlobalSlice"), TypeName::Name(String::from("UniqGlobalSlice"))));
         // Map
         impl_pairs.insert((String::from("Map"), TypeName::Array(None)));
         // FlatMap
@@ -422,6 +446,265 @@ impl Builtins
         impl_pairs.insert((String::from("FoldUpdateUniqLocalRefs"), TypeName::Name(String::from("UniqLocalSlice"))));
         // FoldUpdateUniqGlobalRefs
         impl_pairs.insert((String::from("FoldUpdateUniqGlobalRefs"), TypeName::Name(String::from("UniqGlobalSlice"))));
+        // Trigonometric
+        for s in ["Half", "Float", "Double"] {
+            impl_pairs.insert((String::from("Trigonometric"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("Trigonometric"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // TrigonometricExt
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("TrigonometricExt"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("TrigonometricExt"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // InvTrigonometric
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("InvTrigonometric"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("InvTrigonometric"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // InvTrigonometricExt
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("InvTrigonometricExt"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("InvTrigonometricExt"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // Hyperbolic
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("Hyperbolic"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("Hyperbolic"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // InvHyperbolic
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("InvHyperbolic"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("InvHyperbolic"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // Erf
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("Erf"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("Erf"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // Gamma
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("Gamma"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("Gamma"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // LgammaR
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("LgammaR"), TypeName::Name(String::from(s))));
+        }
+        // LgammaRN
+        for s in ["Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((format!("LgammaR{}", n), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // Math
+        for s in ["Half", "Float", "Double"] {
+            impl_pairs.insert((String::from("Math"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("Math"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // MathExt
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("MathExt"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("MathExt"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // Frexp
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("Frexp"), TypeName::Name(String::from(s))));
+        }
+        // FrexpN
+        for s in ["Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((format!("Frexp{}", n), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // Ilogb
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("Ilogb"), TypeName::Name(String::from(s))));
+        }
+        // IlogbN
+        for s in ["Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((format!("Ilogb{}", n), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // Ldexp
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("Ldexp"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("Ldexp"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // LdexpN
+        for s in ["Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((format!("Ldexp{}", n), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // Pown
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("Pown"), TypeName::Name(String::from(s))));
+        }
+        // PownN
+        for s in ["Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((format!("Pown{}", n), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // Remquo
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("Remquo"), TypeName::Name(String::from(s))));
+        }
+        // RemquoN
+        for s in ["Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((format!("Remquo{}", n), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // Rootn
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("Rootn"), TypeName::Name(String::from(s))));
+        }
+        // RootnN
+        for s in ["Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((format!("Rootn{}", n), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // Common
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+            impl_pairs.insert((String::from("Common"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("Common"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // CommonExt
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("CommonExt"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("CommonExt"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // Integer
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+            impl_pairs.insert((String::from("Integer"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("Integer"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // MadMul24
+        for s in ["Int", "Uint"] {
+            impl_pairs.insert((String::from("MadMul24"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Int", "Uint"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("MadMul24"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // Cross
+        for s in ["Float", "Double"] {
+            for n in [3, 4] {
+                impl_pairs.insert((String::from("Cross"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // HalfGeometric
+        impl_pairs.insert((String::from("HalfGeometric"), TypeName::Name(String::from("Float"))));
+        for n in [2, 3, 4] {
+            impl_pairs.insert((String::from("HalfGeometric"), TypeName::Name(format!("Float{}", n))));
+        }
+        // FloatGeometric
+        impl_pairs.insert((String::from("FloatGeometric"), TypeName::Name(String::from("Float"))));
+        for n in [2, 3, 4] {
+            impl_pairs.insert((String::from("FloatGeometric"), TypeName::Name(format!("Float{}", n))));
+        }
+        // DoubleGeometric
+        impl_pairs.insert((String::from("DoubleGeometric"), TypeName::Name(String::from("Double"))));
+        for n in [2, 3, 4] {
+            impl_pairs.insert((String::from("DoubleGeometric"), TypeName::Name(format!("Double{}", n))));
+        }
+        // Geometric
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("Geometric"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Float", "Double"] {
+            for n in [2, 3, 4] {
+                impl_pairs.insert((String::from("Geometric"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // Implementations for OpenCL.
+        // HalfMath
+        impl_pairs.insert((String::from("HalfMath"), TypeName::Name(String::from("Float"))));
+        for n in [2, 3, 4, 8, 16] {
+            impl_pairs.insert((String::from("HalfMath"), TypeName::Name(format!("Float{}", n))));
+        }
+        // NativeMath
+        impl_pairs.insert((String::from("NativeMath"), TypeName::Name(String::from("Float"))));
+        for n in [2, 3, 4, 8, 16] {
+            impl_pairs.insert((String::from("NativeMath"), TypeName::Name(format!("Float{}", n))));
+        }
+        // FastGeometric
+        impl_pairs.insert((String::from("FastGeometric"), TypeName::Name(String::from("Float"))));
+        for n in [2, 3, 4] {
+            impl_pairs.insert((String::from("FastGeometric"), TypeName::Name(format!("Float{}", n))));
+        }
+        // Relational
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("Relational"), TypeName::Name(String::from(s))));
+        }
+        // RelationalIN
+        for n in [2, 3, 4, 8, 16] {
+            impl_pairs.insert((format!("RelationalI{}", n), TypeName::Name(format!("Float{}", n))));
+        }
+        // RelationalLN
+        for n in [2, 3, 4, 8, 16] {
+            impl_pairs.insert((format!("RelationalL{}", n), TypeName::Name(format!("Double{}", n))));
+        }
         Builtins {
             type_vars,
             vars,
