@@ -173,6 +173,15 @@ impl Builtins
         vars.insert(String::from("uniq_private_ref"), BuiltinVar::new(String::from("(t) -> UniqPrivateRef<t>"), String::new()));
         vars.insert(String::from("uniq_local_ref"), BuiltinVar::new(String::from("(t) -> UniqLocalRef<t>"), String::new()));
         vars.insert(String::from("uniq_global_ref"), BuiltinVar::new(String::from("(t) -> UniqGlobalRef<t>"), String::new()));
+        // Variables for standatd library.
+        for s in ["", "2", "3", "4", "8", "16"] {
+            vars.insert(format!("short{}_upsample", s), BuiltinVar::new(format!("(Char{}, Uchar{}) -> Short{}", s, s, s), String::new()));
+            vars.insert(format!("int{}_upsample", s), BuiltinVar::new(format!("(Short{}, Ushort{}) -> Int{}", s, s, s), String::new()));
+            vars.insert(format!("long{}_upsample", s), BuiltinVar::new(format!("(Int{}, Uint{}) -> Long{}", s, s, s), String::new()));
+            vars.insert(format!("ushort{}_upsample", s), BuiltinVar::new(format!("(Uchar{}, Uchar{}) -> Ushort{}", s, s, s), String::new()));
+            vars.insert(format!("uint{}_upsample", s), BuiltinVar::new(format!("(Ushort{}, Ushort{}) -> Uint{}", s, s, s), String::new()));
+            vars.insert(format!("ulong{}_upsample", s), BuiltinVar::new(format!("(Uint{}, Uint{}) -> Ulong{}", s, s, s), String::new()));
+        }
         // Variables for OpenCl.
         vars.insert(String::from("get_work_dim"), BuiltinVar::new(String::from("() -> Uint"), String::new()));
         vars.insert(String::from("get_global_size"), BuiltinVar::new(String::from("(Uint) -> SizeT"), String::new()));
@@ -581,6 +590,18 @@ impl Builtins
                 impl_pairs.insert((format!("Ldexp{}", n), TypeName::Name(format!("{}{}", s, n))));
             }
         }
+        // NanI
+        impl_pairs.insert((String::from("NanI"), TypeName::Name(String::from("Float"))));
+        // NanIN
+        for n in [2, 3, 4, 8, 16] {
+            impl_pairs.insert((format!("NanI{}", n), TypeName::Name(format!("Float{}", n))));
+        }
+        // NanL
+        impl_pairs.insert((String::from("NanL"), TypeName::Name(String::from("Double"))));
+        // NanLN
+        for n in [2, 3, 4, 8, 16] {
+            impl_pairs.insert((format!("NanL{}", n), TypeName::Name(format!("Double{}", n))));
+        }
         // Pown
         for s in ["Float", "Double"] {
             impl_pairs.insert((String::from("Pown"), TypeName::Name(String::from(s))));
@@ -638,13 +659,22 @@ impl Builtins
                 impl_pairs.insert((String::from("Integer"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // MadMul24
+        // Mad24
         for s in ["Int", "Uint"] {
-            impl_pairs.insert((String::from("MadMul24"), TypeName::Name(String::from(s))));
+            impl_pairs.insert((String::from("Mad24"), TypeName::Name(String::from(s))));
         }
         for s in ["Int", "Uint"] {
             for n in [2, 3, 4, 8, 16] {
-                impl_pairs.insert((String::from("MadMul24"), TypeName::Name(format!("{}{}", s, n))));
+                impl_pairs.insert((String::from("Mad24"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // Mul24
+        for s in ["Int", "Uint"] {
+            impl_pairs.insert((String::from("Mul24"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Int", "Uint"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("Mul24"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
         // Cross
@@ -704,6 +734,42 @@ impl Builtins
         // RelationalLN
         for n in [2, 3, 4, 8, 16] {
             impl_pairs.insert((format!("RelationalL{}", n), TypeName::Name(format!("Double{}", n))));
+        }
+        // MsbAny
+        for s in ["Char", "Short", "Int", "Long"] {
+            impl_pairs.insert((String::from("MsbAny"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Char", "Short", "Int", "Long"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("MsbAny"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // MsbAll
+        for s in ["Char", "Short", "Int", "Long"] {
+            impl_pairs.insert((String::from("MsbAll"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Char", "Short", "Int", "Long"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("MsbAll"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // Bitselect
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+            impl_pairs.insert((String::from("Bitselect"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("Bitselect"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // Select
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+            impl_pairs.insert((String::from("Select"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("Select"), TypeName::Name(format!("{}{}", s, n))));
+            }
         }
         Builtins {
             type_vars,
