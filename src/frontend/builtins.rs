@@ -735,6 +735,11 @@ impl Builtins
                 impl_pairs.insert((String::from("Cross"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
+        // HalfGeometric
+        impl_pairs.insert((String::from("HalfGeometric"), TypeName::Name(String::from("Float"))));
+        for n in [2, 3, 4] {
+            impl_pairs.insert((String::from("HalfGeometric"), TypeName::Name(format!("Float{}", n))));
+        }
         // FloatGeometric
         impl_pairs.insert((String::from("FloatGeometric"), TypeName::Name(String::from("Float"))));
         for n in [2, 3, 4] {
