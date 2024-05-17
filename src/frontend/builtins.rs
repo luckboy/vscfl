@@ -173,15 +173,6 @@ impl Builtins
         vars.insert(String::from("uniq_private_ref"), BuiltinVar::new(String::from("(t) -> UniqPrivateRef<t>"), String::new()));
         vars.insert(String::from("uniq_local_ref"), BuiltinVar::new(String::from("(t) -> UniqLocalRef<t>"), String::new()));
         vars.insert(String::from("uniq_global_ref"), BuiltinVar::new(String::from("(t) -> UniqGlobalRef<t>"), String::new()));
-        // Variables for standatd library.
-        for s in ["", "2", "3", "4", "8", "16"] {
-            vars.insert(format!("short{}_upsample", s), BuiltinVar::new(format!("(Char{}, Uchar{}) -> Short{}", s, s, s), String::new()));
-            vars.insert(format!("int{}_upsample", s), BuiltinVar::new(format!("(Short{}, Ushort{}) -> Int{}", s, s, s), String::new()));
-            vars.insert(format!("long{}_upsample", s), BuiltinVar::new(format!("(Int{}, Uint{}) -> Long{}", s, s, s), String::new()));
-            vars.insert(format!("ushort{}_upsample", s), BuiltinVar::new(format!("(Uchar{}, Uchar{}) -> Ushort{}", s, s, s), String::new()));
-            vars.insert(format!("uint{}_upsample", s), BuiltinVar::new(format!("(Ushort{}, Ushort{}) -> Uint{}", s, s, s), String::new()));
-            vars.insert(format!("ulong{}_upsample", s), BuiltinVar::new(format!("(Uint{}, Uint{}) -> Ulong{}", s, s, s), String::new()));
-        }
         // Variables for OpenCl.
         vars.insert(String::from("get_work_dim"), BuiltinVar::new(String::from("() -> Uint"), String::new()));
         vars.insert(String::from("get_global_size"), BuiltinVar::new(String::from("(Uint) -> SizeT"), String::new()));
@@ -191,6 +182,14 @@ impl Builtins
         vars.insert(String::from("get_num_groups"), BuiltinVar::new(String::from("(Uint) -> SizeT"), String::new()));
         vars.insert(String::from("get_group_id"), BuiltinVar::new(String::from("(Uint) -> SizeT"), String::new()));
         vars.insert(String::from("get_global_offset"), BuiltinVar::new(String::from("(Uint) -> SizeT"), String::new()));
+        for s in ["", "2", "3", "4", "8", "16"] {
+            vars.insert(format!("short{}_upsample", s), BuiltinVar::new(format!("(Char{}, Uchar{}) -> Short{}", s, s, s), String::new()));
+            vars.insert(format!("int{}_upsample", s), BuiltinVar::new(format!("(Short{}, Ushort{}) -> Int{}", s, s, s), String::new()));
+            vars.insert(format!("long{}_upsample", s), BuiltinVar::new(format!("(Int{}, Uint{}) -> Long{}", s, s, s), String::new()));
+            vars.insert(format!("ushort{}_upsample", s), BuiltinVar::new(format!("(Uchar{}, Uchar{}) -> Ushort{}", s, s, s), String::new()));
+            vars.insert(format!("uint{}_upsample", s), BuiltinVar::new(format!("(Ushort{}, Ushort{}) -> Uint{}", s, s, s), String::new()));
+            vars.insert(format!("ulong{}_upsample", s), BuiltinVar::new(format!("(Uint{}, Uint{}) -> Ulong{}", s, s, s), String::new()));
+        }
         //
         // Implementations.
         //
@@ -455,58 +454,58 @@ impl Builtins
         impl_pairs.insert((String::from("FoldUpdateUniqLocalRefs"), TypeName::Name(String::from("UniqLocalSlice"))));
         // FoldUpdateUniqGlobalRefs
         impl_pairs.insert((String::from("FoldUpdateUniqGlobalRefs"), TypeName::Name(String::from("UniqGlobalSlice"))));
-        // Trigonometric
+        // Trigonometrics
         for s in ["Half", "Float", "Double"] {
-            impl_pairs.insert((String::from("Trigonometric"), TypeName::Name(String::from(s))));
+            impl_pairs.insert((String::from("Trigonometrics"), TypeName::Name(String::from(s))));
         }
         for s in ["Float", "Double"] {
             for n in [2, 3, 4, 8, 16] {
-                impl_pairs.insert((String::from("Trigonometric"), TypeName::Name(format!("{}{}", s, n))));
+                impl_pairs.insert((String::from("Trigonometrics"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // TrigonometricExt
+        // ExtTrigonometrics
         for s in ["Float", "Double"] {
-            impl_pairs.insert((String::from("TrigonometricExt"), TypeName::Name(String::from(s))));
+            impl_pairs.insert((String::from("ExtTrigonometrics"), TypeName::Name(String::from(s))));
         }
         for s in ["Float", "Double"] {
             for n in [2, 3, 4, 8, 16] {
-                impl_pairs.insert((String::from("TrigonometricExt"), TypeName::Name(format!("{}{}", s, n))));
+                impl_pairs.insert((String::from("ExtTrigonometrics"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // InvTrigonometric
+        // InvTrigonometrics
         for s in ["Float", "Double"] {
-            impl_pairs.insert((String::from("InvTrigonometric"), TypeName::Name(String::from(s))));
+            impl_pairs.insert((String::from("InvTrigonometrics"), TypeName::Name(String::from(s))));
         }
         for s in ["Float", "Double"] {
             for n in [2, 3, 4, 8, 16] {
-                impl_pairs.insert((String::from("InvTrigonometric"), TypeName::Name(format!("{}{}", s, n))));
+                impl_pairs.insert((String::from("InvTrigonometrics"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // InvTrigonometricExt
+        // ExtInvTrigonometrics
         for s in ["Float", "Double"] {
-            impl_pairs.insert((String::from("InvTrigonometricExt"), TypeName::Name(String::from(s))));
+            impl_pairs.insert((String::from("ExtInvTrigonometrics"), TypeName::Name(String::from(s))));
         }
         for s in ["Float", "Double"] {
             for n in [2, 3, 4, 8, 16] {
-                impl_pairs.insert((String::from("InvTrigonometricExt"), TypeName::Name(format!("{}{}", s, n))));
+                impl_pairs.insert((String::from("ExtInvTrigonometrics"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // Hyperbolic
+        // Hyperbolics
         for s in ["Float", "Double"] {
-            impl_pairs.insert((String::from("Hyperbolic"), TypeName::Name(String::from(s))));
+            impl_pairs.insert((String::from("Hyperbolics"), TypeName::Name(String::from(s))));
         }
         for s in ["Float", "Double"] {
             for n in [2, 3, 4, 8, 16] {
-                impl_pairs.insert((String::from("Hyperbolic"), TypeName::Name(format!("{}{}", s, n))));
+                impl_pairs.insert((String::from("Hyperbolics"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // InvHyperbolic
+        // InvHyperbolics
         for s in ["Float", "Double"] {
-            impl_pairs.insert((String::from("InvHyperbolic"), TypeName::Name(String::from(s))));
+            impl_pairs.insert((String::from("InvHyperbolics"), TypeName::Name(String::from(s))));
         }
         for s in ["Float", "Double"] {
             for n in [2, 3, 4, 8, 16] {
-                impl_pairs.insert((String::from("InvHyperbolic"), TypeName::Name(format!("{}{}", s, n))));
+                impl_pairs.insert((String::from("InvHyperbolics"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
         // Erf
@@ -546,13 +545,13 @@ impl Builtins
                 impl_pairs.insert((String::from("Math"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // MathExt
+        // ExtMath
         for s in ["Float", "Double"] {
-            impl_pairs.insert((String::from("MathExt"), TypeName::Name(String::from(s))));
+            impl_pairs.insert((String::from("ExtMath"), TypeName::Name(String::from(s))));
         }
         for s in ["Float", "Double"] {
             for n in [2, 3, 4, 8, 16] {
-                impl_pairs.insert((String::from("MathExt"), TypeName::Name(format!("{}{}", s, n))));
+                impl_pairs.insert((String::from("ExtMath"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
         // Frexp
@@ -641,14 +640,55 @@ impl Builtins
                 impl_pairs.insert((String::from("Common"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // CommonExt
+        // ExtCommon
         for s in ["Float", "Double"] {
-            impl_pairs.insert((String::from("CommonExt"), TypeName::Name(String::from(s))));
+            impl_pairs.insert((String::from("ExtCommon"), TypeName::Name(String::from(s))));
         }
         for s in ["Float", "Double"] {
             for n in [2, 3, 4, 8, 16] {
-                impl_pairs.insert((String::from("CommonExt"), TypeName::Name(format!("{}{}", s, n))));
+                impl_pairs.insert((String::from("ExtCommon"), TypeName::Name(format!("{}{}", s, n))));
             }
+        }
+        // Cross
+        for s in ["Float", "Double"] {
+            for n in [3, 4] {
+                impl_pairs.insert((String::from("Cross"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // HalfGeometrics
+        impl_pairs.insert((String::from("HalfGeometrics"), TypeName::Name(String::from("Float"))));
+        for n in [2, 3, 4] {
+            impl_pairs.insert((String::from("HalfGeometrics"), TypeName::Name(format!("Float{}", n))));
+        }
+        // FloatGeometrics
+        impl_pairs.insert((String::from("FloatGeometrics"), TypeName::Name(String::from("Float"))));
+        for n in [2, 3, 4] {
+            impl_pairs.insert((String::from("FloatGeometrics"), TypeName::Name(format!("Float{}", n))));
+        }
+        // DoubleGeometrics
+        impl_pairs.insert((String::from("DoubleGeometrics"), TypeName::Name(String::from("Double"))));
+        for n in [2, 3, 4] {
+            impl_pairs.insert((String::from("DoubleGeometrics"), TypeName::Name(format!("Double{}", n))));
+        }
+        // Normalize
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("Normalize"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Float", "Double"] {
+            for n in [2, 3, 4] {
+                impl_pairs.insert((String::from("Normalize"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // Implementations for OpenCL.
+        // HalfMath
+        impl_pairs.insert((String::from("HalfMath"), TypeName::Name(String::from("Float"))));
+        for n in [2, 3, 4, 8, 16] {
+            impl_pairs.insert((String::from("HalfMath"), TypeName::Name(format!("Float{}", n))));
+        }
+        // NativeMath
+        impl_pairs.insert((String::from("NativeMath"), TypeName::Name(String::from("Float"))));
+        for n in [2, 3, 4, 8, 16] {
+            impl_pairs.insert((String::from("NativeMath"), TypeName::Name(format!("Float{}", n))));
         }
         // Integer
         for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
@@ -677,63 +717,22 @@ impl Builtins
                 impl_pairs.insert((String::from("Mul24"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // Cross
-        for s in ["Float", "Double"] {
-            for n in [3, 4] {
-                impl_pairs.insert((String::from("Cross"), TypeName::Name(format!("{}{}", s, n))));
-            }
-        }
-        // HalfGeometric
-        impl_pairs.insert((String::from("HalfGeometric"), TypeName::Name(String::from("Float"))));
+        // FastGeometrics
+        impl_pairs.insert((String::from("FastGeometrics"), TypeName::Name(String::from("Float"))));
         for n in [2, 3, 4] {
-            impl_pairs.insert((String::from("HalfGeometric"), TypeName::Name(format!("Float{}", n))));
+            impl_pairs.insert((String::from("FastGeometrics"), TypeName::Name(format!("Float{}", n))));
         }
-        // FloatGeometric
-        impl_pairs.insert((String::from("FloatGeometric"), TypeName::Name(String::from("Float"))));
-        for n in [2, 3, 4] {
-            impl_pairs.insert((String::from("FloatGeometric"), TypeName::Name(format!("Float{}", n))));
-        }
-        // DoubleGeometric
-        impl_pairs.insert((String::from("DoubleGeometric"), TypeName::Name(String::from("Double"))));
-        for n in [2, 3, 4] {
-            impl_pairs.insert((String::from("DoubleGeometric"), TypeName::Name(format!("Double{}", n))));
-        }
-        // Geometric
+        // Relationals
         for s in ["Float", "Double"] {
-            impl_pairs.insert((String::from("Geometric"), TypeName::Name(String::from(s))));
+            impl_pairs.insert((String::from("Relationals"), TypeName::Name(String::from(s))));
         }
-        for s in ["Float", "Double"] {
-            for n in [2, 3, 4] {
-                impl_pairs.insert((String::from("Geometric"), TypeName::Name(format!("{}{}", s, n))));
-            }
-        }
-        // Implementations for OpenCL.
-        // HalfMath
-        impl_pairs.insert((String::from("HalfMath"), TypeName::Name(String::from("Float"))));
+        // RelationalsIN
         for n in [2, 3, 4, 8, 16] {
-            impl_pairs.insert((String::from("HalfMath"), TypeName::Name(format!("Float{}", n))));
+            impl_pairs.insert((format!("RelationalsI{}", n), TypeName::Name(format!("Float{}", n))));
         }
-        // NativeMath
-        impl_pairs.insert((String::from("NativeMath"), TypeName::Name(String::from("Float"))));
+        // RelationalsLN
         for n in [2, 3, 4, 8, 16] {
-            impl_pairs.insert((String::from("NativeMath"), TypeName::Name(format!("Float{}", n))));
-        }
-        // FastGeometric
-        impl_pairs.insert((String::from("FastGeometric"), TypeName::Name(String::from("Float"))));
-        for n in [2, 3, 4] {
-            impl_pairs.insert((String::from("FastGeometric"), TypeName::Name(format!("Float{}", n))));
-        }
-        // Relational
-        for s in ["Float", "Double"] {
-            impl_pairs.insert((String::from("Relational"), TypeName::Name(String::from(s))));
-        }
-        // RelationalIN
-        for n in [2, 3, 4, 8, 16] {
-            impl_pairs.insert((format!("RelationalI{}", n), TypeName::Name(format!("Float{}", n))));
-        }
-        // RelationalLN
-        for n in [2, 3, 4, 8, 16] {
-            impl_pairs.insert((format!("RelationalL{}", n), TypeName::Name(format!("Double{}", n))));
+            impl_pairs.insert((format!("RelationalsL{}", n), TypeName::Name(format!("Double{}", n))));
         }
         // MsbAny
         for s in ["Char", "Short", "Int", "Long"] {
