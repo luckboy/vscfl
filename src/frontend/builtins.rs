@@ -864,48 +864,36 @@ impl Builtins
                 impl_pairs.insert((String::from("Select"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // SVloadN
-        for s in ["Private", "Local", "Global", "Constant"] {
-            for t in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
-                for n in [2, 3, 4, 8, 16] {
-                    impl_pairs.insert((format!("{}Vload{}", s, n), TypeName::Name(format!("{}{}", t, n))));
-                }
+        // VloadN
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((format!("Vload{}", n), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // SVstoreN
-        for s in ["Private", "Local", "Global"] {
-            for t in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
-                for n in [2, 3, 4, 8, 16] {
-                    impl_pairs.insert((format!("{}Vstore{}", s, n), TypeName::Name(format!("{}{}", t, n))));
-                }
+        // VstoreN
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((format!("Vstore{}", n), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // SVloadHalf
-        for s in ["Private", "Local", "Global", "Constant"] {
-            for t in ["Float"] {
-                impl_pairs.insert((format!("{}VloadHalf", s), TypeName::Name(String::from(t))));
+        // VloadHalf
+        for s in ["Float"] {
+            impl_pairs.insert((String::from("VloadHalf"), TypeName::Name(String::from(s))));
+        }
+        // VloadHalfN
+        for s in ["Float"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((format!("VloadHalf{}", n), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // SVloadHalfN
-        for s in ["Private", "Local", "Global", "Constant"] {
-            for t in ["Float"] {
-                for n in [2, 3, 4, 8, 16] {
-                    impl_pairs.insert((format!("{}VloadHalf{}", s, n), TypeName::Name(format!("{}{}", t, n))));
-                }
-            }
+        // VstoreHalf
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("VstoreHalf"), TypeName::Name(String::from(s))));
         }
-        // SVstoreHalf
-        for s in ["Private", "Local", "Global"] {
-            for t in ["Float", "Double"] {
-                impl_pairs.insert((format!("{}VstoreHalf", s), TypeName::Name(String::from(t))));
-            }
-        }
-        // SVstoreHalfN
-        for s in ["Private", "Local", "Global"] {
-            for t in ["Float", "Double"] {
-                for n in [2, 3, 4, 8, 16] {
-                    impl_pairs.insert((format!("{}VstoreHalf{}", s, n), TypeName::Name(format!("{}{}", t, n))));
-                }
+        // VstoreHalfN
+        for s in ["Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((format!("VstoreHalf{}", n), TypeName::Name(format!("{}{}", s, n))));
             }
         }
         // AsyncCopy
@@ -926,17 +914,13 @@ impl Builtins
                 impl_pairs.insert((String::from("Prefetch"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // SAtomic
-        for s in ["Local", "Global"] {
-            for t in ["Int", "Uint"] {
-                impl_pairs.insert((format!("{}Atomic", s), TypeName::Name(String::from(t))));
-            }
+        // Atomic
+        for s in ["Int", "Uint"] {
+            impl_pairs.insert((String::from("Atomic"), TypeName::Name(String::from(s))));
         }
-        // SAtomicXchg
-        for s in ["Local", "Global"] {
-            for t in ["Int", "Uint", "Float"] {
-                impl_pairs.insert((format!("{}AtomicXchg", s), TypeName::Name(String::from(t))));
-            }
+        // AtomicXchg
+        for s in ["Int", "Uint", "Float"] {
+            impl_pairs.insert((String::from("AtomicXchg"), TypeName::Name(String::from(s))));
         }
         // VecStep
         for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
