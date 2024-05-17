@@ -662,17 +662,17 @@ impl Builtins
                 impl_pairs.insert((format!("Ldexp{}", n), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // NanI
-        impl_pairs.insert((String::from("NanI"), TypeName::Name(String::from("Float"))));
-        // NanIN
+        // NanUint
+        impl_pairs.insert((String::from("NanUint"), TypeName::Name(String::from("Float"))));
+        // NanUintN
         for n in [2, 3, 4, 8, 16] {
-            impl_pairs.insert((format!("NanI{}", n), TypeName::Name(format!("Float{}", n))));
+            impl_pairs.insert((format!("NanUint{}", n), TypeName::Name(format!("Float{}", n))));
         }
-        // NanL
-        impl_pairs.insert((String::from("NanL"), TypeName::Name(String::from("Double"))));
-        // NanLN
+        // NanUlong
+        impl_pairs.insert((String::from("NanUlong"), TypeName::Name(String::from("Double"))));
+        // NanUlongN
         for n in [2, 3, 4, 8, 16] {
-            impl_pairs.insert((format!("NanL{}", n), TypeName::Name(format!("Double{}", n))));
+            impl_pairs.insert((format!("NanUlong{}", n), TypeName::Name(format!("Double{}", n))));
         }
         // Pown
         for s in ["Float", "Double"] {
