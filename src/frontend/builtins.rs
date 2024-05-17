@@ -144,7 +144,7 @@ impl Builtins
         type_vars.insert(String::from("UniqGlobaSlice"), BuiltinTypeVar::new(String::from("t"), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::Slice, false, true));
         // Type variables for OpenCL.
         type_vars.insert(String::from("ClMemFenceFlags"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
-        type_vars.insert(String::from("EventT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
+        type_vars.insert(String::from("EventT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::None, false, false));
         type_vars.insert(String::from("SamplerT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
         type_vars.insert(String::from("Image1dT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
         type_vars.insert(String::from("Image2dT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
@@ -215,7 +215,7 @@ impl Builtins
         vars.insert(String::from("mem_fence"), BuiltinVar::new(String::from("(ClMemFenceFlags) -> ()"), String::new()));
         vars.insert(String::from("read_mem_fence"), BuiltinVar::new(String::from("(ClMemFenceFlags) -> ()"), String::new()));
         vars.insert(String::from("write_mem_fence"), BuiltinVar::new(String::from("(ClMemFenceFlags) -> ()"), String::new()));
-        vars.insert(String::from("wait_group_events"), BuiltinVar::new(String::from("(Slice<EventT>) -> ()"), String::new()));
+        vars.insert(String::from("wait_group_events"), BuiltinVar::new(String::from("(UniqSlice<EventT>) -> ()"), String::new()));
         vars.insert(String::from("CLK_NORMALIZED_COORDS_TRUE"), BuiltinVar::new(String::from("SamplerT"), String::new()));
         vars.insert(String::from("CLK_NORMALIZED_COORDS_FALSE"), BuiltinVar::new(String::from("SamplerT"), String::new()));
         vars.insert(String::from("CLK_NORMALIZED_COORDS_TRUE"), BuiltinVar::new(String::from("SamplerT"), String::new()));
