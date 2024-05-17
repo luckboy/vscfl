@@ -414,7 +414,7 @@ impl Builtins
         }
         // Implementations for standard library.
         // Zero
-        for s in ["Bool", "Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Half", "Float", "Double", "SizeT", "PtrdiffT", "IntptrT", "UintptrT", "ClMemFenceFlags", "SamplerT"] {
+        for s in ["Bool", "Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Half", "Float", "Double", "SizeT", "PtrdiffT", "IntptrT", "UintptrT", "ClMemFenceFlags", "EventT", "SamplerT"] {
             impl_pairs.insert((String::from("Zero"), TypeName::Name(String::from(s))));
         }
         // ShlN
