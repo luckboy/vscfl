@@ -142,6 +142,22 @@ impl Builtins
         type_vars.insert(String::from("UniqPrivateSlice"), BuiltinTypeVar::new(String::from("t"), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::Slice, false, true));
         type_vars.insert(String::from("UniqLocalSlice"), BuiltinTypeVar::new(String::from("t"), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::Slice, false, false));
         type_vars.insert(String::from("UniqGlobaSlice"), BuiltinTypeVar::new(String::from("t"), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::Slice, false, true));
+        // Type variables for OpenCL.
+        type_vars.insert(String::from("ClMemFenceFlags"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
+        type_vars.insert(String::from("EventT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
+        type_vars.insert(String::from("SamplerT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
+        type_vars.insert(String::from("Image1dT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
+        type_vars.insert(String::from("Image2dT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
+        type_vars.insert(String::from("Image3dT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
+        type_vars.insert(String::from("Image1dBufferT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
+        type_vars.insert(String::from("Image1dArrayT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
+        type_vars.insert(String::from("Image2dArrayT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
+        type_vars.insert(String::from("UniqImage1dT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::None, false, false));
+        type_vars.insert(String::from("UniqImage2dT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::None, false, false));
+        type_vars.insert(String::from("UniqImage3dT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::None, false, false));
+        type_vars.insert(String::from("UniqImage1dBufferT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::None, false, false));
+        type_vars.insert(String::from("UniqImage1dArrayT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::None, false, false));
+        type_vars.insert(String::from("UniqImage2dArrayT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::None, false, false));
         //
         // Variables.
         //
@@ -173,6 +189,9 @@ impl Builtins
         vars.insert(String::from("uniq_private_ref"), BuiltinVar::new(String::from("(t) -> UniqPrivateRef<t>"), String::new()));
         vars.insert(String::from("uniq_local_ref"), BuiltinVar::new(String::from("(t) -> UniqLocalRef<t>"), String::new()));
         vars.insert(String::from("uniq_global_ref"), BuiltinVar::new(String::from("(t) -> UniqGlobalRef<t>"), String::new()));
+        vars.insert(String::from("uninit"), BuiltinVar::new(String::from("() -> t"), String::new()));
+        // Variables for standard library.
+        vars.insert(String::from("zero"), BuiltinVar::new(String::from("() -> t"), String::from("t: Zero")));
         // Variables for OpenCl.
         vars.insert(String::from("get_work_dim"), BuiltinVar::new(String::from("() -> Uint"), String::new()));
         vars.insert(String::from("get_global_size"), BuiltinVar::new(String::from("(Uint) -> SizeT"), String::new()));
@@ -190,6 +209,51 @@ impl Builtins
             vars.insert(format!("uint{}_upsample", s), BuiltinVar::new(format!("(Ushort{}, Ushort{}) -> Uint{}", s, s, s), String::new()));
             vars.insert(format!("ulong{}_upsample", s), BuiltinVar::new(format!("(Uint{}, Uint{}) -> Ulong{}", s, s, s), String::new()));
         }
+        vars.insert(String::from("CLK_LOCAL_MEM_FENCE"), BuiltinVar::new(String::from("ClMemFenceFlags"), String::new()));
+        vars.insert(String::from("CLK_GLOBAL_MEM_FENCE"), BuiltinVar::new(String::from("ClMemFenceFlags"), String::new()));
+        vars.insert(String::from("barrier"), BuiltinVar::new(String::from("(ClMemFenceFlags) -> ()"), String::new()));
+        vars.insert(String::from("mem_fence"), BuiltinVar::new(String::from("(ClMemFenceFlags) -> ()"), String::new()));
+        vars.insert(String::from("read_mem_fence"), BuiltinVar::new(String::from("(ClMemFenceFlags) -> ()"), String::new()));
+        vars.insert(String::from("write_mem_fence"), BuiltinVar::new(String::from("(ClMemFenceFlags) -> ()"), String::new()));
+        vars.insert(String::from("wait_group_events"), BuiltinVar::new(String::from("(Slice<EventT>) -> ()"), String::new()));
+        vars.insert(String::from("CLK_NORMALIZED_COORDS_TRUE"), BuiltinVar::new(String::from("SamplerT"), String::new()));
+        vars.insert(String::from("CLK_NORMALIZED_COORDS_FALSE"), BuiltinVar::new(String::from("SamplerT"), String::new()));
+        vars.insert(String::from("CLK_NORMALIZED_COORDS_TRUE"), BuiltinVar::new(String::from("SamplerT"), String::new()));
+        vars.insert(String::from("CLK_ADDRESS_MIRRORED_REPEAT"), BuiltinVar::new(String::from("SamplerT"), String::new()));
+        vars.insert(String::from("CLK_ADDRESS_REPEAT"), BuiltinVar::new(String::from("SamplerT"), String::new()));
+        vars.insert(String::from("CLK_ADDRESS_CLAMP_TO_EDGE"), BuiltinVar::new(String::from("SamplerT"), String::new()));
+        vars.insert(String::from("CLK_ADDRESS_CLAMP"), BuiltinVar::new(String::from("SamplerT"), String::new()));
+        vars.insert(String::from("CLK_ADDRESS_NONE"), BuiltinVar::new(String::from("SamplerT"), String::new()));
+        vars.insert(String::from("CLK_ADDRESS_MIRRORED_REPEAT"), BuiltinVar::new(String::from("SamplerT"), String::new()));
+        vars.insert(String::from("CLK_FILTER_NEAREST"), BuiltinVar::new(String::from("SamplerT"), String::new()));
+        vars.insert(String::from("CLK_FILTER_LINEAR"), BuiltinVar::new(String::from("SamplerT"), String::new()));
+        vars.insert(String::from("CLK_SNORM_INT8"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_SNORM_INT16"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_UNORM_INT8"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_UNORM_INT16"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_UNORM_SHORT565"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_UNORM_SHORT555"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_UNORM_SHORT101010"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_SIGNED_INT8"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_SIGNED_INT16"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_SIGNED_INT32"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_UNSIGNED_INT8"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_UNSIGNED_INT16"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_UNSIGNED_INT32"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_HALF_FLOAT"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_FLOAT"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_A"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_R"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_Rx"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_RGx"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_RA"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_RGB"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_RGBx"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_RGBA"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_ARGB"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_BGRA"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_INTENSITY"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("CLK_LUMINANCE"), BuiltinVar::new(String::from("Int"), String::new()));
         //
         // Implementations.
         //
@@ -205,7 +269,7 @@ impl Builtins
             }
         }
         // OpNot
-        for s in ["Bool", "Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "SizeT", "PtrdiffT", "IntptrT", "UintptrT"] {
+        for s in ["Bool", "Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "SizeT", "PtrdiffT", "IntptrT", "UintptrT", "ClMemFenceFlags", "SamplerT"] {
             impl_pairs.insert((String::from("OpNot"), TypeName::Name(String::from(s))));
         }
         for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
@@ -277,7 +341,7 @@ impl Builtins
             }
         }
         // Eq
-        for s in ["Bool", "Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Half", "Float", "Double", "SizeT", "PtrdiffT", "IntptrT", "UintptrT"] {
+        for s in ["Bool", "Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Half", "Float", "Double", "SizeT", "PtrdiffT", "IntptrT", "UintptrT", "ClMemFenceFlags", "SamplerT"] {
             impl_pairs.insert((String::from("Eq"), TypeName::Name(String::from(s))));
         }
         for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
@@ -295,7 +359,7 @@ impl Builtins
             }
         }
         // OpAnd
-        for s in ["Bool", "Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "SizeT", "PtrdiffT", "IntptrT", "UintptrT"] {
+        for s in ["Bool", "Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "SizeT", "PtrdiffT", "IntptrT", "UintptrT", "ClMemFenceFlags", "SamplerT"] {
             impl_pairs.insert((String::from("OpAnd"), TypeName::Name(String::from(s))));
         }
         for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
@@ -304,7 +368,7 @@ impl Builtins
             }
         }
         // OpXor
-        for s in ["Bool", "Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "SizeT", "PtrdiffT", "IntptrT", "UintptrT"] {
+        for s in ["Bool", "Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "SizeT", "PtrdiffT", "IntptrT", "UintptrT", "ClMemFenceFlags", "SamplerT"] {
             impl_pairs.insert((String::from("OpXor"), TypeName::Name(String::from(s))));
         }
         for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
@@ -313,7 +377,7 @@ impl Builtins
             }
         }
         // OpOr
-        for s in ["Bool", "Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "SizeT", "PtrdiffT", "IntptrT", "UintptrT"] {
+        for s in ["Bool", "Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "SizeT", "PtrdiffT", "IntptrT", "UintptrT", "ClMemFenceFlags", "SamplerT"] {
             impl_pairs.insert((String::from("OpOr"), TypeName::Name(String::from(s))));
         }
         for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
@@ -349,6 +413,10 @@ impl Builtins
             impl_pairs.insert((String::from("OpUpdateNth"), TypeName::Name(String::from(s))));
         }
         // Implementations for standard library.
+        // Zero
+        for s in ["Bool", "Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Half", "Float", "Double", "SizeT", "PtrdiffT", "IntptrT", "UintptrT", "ClMemFenceFlags", "SamplerT"] {
+            impl_pairs.insert((String::from("Zero"), TypeName::Name(String::from(s))));
+        }
         // ShlN
         for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
             for n in [2, 3, 4, 8, 16] {
@@ -456,56 +524,56 @@ impl Builtins
         impl_pairs.insert((String::from("FoldUpdateUniqGlobalRefs"), TypeName::Name(String::from("UniqGlobalSlice"))));
         // Trigonometrics
         for s in ["Half", "Float", "Double"] {
-            impl_pairs.insert((String::from("Trigonometrics"), TypeName::Name(String::from(s))));
+            impl_pairs.insert((String::from("Trigonometric"), TypeName::Name(String::from(s))));
         }
         for s in ["Float", "Double"] {
             for n in [2, 3, 4, 8, 16] {
-                impl_pairs.insert((String::from("Trigonometrics"), TypeName::Name(format!("{}{}", s, n))));
+                impl_pairs.insert((String::from("Trigonometric"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // ExtTrigonometrics
+        // TrigonometricExt
         for s in ["Float", "Double"] {
-            impl_pairs.insert((String::from("ExtTrigonometrics"), TypeName::Name(String::from(s))));
+            impl_pairs.insert((String::from("TrigonometricExt"), TypeName::Name(String::from(s))));
         }
         for s in ["Float", "Double"] {
             for n in [2, 3, 4, 8, 16] {
-                impl_pairs.insert((String::from("ExtTrigonometrics"), TypeName::Name(format!("{}{}", s, n))));
+                impl_pairs.insert((String::from("TrigonometricExt"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // InvTrigonometrics
+        // InvTrigonometric
         for s in ["Float", "Double"] {
-            impl_pairs.insert((String::from("InvTrigonometrics"), TypeName::Name(String::from(s))));
+            impl_pairs.insert((String::from("InvTrigonometric"), TypeName::Name(String::from(s))));
         }
         for s in ["Float", "Double"] {
             for n in [2, 3, 4, 8, 16] {
-                impl_pairs.insert((String::from("InvTrigonometrics"), TypeName::Name(format!("{}{}", s, n))));
+                impl_pairs.insert((String::from("InvTrigonometric"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // ExtInvTrigonometrics
+        // InvTrigonometricExt
         for s in ["Float", "Double"] {
-            impl_pairs.insert((String::from("ExtInvTrigonometrics"), TypeName::Name(String::from(s))));
+            impl_pairs.insert((String::from("InvTrigonometricExt"), TypeName::Name(String::from(s))));
         }
         for s in ["Float", "Double"] {
             for n in [2, 3, 4, 8, 16] {
-                impl_pairs.insert((String::from("ExtInvTrigonometrics"), TypeName::Name(format!("{}{}", s, n))));
+                impl_pairs.insert((String::from("InvTrigonometricExt"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // Hyperbolics
+        // Hyperbolic
         for s in ["Float", "Double"] {
-            impl_pairs.insert((String::from("Hyperbolics"), TypeName::Name(String::from(s))));
+            impl_pairs.insert((String::from("Hyperbolic"), TypeName::Name(String::from(s))));
         }
         for s in ["Float", "Double"] {
             for n in [2, 3, 4, 8, 16] {
-                impl_pairs.insert((String::from("Hyperbolics"), TypeName::Name(format!("{}{}", s, n))));
+                impl_pairs.insert((String::from("Hyperbolic"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // InvHyperbolics
+        // InvHyperbolic
         for s in ["Float", "Double"] {
-            impl_pairs.insert((String::from("InvHyperbolics"), TypeName::Name(String::from(s))));
+            impl_pairs.insert((String::from("InvHyperbolic"), TypeName::Name(String::from(s))));
         }
         for s in ["Float", "Double"] {
             for n in [2, 3, 4, 8, 16] {
-                impl_pairs.insert((String::from("InvHyperbolics"), TypeName::Name(format!("{}{}", s, n))));
+                impl_pairs.insert((String::from("InvHyperbolic"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
         // Erf
@@ -545,13 +613,13 @@ impl Builtins
                 impl_pairs.insert((String::from("Math"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // ExtMath
+        // MathExt
         for s in ["Float", "Double"] {
-            impl_pairs.insert((String::from("ExtMath"), TypeName::Name(String::from(s))));
+            impl_pairs.insert((String::from("MathExt"), TypeName::Name(String::from(s))));
         }
         for s in ["Float", "Double"] {
             for n in [2, 3, 4, 8, 16] {
-                impl_pairs.insert((String::from("ExtMath"), TypeName::Name(format!("{}{}", s, n))));
+                impl_pairs.insert((String::from("MathExt"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
         // Frexp
@@ -631,6 +699,10 @@ impl Builtins
                 impl_pairs.insert((format!("Rootn{}", n), TypeName::Name(format!("{}{}", s, n))));
             }
         }
+        // MathValues
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("MathValues"), TypeName::Name(String::from(s))));
+        }
         // Common
         for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
             impl_pairs.insert((String::from("Common"), TypeName::Name(String::from(s))));
@@ -649,26 +721,29 @@ impl Builtins
                 impl_pairs.insert((String::from("ExtCommon"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
+        // MaxValue
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+            impl_pairs.insert((String::from("MaxValue"), TypeName::Name(String::from(s))));
+        }
+        // MinValue
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+            impl_pairs.insert((String::from("MinValue"), TypeName::Name(String::from(s))));
+        }
         // Cross
         for s in ["Float", "Double"] {
             for n in [3, 4] {
                 impl_pairs.insert((String::from("Cross"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // HalfGeometrics
-        impl_pairs.insert((String::from("HalfGeometrics"), TypeName::Name(String::from("Float"))));
+        // FloatGeometric
+        impl_pairs.insert((String::from("FloatGeometric"), TypeName::Name(String::from("Float"))));
         for n in [2, 3, 4] {
-            impl_pairs.insert((String::from("HalfGeometrics"), TypeName::Name(format!("Float{}", n))));
+            impl_pairs.insert((String::from("FloatGeometric"), TypeName::Name(format!("Float{}", n))));
         }
-        // FloatGeometrics
-        impl_pairs.insert((String::from("FloatGeometrics"), TypeName::Name(String::from("Float"))));
+        // DoubleGeometric
+        impl_pairs.insert((String::from("DoubleGeometric"), TypeName::Name(String::from("Double"))));
         for n in [2, 3, 4] {
-            impl_pairs.insert((String::from("FloatGeometrics"), TypeName::Name(format!("Float{}", n))));
-        }
-        // DoubleGeometrics
-        impl_pairs.insert((String::from("DoubleGeometrics"), TypeName::Name(String::from("Double"))));
-        for n in [2, 3, 4] {
-            impl_pairs.insert((String::from("DoubleGeometrics"), TypeName::Name(format!("Double{}", n))));
+            impl_pairs.insert((String::from("DoubleGeometric"), TypeName::Name(format!("Double{}", n))));
         }
         // Normalize
         for s in ["Float", "Double"] {
@@ -680,6 +755,20 @@ impl Builtins
             }
         }
         // Implementations for OpenCL.
+        // ConvertS
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double", "SizeT", "PtrdiffT", "IntptrT", "UintptrT"] {
+            for t in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double", "SizeT", "PtrdiffT", "IntptrT", "UintptrT"] {
+                impl_pairs.insert((format!("Convert{}", s), TypeName::Name(String::from(t))));
+            }
+        }
+        // ConvertSN
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+            for t in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+                for n in [2, 3, 4, 8, 16] {
+                    impl_pairs.insert((format!("Convert{}{}", s, n), TypeName::Name(format!("{}{}", t, n))));
+                }
+            }
+        }
         // HalfMath
         impl_pairs.insert((String::from("HalfMath"), TypeName::Name(String::from("Float"))));
         for n in [2, 3, 4, 8, 16] {
@@ -717,22 +806,22 @@ impl Builtins
                 impl_pairs.insert((String::from("Mul24"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // FastGeometrics
-        impl_pairs.insert((String::from("FastGeometrics"), TypeName::Name(String::from("Float"))));
+        // FastGeometric
+        impl_pairs.insert((String::from("FastGeometric"), TypeName::Name(String::from("Float"))));
         for n in [2, 3, 4] {
-            impl_pairs.insert((String::from("FastGeometrics"), TypeName::Name(format!("Float{}", n))));
+            impl_pairs.insert((String::from("FastGeometric"), TypeName::Name(format!("Float{}", n))));
         }
-        // Relationals
+        // Relational
         for s in ["Float", "Double"] {
-            impl_pairs.insert((String::from("Relationals"), TypeName::Name(String::from(s))));
+            impl_pairs.insert((String::from("Relational"), TypeName::Name(String::from(s))));
         }
-        // RelationalsIN
+        // RelationalIntN
         for n in [2, 3, 4, 8, 16] {
-            impl_pairs.insert((format!("RelationalsI{}", n), TypeName::Name(format!("Float{}", n))));
+            impl_pairs.insert((format!("RelationalInt{}", n), TypeName::Name(format!("Float{}", n))));
         }
-        // RelationalsLN
+        // RelationalLongN
         for n in [2, 3, 4, 8, 16] {
-            impl_pairs.insert((format!("RelationalsL{}", n), TypeName::Name(format!("Double{}", n))));
+            impl_pairs.insert((format!("RelationalLong{}", n), TypeName::Name(format!("Double{}", n))));
         }
         // MsbAny
         for s in ["Char", "Short", "Int", "Long"] {
@@ -769,6 +858,162 @@ impl Builtins
             for n in [2, 3, 4, 8, 16] {
                 impl_pairs.insert((String::from("Select"), TypeName::Name(format!("{}{}", s, n))));
             }
+        }
+        // SVloadN
+        for s in ["Private", "Local", "Global", "Constant"] {
+            for t in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+                for n in [2, 3, 4, 8, 16] {
+                    impl_pairs.insert((format!("{}Vload{}", s, n), TypeName::Name(format!("{}{}", t, n))));
+                }
+            }
+        }
+        // SVstoreN
+        for s in ["Private", "Local", "Global"] {
+            for t in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+                for n in [2, 3, 4, 8, 16] {
+                    impl_pairs.insert((format!("{}Vstore{}", s, n), TypeName::Name(format!("{}{}", t, n))));
+                }
+            }
+        }
+        // SVloadHalf
+        for s in ["Private", "Local", "Global", "Constant"] {
+            for t in ["Float"] {
+                impl_pairs.insert((format!("{}VloadHalf", s), TypeName::Name(String::from(t))));
+            }
+        }
+        // SVloadHalfN
+        for s in ["Private", "Local", "Global", "Constant"] {
+            for t in ["Float"] {
+                for n in [2, 3, 4, 8, 16] {
+                    impl_pairs.insert((format!("{}VloadHalf{}", s, n), TypeName::Name(format!("{}{}", t, n))));
+                }
+            }
+        }
+        // SVstoreHalf
+        for s in ["Private", "Local", "Global"] {
+            for t in ["Float", "Double"] {
+                impl_pairs.insert((format!("{}VstoreHalf", s), TypeName::Name(String::from(t))));
+            }
+        }
+        // SVstoreHalfN
+        for s in ["Private", "Local", "Global"] {
+            for t in ["Float", "Double"] {
+                for n in [2, 3, 4, 8, 16] {
+                    impl_pairs.insert((format!("{}VstoreHalf{}", s, n), TypeName::Name(format!("{}{}", t, n))));
+                }
+            }
+        }
+        // AsyncCopy
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+            impl_pairs.insert((String::from("AsyncCopy"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("AsycCopy"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // Prefetch
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+            impl_pairs.insert((String::from("Prefetch"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("Prefetch"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // SAtomic
+        for s in ["Local", "Global"] {
+            for t in ["Int", "Uint"] {
+                impl_pairs.insert((format!("{}Atomic", s), TypeName::Name(String::from(t))));
+            }
+        }
+        // SAtomicXchg
+        for s in ["Local", "Global"] {
+            for t in ["Int", "Uint", "Float"] {
+                impl_pairs.insert((format!("{}AtomicXchg", s), TypeName::Name(String::from(t))));
+            }
+        }
+        // VecStep
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("VecStep"), TypeName::Name(format!("{}{}", s, n))));
+            }
+        }
+        // Shuffle
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+            for n in [2, 4, 8, 16] {
+                for m in [2, 4, 8, 16] {
+                    impl_pairs.insert((format!("{}{}Shuffle", s, n), TypeName::Name(format!("{}{}", s, m))));
+                }
+            }
+        }
+        // ReadImage1
+        for s in ["Imaged1T", "UniqImage1dT"] {
+            impl_pairs.insert((String::from("ReadImage1"), TypeName::Name(String::from(s))));
+        }
+        // ReadImage2
+        for s in ["Imaged2T", "Image1dArrayT", "UniqImage2dT", "UniqImage1dArrayT"] {
+            impl_pairs.insert((String::from("ReadImage2"), TypeName::Name(String::from(s))));
+        }
+        // ReadImage4
+        for s in ["Imaged3T", "Image2dArrayT", "UniqImage3dT", "UniqImage2dArrayT"] {
+            impl_pairs.insert((String::from("ReadImage4"), TypeName::Name(String::from(s))));
+        }
+        // ReadImage1WithoutSampler
+        for s in ["Imaged1T", "Image1dBufferT", "UniqImage1dT", "UniqImage1dBufferT"] {
+            impl_pairs.insert((String::from("ReadImage1WithoutSampler"), TypeName::Name(String::from(s))));
+        }
+        // ReadImage2WithoutSampler
+        for s in ["Imaged2T", "Image1dArrayT", "UniqImage2dT", "UniqImage1dArrayT"] {
+            impl_pairs.insert((String::from("ReadImage2WithoutSampler"), TypeName::Name(String::from(s))));
+        }
+        // ReadImage4WithoutSampler
+        for s in ["Imaged3T", "Image2dArrayT", "UniqImage3dT", "UniqImage2dArrayT"] {
+            impl_pairs.insert((String::from("ReadImage4WithoutSampler"), TypeName::Name(String::from(s))));
+        }
+        // WriteImage1
+        for s in ["UniqImage1dT", "UniqImage1dBufferT"] {
+            impl_pairs.insert((String::from("WriteImage1"), TypeName::Name(String::from(s))));
+        }
+        // WriteImage2
+        for s in ["UniqImage2dT", "UniqImage1dArrayT"] {
+            impl_pairs.insert((String::from("WriteImage2"), TypeName::Name(String::from(s))));
+        }
+        // WriteImage4
+        for s in ["UniqImage2dArrayT"] {
+            impl_pairs.insert((String::from("WriteImage4"), TypeName::Name(String::from(s))));
+        }
+        // GetImageWidth
+        for s in ["Imaged1T", "Image2dT", "Image3dT", "Image1dBufferT", "Image1dArrayT", "Image2dArrayT", "UniqImaged1T", "UniqImage2dT", "UniqImage3dT", "UniqImage1dBufferT", "UniqImage1dArrayT", "UniqImage2dArrayT"] {
+            impl_pairs.insert((String::from("GetImageWidth"), TypeName::Name(String::from(s))));
+        }
+        // GetImageHeight
+        for s in ["Image2dT", "Image3dT", "Image2dArrayT", "UniqImage2dT", "UniqImage3dT", "UniqImage2dArrayT"] {
+            impl_pairs.insert((String::from("GetImageHeight"), TypeName::Name(String::from(s))));
+        }
+        // GetImageDepth
+        for s in ["Image3dT", "UniqImage3dT"] {
+            impl_pairs.insert((String::from("GetImageDepth"), TypeName::Name(String::from(s))));
+        }
+        // GetImageChannelDataType
+        for s in ["Imaged1T", "Image2dT", "Image3dT", "Image1dBufferT", "Image1dArrayT", "Image2dArrayT", "UniqImaged1T", "UniqImage2dT", "UniqImage3dT", "UniqImage1dBufferT", "UniqImage1dArrayT", "UniqImage2dArrayT"] {
+            impl_pairs.insert((String::from("GetImageChannelDataType"), TypeName::Name(String::from(s))));
+        }
+        // GetImageChannelOrder
+        for s in ["Imaged1T", "Image2dT", "Image3dT", "Image1dBufferT", "Image1dArrayT", "Image2dArrayT", "UniqImaged1T", "UniqImage2dT", "UniqImage3dT", "UniqImage1dBufferT", "UniqImage1dArrayT", "UniqImage2dArrayT"] {
+            impl_pairs.insert((String::from("GetImageChannelOrder"), TypeName::Name(String::from(s))));
+        }
+        // GetImageDim2
+        for s in ["Image2dT", "Image2dArrayT", "UniqImage2dT", "UniqImage2dArrayT"] {
+            impl_pairs.insert((String::from("GetImageDim2"), TypeName::Name(String::from(s))));
+        }
+        // GetImageDim4
+        for s in ["Image3dT", "UniqImage3dT"] {
+            impl_pairs.insert((String::from("GetImageDim4"), TypeName::Name(String::from(s))));
+        }
+        // GetImageArraySize
+        for s in ["Image1dArrayT", "Image2dArrayT", "UniqImage1dArrayT", "UniqImage2dArrayT"] {
+            impl_pairs.insert((String::from("GetImageArraySize"), TypeName::Name(String::from(s))));
         }
         Builtins {
             type_vars,
