@@ -429,6 +429,11 @@ impl Builtins
                 impl_pairs.insert((format!("Shr{}", n), TypeName::Name(format!("{}{}", s, n))));
             }
         }
+        // Len
+        impl_pairs.insert((String::from("Len"), TypeName::Array(None)));
+        for s in ["Slice", "PrivateSlice", "LocalSlice", "GlobalSlice", "ConstantSlice", "UniqSlice", "UniqPrivateSlice", "UniqLocalSlice", "UniqGlobalSlice"] {
+            impl_pairs.insert((String::from("Len"), TypeName::Name(String::from(s))));
+        }
         // SliceFrom
         impl_pairs.insert((String::from("SliceFrom"), TypeName::Array(None)));
         // PrivateSliceFrom
