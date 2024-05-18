@@ -704,6 +704,10 @@ impl Builtins
                 impl_pairs.insert((format!("Rootn{}", n), TypeName::Name(format!("{}{}", s, n))));
             }
         }
+        // FpClassify
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("FpClassify"), TypeName::Name(String::from(s))));
+        }
         // MathValues
         for s in ["Float", "Double"] {
             impl_pairs.insert((String::from("MathValues"), TypeName::Name(String::from(s))));
@@ -821,9 +825,9 @@ impl Builtins
         for n in [2, 3, 4] {
             impl_pairs.insert((String::from("FastGeometric"), TypeName::Name(format!("Float{}", n))));
         }
-        // Relational
+        // RelationalInt
         for s in ["Float", "Double"] {
-            impl_pairs.insert((String::from("Relational"), TypeName::Name(String::from(s))));
+            impl_pairs.insert((String::from("RelationalInt"), TypeName::Name(String::from(s))));
         }
         // RelationalIntN
         for n in [2, 3, 4, 8, 16] {
