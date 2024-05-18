@@ -192,6 +192,18 @@ impl Builtins
         vars.insert(String::from("uninit"), BuiltinVar::new(String::from("() -> t"), String::new()));
         // Variables for standard library.
         vars.insert(String::from("zero"), BuiltinVar::new(String::from("() -> t"), String::from("t: Zero")));
+        vars.insert(String::from("FLOAT_DIG"), BuiltinVar::new(String::from("Uint"), String::new()));
+        vars.insert(String::from("FLOAT_MANT_DIG"), BuiltinVar::new(String::from("Uint"), String::new()));
+        vars.insert(String::from("FLOAT_MAX_10_EXP"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("FLOAT_MAX_EXP"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("FLOAT_MIN_10_EXP"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("FLOAT_MIN_EXP"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("DOUBLE_DIG"), BuiltinVar::new(String::from("Uint"), String::new()));
+        vars.insert(String::from("DOUBLE_MANT_DIG"), BuiltinVar::new(String::from("Uint"), String::new()));
+        vars.insert(String::from("DOUBLE_MAX_10_EXP"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("DOUBLE_MAX_EXP"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("DOUBLE_MIN_10_EXP"), BuiltinVar::new(String::from("Int"), String::new()));
+        vars.insert(String::from("DOUBLE_MIN_EXP"), BuiltinVar::new(String::from("Int"), String::new()));
         // Variables for OpenCl.
         vars.insert(String::from("get_work_dim"), BuiltinVar::new(String::from("() -> Uint"), String::new()));
         vars.insert(String::from("get_global_size"), BuiltinVar::new(String::from("(Uint) -> SizeT"), String::new()));
@@ -704,17 +716,21 @@ impl Builtins
                 impl_pairs.insert((format!("Rootn{}", n), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // FpClassify
+        // Fpclassify
         for s in ["Float", "Double"] {
-            impl_pairs.insert((String::from("FpClassify"), TypeName::Name(String::from(s))));
+            impl_pairs.insert((String::from("Fpclassify"), TypeName::Name(String::from(s))));
+        }
+        // Signbit
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("Signbit"), TypeName::Name(String::from(s))));
         }
         // MathValues
         for s in ["Float", "Double"] {
             impl_pairs.insert((String::from("MathValues"), TypeName::Name(String::from(s))));
         }
-        // FloatValues
+        // EpsilonValue
         for s in ["Float", "Double"] {
-            impl_pairs.insert((String::from("FloatValues"), TypeName::Name(String::from(s))));
+            impl_pairs.insert((String::from("EpsilonValue"), TypeName::Name(String::from(s))));
         }
         // Common
         for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
