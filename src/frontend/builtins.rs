@@ -712,6 +712,10 @@ impl Builtins
         for s in ["Float", "Double"] {
             impl_pairs.insert((String::from("MathValues"), TypeName::Name(String::from(s))));
         }
+        // FloatValues
+        for s in ["Float", "Double"] {
+            impl_pairs.insert((String::from("FloatValues"), TypeName::Name(String::from(s))));
+        }
         // Common
         for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
             impl_pairs.insert((String::from("Common"), TypeName::Name(String::from(s))));
@@ -735,7 +739,7 @@ impl Builtins
             impl_pairs.insert((String::from("MaxValue"), TypeName::Name(String::from(s))));
         }
         // MinValue
-        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
             impl_pairs.insert((String::from("MinValue"), TypeName::Name(String::from(s))));
         }
         // Cross
