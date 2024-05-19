@@ -620,6 +620,22 @@ impl TypeValue
         self.add_to_string(&mut s, &mut f);
         s
     }
+    
+    pub fn to_string_without_fun(&self) -> String
+    {
+        self.to_string(|type_value, s| {
+                match type_value {
+                    TypeValue::Param(uniq_flag, local_type)  => {
+                        if *uniq_flag == UniqFlag::Uniq {
+                            s.push_str("uniqt ");
+                        }
+                        s.push_str(format!("t{}", local_type.index() + 1).as_str());
+                        None
+                    },
+                    TypeValue::Type(_, _, _) => Some(type_value.clone())
+                }
+        })
+    }
 }
 
 #[derive(Debug)]
