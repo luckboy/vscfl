@@ -990,7 +990,6 @@ impl Typer
                 for field_type_expr in field_type_exprs {
                     self.add_type_synonym_idents_for_type_expr(&**field_type_expr, tree, idents, processed_idents, errs)?;
                 }
-                
             },
             TypeExpr::Fun(arg_type_exprs, ret_type_expr, _) => {
                 for arg_type_expr in arg_type_exprs {
