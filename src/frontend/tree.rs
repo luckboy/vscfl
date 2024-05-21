@@ -627,7 +627,7 @@ impl TypeValue
                 match type_value {
                     TypeValue::Param(uniq_flag, local_type)  => {
                         if *uniq_flag == UniqFlag::Uniq {
-                            s.push_str("uniqt ");
+                            s.push_str("uniq ");
                         }
                         s.push_str(format!("t{}", local_type.index() + 1).as_str());
                         None
@@ -1321,3 +1321,6 @@ impl ImplVars
     pub fn add_var(&mut self, ident: String, var: Rc<RefCell<ImplVar>>)
     { self.vars.insert(ident, var); }
 }
+
+#[cfg(test)]
+mod tests;
