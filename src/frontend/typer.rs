@@ -775,27 +775,28 @@ impl Typer
         let mut visited_idents: BTreeSet<String> = BTreeSet::new();
         for def in tree.defs() {
             match &**def {
-                Def::Type(ident, type_var, _) => {
-                    let type_var_r = type_var.borrow();
-                    self.evaluate_types_for_type_synonym(ident, &*type_var_r, &mut visited_idents, tree, errs)?;
-                },
+                Def::Type(ident, type_var, _) => self.evaluate_types_for_type_synonym(ident, type_var, &mut visited_idents, tree, errs)?,
                 _ => (),
             }
         }
         Ok(())
     }
     
-    fn evaluate_types_for_type_synonym(&self, ident: &String, type_var: &TypeVar, visited_idents: &mut BTreeSet<String>, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn evaluate_types_for_type_synonym(&self, ident: &String, type_var: &Rc<RefCell<TypeVar>>, visited_idents: &mut BTreeSet<String>, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
-        match type_var {
-            TypeVar::Synonym(_, _, _) => {
-                dfs_with_result(ident, visited_idents, errs, |ident, processed_idents, errs| {
-                        self.type_synonym_idents_for_type_synonym_ident(ident, tree, processed_idents, errs)
-                }, |ident, errs| {
-                        self.evaluate_type_for_type_synonym_ident(ident, tree, errs)
-                })?;
-            },
-            _ => (),
+        let is_type_synonym = {
+            let type_var_r = type_var.borrow();
+            match &*type_var_r {
+                TypeVar::Synonym(_, _, _) => true,
+                _ => false,
+            }
+        };
+        if is_type_synonym {
+            dfs_with_result(ident, visited_idents, errs, |ident, processed_idents, errs| {
+                    self.type_synonym_idents_for_type_synonym_ident(ident, tree, processed_idents, errs)
+            }, |ident, errs| {
+                self.evaluate_type_for_type_synonym_ident(ident, tree, errs)
+            })?;
         }
         Ok(())
     }
@@ -819,10 +820,7 @@ impl Typer
         let mut visited_idents: BTreeSet<String> = BTreeSet::new();
         for def in tree.defs() {
             match &**def {
-                Def::Type(ident, type_var, _) => {
-                    let type_var_r = type_var.borrow();
-                    self.evaluate_shared_flags_for_type(ident, &*type_var_r, &mut visited_idents, tree)?;
-                },
+                Def::Type(ident, type_var, _) => self.evaluate_shared_flags_for_type(ident, &type_var, &mut visited_idents, tree)?,
                 _ => (),
             }
         }
@@ -834,10 +832,7 @@ impl Typer
         let mut visited_idents: BTreeSet<String> = BTreeSet::new();
         for def in tree.defs() {
             match &**def {
-                Def::Type(ident, type_var, _) => {
-                    let type_var_r = type_var.borrow();
-                    self.check_type_recursions_for_data(ident, &*type_var_r, &mut visited_idents, tree, errs)?;
-                },
+                Def::Type(ident, type_var, _) => self.check_type_recursions_for_data(ident, type_var, &mut visited_idents, tree, errs)?,
                 _ => (),
             }
         }
@@ -887,11 +882,11 @@ impl Typer
             },
             TypeVar::Builtin(None, _, _) => errs.push(FrontendError::Message(pos, format!("built-in type {} hasn't evaluated type arguments", ident))),
             TypeVar::Data(type_args, cons, _) => {
+                let mut type_param_env: Environment<LocalType> = Environment::new();
+                type_param_env.push_new_vars();
+                let mut tmp_type_values: Vec<Rc<TypeValue>> = Vec::new();
+                let mut type_arg_idents: Vec<String> = Vec::new();
                 for (i, type_arg) in type_args.iter().enumerate() {
-                    let mut type_param_env: Environment<LocalType> = Environment::new();
-                    type_param_env.push_new_vars();
-                    let mut tmp_type_values: Vec<Rc<TypeValue>> = Vec::new();
-                    let mut type_arg_idents: Vec<String> = Vec::new();
                     match type_arg {
                         TypeArg(type_arg_ident, _) => {
                             type_param_env.add_var(type_arg_ident.clone(), LocalType::new(i));
@@ -899,64 +894,64 @@ impl Typer
                             type_arg_idents.push(type_arg_ident.clone());
                         },
                     }
-                    let ret_type_value = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(ident.clone()), tmp_type_values));
-                    for con in &*cons {
-                        let con_r = con.borrow();
-                        let pair = match &*con_r {
-                            Con::UnnamedField(con_ident, field_type_exprs, _, _) => {
-                                let mut type_values: Vec<Rc<TypeValue>> = Vec::new();
-                                let mut is_success = true;
-                                for field_type_expr in field_type_exprs {
-                                    match self.evaluate_type_for_type_expr(&**field_type_expr, tree, &mut type_param_env, &mut None, errs)? {
-                                        Some(type_value) => type_values.push(type_value),
-                                        None => is_success = false, 
-                                    }
-                                }
-                                if is_success {
-                                    Some((con_ident.clone(), type_values))
-                                } else {
-                                    None
-                                }
-                            },
-                            Con::NamedField(con_ident, type_expr_named_field_pairs, _, _, _) => {
-                                let mut type_values: Vec<Rc<TypeValue>> = Vec::new();
-                                let mut is_success = true;
-                                for type_expr_named_field_pair in type_expr_named_field_pairs {
-                                    match type_expr_named_field_pair {
-                                        NamedFieldPair(_, field_type_expr, _) => {
-                                            match self.evaluate_type_for_type_expr(&**field_type_expr, tree, &mut type_param_env, &mut None, errs)? {
-                                                Some(type_value) => type_values.push(type_value),
-                                                None => is_success = false, 
-                                            }
-                                        },
-                                    }
-                                }
-                                if is_success {
-                                    Some((con_ident.clone(), type_values))
-                                } else {
-                                    None
+                }
+                let ret_type_value = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(ident.clone()), tmp_type_values));
+                for con in &*cons {
+                    let con_r = con.borrow();
+                    let pair = match &*con_r {
+                        Con::UnnamedField(con_ident, field_type_exprs, _, _) => {
+                            let mut type_values: Vec<Rc<TypeValue>> = Vec::new();
+                            let mut is_success = true;
+                            for field_type_expr in field_type_exprs {
+                                match self.evaluate_type_for_type_expr(&**field_type_expr, tree, &mut type_param_env, &mut None, errs)? {
+                                    Some(type_value) => type_values.push(type_value),
+                                    None => is_success = false, 
                                 }
                             }
-                        };
-                        match pair {
-                            Some((con_ident, mut type_values)) => {
-                                match tree.var(&con_ident) {
-                                    Some(var) => {
-                                        let mut var_r = var.borrow_mut();
-                                        match &mut *var_r {
-                                            Var::Fun(_, _, typ) => {
-                                                type_values.push(ret_type_value.clone());
-                                                let type_value = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Fun, type_values));
-                                                *typ = Some(Box::new(Type::new(type_value, type_arg_idents.as_slice())));
-                                            },
-                                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_type: variable isn't function"))])),
+                            if is_success {
+                                Some((con_ident.clone(), type_values))
+                            } else {
+                                None
+                            }
+                        },
+                        Con::NamedField(con_ident, type_expr_named_field_pairs, _, _, _) => {
+                            let mut type_values: Vec<Rc<TypeValue>> = Vec::new();
+                            let mut is_success = true;
+                            for type_expr_named_field_pair in type_expr_named_field_pairs {
+                                match type_expr_named_field_pair {
+                                    NamedFieldPair(_, field_type_expr, _) => {
+                                        match self.evaluate_type_for_type_expr(&**field_type_expr, tree, &mut type_param_env, &mut None, errs)? {
+                                            Some(type_value) => type_values.push(type_value),
+                                            None => is_success = false, 
                                         }
                                     },
-                                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_type: no variable"))])),
                                 }
-                            },
-                            None => (),
+                            }
+                            if is_success {
+                                Some((con_ident.clone(), type_values))
+                            } else {
+                                None
+                            }
                         }
+                    };
+                    match pair {
+                        Some((con_ident, mut type_values)) => {
+                            match tree.var(&con_ident) {
+                                Some(var) => {
+                                    let mut var_r = var.borrow_mut();
+                                    match &mut *var_r {
+                                        Var::Fun(_, _, typ) => {
+                                            type_values.push(ret_type_value.clone());
+                                            let type_value = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Fun, type_values));
+                                            *typ = Some(Box::new(Type::new(type_value, type_arg_idents.as_slice())));
+                                        },
+                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_type: variable isn't function"))])),
+                                    }
+                                },
+                                None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_type: no variable"))])),
+                            }
+                        },
+                        None => (),
                     }
                 }
             },
@@ -1052,7 +1047,7 @@ impl Typer
             },
             TypeExpr::Fun(arg_type_exprs, ret_type_expr, _) => {
                 let mut type_values: Vec<Rc<TypeValue>> = Vec::new();
-                let mut is_success = false;
+                let mut is_success = true;
                 for arg_type_expr in arg_type_exprs {
                     match self.evaluate_type_for_type_expr(&**arg_type_expr, tree, type_param_env, local_type_counter, errs)? {
                         Some(type_value) => type_values.push(type_value),
@@ -1150,17 +1145,21 @@ impl Typer
         }
     }
     
-    fn evaluate_shared_flags_for_type(&self, ident: &String, type_var: &TypeVar, visited_idents: &mut BTreeSet<String>, tree: &Tree) -> FrontendResultWithErrors<()>
+    fn evaluate_shared_flags_for_type(&self, ident: &String, type_var: &Rc<RefCell<TypeVar>>, visited_idents: &mut BTreeSet<String>, tree: &Tree) -> FrontendResultWithErrors<()>
     {
-        match type_var {
-            TypeVar::Builtin(_, _, _) | TypeVar::Data(_, _, _) => {
-                dfs_with_result(ident, visited_idents, &mut (), |ident, processed_idents, _| {
-                        self.shared_type_idents_for_type_ident(ident, tree, processed_idents)
-                }, |ident, _| {
-                        self.evaluate_shared_flag_for_type_ident(ident, tree)
-                })?;
-            },
-            _ => (),
+        let is_type = {
+            let type_var_r = type_var.borrow();
+            match &*type_var_r {
+                TypeVar::Builtin(_, _, _) | TypeVar::Data(_, _, _) => true,
+                _ => false,
+            }
+        };
+        if is_type {
+            dfs_with_result(ident, visited_idents, &mut (), |ident, processed_idents, _| {
+                    self.shared_type_idents_for_type_ident(ident, tree, processed_idents)
+            }, |ident, _| {
+                    self.evaluate_shared_flag_for_type_ident(ident, tree)
+            })?;
         }
         Ok(())
     }
@@ -1339,15 +1338,19 @@ impl Typer
         }
     }
 
-    fn check_type_recursions_for_data(&self, ident: &String, type_var: &TypeVar, visited_idents: &mut BTreeSet<String>, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn check_type_recursions_for_data(&self, ident: &String, type_var: &Rc<RefCell<TypeVar>>, visited_idents: &mut BTreeSet<String>, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
-        match type_var {
-            TypeVar::Data(_, _, _) => {
-                dfs_with_result(ident, visited_idents, errs, |ident, processed_idents, errs| {
-                        self.check_type_recursions_for_data_ident(ident, tree, processed_idents, errs)
-                }, |_, _| Ok(()))?;
-            },
-            _ => (),
+        let is_data = {
+            let type_var_r = type_var.borrow();
+            match &*type_var_r {
+                TypeVar::Data(_, _, _) => true,
+                _ => false,
+            }
+        };
+        if is_data {
+            dfs_with_result(ident, visited_idents, errs, |ident, processed_idents, errs| {
+                    self.check_type_recursions_for_data_ident(ident, tree, processed_idents, errs)
+            }, |_, _| Ok(()))?;
         }
         Ok(())
     }
@@ -3727,3 +3730,6 @@ impl Typer
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests;
