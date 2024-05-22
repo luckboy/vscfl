@@ -119,27 +119,37 @@ fn add_type_synonym_ident(ident: &String, pos: Pos, tree: &Tree, idents: &mut Ve
     }
 }
 
-fn add_type_ident(ident: &String, tree: &Tree, idents: &mut Vec<String>, processed_idents: &BTreeSet<String>) -> FrontendResultWithErrors<()>
+fn add_type_ident(ident: &String, tree: &Tree, idents: &mut Vec<String>, rec_idents: &mut BTreeSet<String>, is_rec: &mut bool, processed_idents: &BTreeSet<String>) -> FrontendResultWithErrors<()>
 {
     match tree.type_var(ident) {
         Some(type_var) => {
             let mut type_var_r = type_var.borrow_mut();
             match &mut *type_var_r {
-                TypeVar::Builtin(_, _, Some(_)) => Ok(()),
-                TypeVar::Builtin(_, _, shared_flag @ None) => {
+                TypeVar::Builtin(_, _, shared_flag) => {
                     if !processed_idents.contains(ident) {
                         idents.push(ident.clone());
                     } else {
-                        *shared_flag = Some(SharedFlag::Shared);
+                        if shared_flag.is_none() {
+                            *shared_flag = Some(SharedFlag::Shared);
+                            rec_idents.insert(ident.clone());
+                        }
+                    }
+                    if rec_idents.contains(ident) {
+                        *is_rec = true;
                     }
                     Ok(())
                 },
-                TypeVar::Data(_, _, Some(_)) => Ok(()),
-                TypeVar::Data(_, _, shared_flag @ None) => {
+                TypeVar::Data(_, _, shared_flag) => {
                     if !processed_idents.contains(ident) {
                         idents.push(ident.clone());
                     } else {
-                        *shared_flag = Some(SharedFlag::Shared);
+                        if shared_flag.is_none() {
+                            *shared_flag = Some(SharedFlag::Shared);
+                            rec_idents.insert(ident.clone());
+                        }
+                    }
+                    if rec_idents.contains(ident) {
+                        *is_rec = true;
                     }
                     Ok(())
                 },
@@ -234,8 +244,8 @@ fn shared_flag_for_type_ident_and_evaluation(ident: &String, tree: &Tree) -> Fro
 {
     match tree.type_var(ident) {
         Some(type_var) => {
-            let mut type_var_r = type_var.borrow_mut();
-            match &mut *type_var_r {
+            let type_var_r = type_var.borrow();
+            match &*type_var_r {
                 TypeVar::Builtin(_, _, shared_flag) => Ok(*shared_flag),
                 TypeVar::Data(_, _, shared_flag) => Ok(*shared_flag),
                 _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_flag_for_type_ident_and_evaluation: type variable is type synonym"))])),
@@ -805,10 +815,7 @@ impl Typer
     {
         for def in tree.defs() {
             match &**def {
-                Def::Type(ident, type_var, pos) => {
-                    let mut type_var_r = type_var.borrow_mut();
-                    self.evaluate_types_for_type(ident, &mut *type_var_r, pos.clone(), tree, errs)?;
-                },
+                Def::Type(ident, type_var, pos) => self.evaluate_types_for_type(ident, type_var, pos.clone(), tree, errs)?,
                 _ => (),
             }
         }
@@ -817,10 +824,23 @@ impl Typer
 
     fn evaluate_shared_flags_for_type_defs(&self, tree: &Tree) -> FrontendResultWithErrors<()>
     {
+        let mut rec_idents: BTreeSet<String> = BTreeSet::new();
         let mut visited_idents: BTreeSet<String> = BTreeSet::new();
         for def in tree.defs() {
             match &**def {
-                Def::Type(ident, type_var, _) => self.evaluate_shared_flags_for_type(ident, &type_var, &mut visited_idents, tree)?,
+                Def::Type(ident, type_var, _) => self.evaluate_shared_flags_for_type(ident, &type_var, &mut visited_idents, tree, &mut rec_idents)?,
+                _ => (),
+            }
+        }
+        let mut rec_idents2: BTreeSet<String> = BTreeSet::new();
+        let mut visited_idents2: BTreeSet<String> = BTreeSet::new();
+        for def in tree.defs() {
+            match &**def {
+                Def::Type(ident, type_var, _) => {
+                    if rec_idents.contains(ident) {
+                        self.evaluate_shared_flags_for_type(ident, &type_var, &mut visited_idents2, tree, &mut rec_idents2)?;
+                    }
+                },
                 _ => (),
             }
         }
@@ -839,123 +859,134 @@ impl Typer
         Ok(())
     }    
     
-    fn evaluate_types_for_type(&self, ident: &String, type_var: &mut TypeVar, pos: Pos, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn evaluate_types_for_type(&self, ident: &String, type_var: &Rc<RefCell<TypeVar>>, pos: Pos, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
-        match type_var {
-            TypeVar::Builtin(Some(type_args), fields, _) => {
-                match self.builtins.type_var(ident) {
-                    Some(builtin_type_var) => {
-                        let mut type_param_env: Environment<LocalType> = Environment::new();
-                        type_param_env.push_new_vars();
-                        let mut type_arg_idents: Vec<String> = Vec::new();
-                        for (i, type_arg_ident) in type_args.type_arg_idents().iter().enumerate() {
-                            type_param_env.add_var(type_arg_ident.clone(), LocalType::new(i));
-                            type_arg_idents.push(type_arg_ident.clone());
-                        }
-                        let mut new_fields = Fields::new();
-                        let mut is_success = true;
-                        for (i, field_src) in builtin_type_var.field_type_sources.iter().enumerate() {
-                            match parse_type_with_path(format!("({} field {}).vscfl", ident, i).as_str(), field_src) {
-                                Ok(type_expr) => {
-                                    match check_idents_for_type_with_type_args(&type_expr, type_arg_idents.as_slice(), tree) {
-                                        Ok(()) => {
-                                            match self.evaluate_type_for_type_expr(&type_expr, tree, &mut type_param_env, &mut None, errs)? {
-                                                Some(type_value) => new_fields.add_field_type_value(type_value),
-                                                None => is_success = false, 
-                                            }
-                                        },
-                                        Err(mut errs2) => add_errors(&mut errs2, errs)?,
-                                    }
-                                },
-                                Err(err) => add_error(err, errs)?,
+        let mut new_opt_fields: Option<Box<Fields>> = None;
+        {
+            let type_var_r = type_var.borrow();
+            match &*type_var_r {
+                TypeVar::Builtin(Some(type_args), _, _) => {
+                    match self.builtins.type_var(ident) {
+                        Some(builtin_type_var) => {
+                            let mut type_param_env: Environment<LocalType> = Environment::new();
+                            type_param_env.push_new_vars();
+                            let mut type_arg_idents: Vec<String> = Vec::new();
+                            for (i, type_arg_ident) in type_args.type_arg_idents().iter().enumerate() {
+                                type_param_env.add_var(type_arg_ident.clone(), LocalType::new(i));
+                                type_arg_idents.push(type_arg_ident.clone());
                             }
-                        }
-                        if is_success {
-                            for (field_ident, i) in &builtin_type_var.field_indices {
-                                new_fields.add_field_index(field_ident.clone(), *i);
-                            }
-                            *fields = Some(Box::new(new_fields));
-                        }
-                    },
-                    None => (),
-                }
-            },
-            TypeVar::Builtin(None, _, _) => errs.push(FrontendError::Message(pos, format!("built-in type {} hasn't evaluated type arguments", ident))),
-            TypeVar::Data(type_args, cons, _) => {
-                let mut type_param_env: Environment<LocalType> = Environment::new();
-                type_param_env.push_new_vars();
-                let mut tmp_type_values: Vec<Rc<TypeValue>> = Vec::new();
-                let mut type_arg_idents: Vec<String> = Vec::new();
-                for (i, type_arg) in type_args.iter().enumerate() {
-                    match type_arg {
-                        TypeArg(type_arg_ident, _) => {
-                            type_param_env.add_var(type_arg_ident.clone(), LocalType::new(i));
-                            tmp_type_values.push(Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(i))));
-                            type_arg_idents.push(type_arg_ident.clone());
-                        },
-                    }
-                }
-                let ret_type_value = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(ident.clone()), tmp_type_values));
-                for con in &*cons {
-                    let con_r = con.borrow();
-                    let pair = match &*con_r {
-                        Con::UnnamedField(con_ident, field_type_exprs, _, _) => {
-                            let mut type_values: Vec<Rc<TypeValue>> = Vec::new();
+                            let mut new_fields = Fields::new();
                             let mut is_success = true;
-                            for field_type_expr in field_type_exprs {
-                                match self.evaluate_type_for_type_expr(&**field_type_expr, tree, &mut type_param_env, &mut None, errs)? {
-                                    Some(type_value) => type_values.push(type_value),
-                                    None => is_success = false, 
-                                }
-                            }
-                            if is_success {
-                                Some((con_ident.clone(), type_values))
-                            } else {
-                                None
-                            }
-                        },
-                        Con::NamedField(con_ident, type_expr_named_field_pairs, _, _, _) => {
-                            let mut type_values: Vec<Rc<TypeValue>> = Vec::new();
-                            let mut is_success = true;
-                            for type_expr_named_field_pair in type_expr_named_field_pairs {
-                                match type_expr_named_field_pair {
-                                    NamedFieldPair(_, field_type_expr, _) => {
-                                        match self.evaluate_type_for_type_expr(&**field_type_expr, tree, &mut type_param_env, &mut None, errs)? {
-                                            Some(type_value) => type_values.push(type_value),
-                                            None => is_success = false, 
+                            for (i, field_src) in builtin_type_var.field_type_sources.iter().enumerate() {
+                                match parse_type_with_path(format!("({} field {}).vscfl", ident, i).as_str(), field_src) {
+                                    Ok(type_expr) => {
+                                        match check_idents_for_type_with_type_args(&type_expr, type_arg_idents.as_slice(), tree) {
+                                            Ok(()) => {
+                                                match self.evaluate_type_for_type_expr(&type_expr, tree, &mut type_param_env, &mut None, errs)? {
+                                                    Some(type_value) => new_fields.add_field_type_value(type_value),
+                                                    None => is_success = false, 
+                                                }
+                                            },
+                                            Err(mut errs2) => add_errors(&mut errs2, errs)?,
                                         }
                                     },
+                                    Err(err) => add_error(err, errs)?,
                                 }
                             }
                             if is_success {
-                                Some((con_ident.clone(), type_values))
-                            } else {
-                                None
-                            }
-                        }
-                    };
-                    match pair {
-                        Some((con_ident, mut type_values)) => {
-                            match tree.var(&con_ident) {
-                                Some(var) => {
-                                    let mut var_r = var.borrow_mut();
-                                    match &mut *var_r {
-                                        Var::Fun(_, _, typ) => {
-                                            type_values.push(ret_type_value.clone());
-                                            let type_value = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Fun, type_values));
-                                            *typ = Some(Box::new(Type::new(type_value, type_arg_idents.as_slice())));
-                                        },
-                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_type: variable isn't function"))])),
-                                    }
-                                },
-                                None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_type: no variable"))])),
+                                for (field_ident, i) in &builtin_type_var.field_indices {
+                                    new_fields.add_field_index(field_ident.clone(), *i);
+                                }
+                                new_opt_fields = Some(Box::new(new_fields));
                             }
                         },
                         None => (),
                     }
-                }
-            },
-            _ => (),
+                },
+                TypeVar::Builtin(None, _, _) => errs.push(FrontendError::Message(pos, format!("built-in type {} hasn't evaluated type arguments", ident))),
+                TypeVar::Data(type_args, cons, _) => {
+                    let mut type_param_env: Environment<LocalType> = Environment::new();
+                    type_param_env.push_new_vars();
+                    let mut tmp_type_values: Vec<Rc<TypeValue>> = Vec::new();
+                    let mut type_arg_idents: Vec<String> = Vec::new();
+                    for (i, type_arg) in type_args.iter().enumerate() {
+                        match type_arg {
+                            TypeArg(type_arg_ident, _) => {
+                                type_param_env.add_var(type_arg_ident.clone(), LocalType::new(i));
+                                tmp_type_values.push(Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(i))));
+                                type_arg_idents.push(type_arg_ident.clone());
+                            },
+                        }
+                    }
+                    let ret_type_value = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(ident.clone()), tmp_type_values));
+                    for con in &*cons {
+                        let con_r = con.borrow();
+                        let pair = match &*con_r {
+                            Con::UnnamedField(con_ident, field_type_exprs, _, _) => {
+                                let mut type_values: Vec<Rc<TypeValue>> = Vec::new();
+                                let mut is_success = true;
+                                for field_type_expr in field_type_exprs {
+                                    match self.evaluate_type_for_type_expr(&**field_type_expr, tree, &mut type_param_env, &mut None, errs)? {
+                                        Some(type_value) => type_values.push(type_value),
+                                        None => is_success = false, 
+                                    }
+                                }
+                                if is_success {
+                                    Some((con_ident.clone(), type_values))
+                                } else {
+                                    None
+                                }
+                            },
+                            Con::NamedField(con_ident, type_expr_named_field_pairs, _, _, _) => {
+                                let mut type_values: Vec<Rc<TypeValue>> = Vec::new();
+                                let mut is_success = true;
+                                for type_expr_named_field_pair in type_expr_named_field_pairs {
+                                    match type_expr_named_field_pair {
+                                        NamedFieldPair(_, field_type_expr, _) => {
+                                            match self.evaluate_type_for_type_expr(&**field_type_expr, tree, &mut type_param_env, &mut None, errs)? {
+                                                Some(type_value) => type_values.push(type_value),
+                                                None => is_success = false, 
+                                            }
+                                        },
+                                    }
+                                }
+                                if is_success {
+                                    Some((con_ident.clone(), type_values))
+                                } else {
+                                    None
+                                }
+                            }
+                        };
+                        match pair {
+                            Some((con_ident, mut type_values)) => {
+                                match tree.var(&con_ident) {
+                                    Some(var) => {
+                                        let mut var_r = var.borrow_mut();
+                                        match &mut *var_r {
+                                            Var::Fun(_, _, typ) => {
+                                                type_values.push(ret_type_value.clone());
+                                                let type_value = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Fun, type_values));
+                                                *typ = Some(Box::new(Type::new(type_value, type_arg_idents.as_slice())));
+                                            },
+                                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_type: variable isn't function"))])),
+                                        }
+                                    },
+                                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_type: no variable"))])),
+                                }
+                            },
+                            None => (),
+                        }
+                    }
+                },
+                _ => (),
+            }
+        }
+        {
+            let mut type_var_r = type_var.borrow_mut();
+            match &mut *type_var_r {
+                TypeVar::Builtin(_, fields, _) => *fields = new_opt_fields,
+                _ => (),
+            }
         }
         Ok(())
     }
@@ -964,8 +995,8 @@ impl Typer
     {
         match tree.type_var(ident) {
             Some(type_var) => {
-                let mut type_var_r = type_var.borrow_mut();
-                match &mut *type_var_r {
+                let type_var_r = type_var.borrow();
+                match &*type_var_r {
                     TypeVar::Synonym(_, type_expr, _) => {
                         let mut idents: Vec<String> = Vec::new();
                         self.add_type_synonym_idents_for_type_expr(&**type_expr, tree, &mut idents, processed_idents, errs)?;
@@ -1005,22 +1036,34 @@ impl Typer
     {
         match tree.type_var(ident) {
             Some(type_var) => {
-                let mut type_var_r = type_var.borrow_mut();
-                match &mut *type_var_r {
-                    TypeVar::Synonym(type_args, type_expr, type_value) => {
-                        let mut type_param_env: Environment<LocalType> = Environment::new();
-                        type_param_env.push_new_vars();
-                        for (i, type_arg) in type_args.iter().enumerate() {
-                            match type_arg {
-                                TypeArg(type_arg_ident, _) => {
-                                    type_param_env.add_var(type_arg_ident.clone(), LocalType::new(i));
-                                },
+                let new_opt_type_value: Option<Rc<TypeValue>>;
+                {
+                    let type_var_r = type_var.borrow();
+                    match &*type_var_r {
+                        TypeVar::Synonym(type_args, type_expr, _) => {
+                            let mut type_param_env: Environment<LocalType> = Environment::new();
+                            type_param_env.push_new_vars();
+                            for (i, type_arg) in type_args.iter().enumerate() {
+                                match type_arg {
+                                    TypeArg(type_arg_ident, _) => {
+                                        type_param_env.add_var(type_arg_ident.clone(), LocalType::new(i));
+                                    },
+                                }
                             }
-                        }
-                        *type_value = self.evaluate_type_for_type_expr(&**type_expr, tree, &mut type_param_env, &mut None, errs)?;
-                        Ok(())
-                    },
-                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_type_for_type_synonym_ident: type variable isn't type synonym"))])),
+                            new_opt_type_value = self.evaluate_type_for_type_expr(&**type_expr, tree, &mut type_param_env, &mut None, errs)?;
+                        },
+                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_type_for_type_synonym_ident: type variable isn't type synonym"))])),
+                    }
+                }
+                {
+                    let mut type_var_r = type_var.borrow_mut();
+                    match &mut *type_var_r {
+                        TypeVar::Synonym(_, _, type_value) => {
+                            *type_value = new_opt_type_value;
+                            Ok(())
+                        },
+                        _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_type_for_type_synonym_ident: type variable isn't type synonym"))])),
+                    }
                 }
             },
             None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_type_for_type_synonym_ident: no type variable"))])),
@@ -1145,7 +1188,7 @@ impl Typer
         }
     }
     
-    fn evaluate_shared_flags_for_type(&self, ident: &String, type_var: &Rc<RefCell<TypeVar>>, visited_idents: &mut BTreeSet<String>, tree: &Tree) -> FrontendResultWithErrors<()>
+    fn evaluate_shared_flags_for_type(&self, ident: &String, type_var: &Rc<RefCell<TypeVar>>, visited_idents: &mut BTreeSet<String>, tree: &Tree, rec_idents: &mut BTreeSet<String>) -> FrontendResultWithErrors<()>
     {
         let is_type = {
             let type_var_r = type_var.borrow();
@@ -1156,7 +1199,7 @@ impl Typer
         };
         if is_type {
             dfs_with_result(ident, visited_idents, &mut (), |ident, processed_idents, _| {
-                    self.shared_type_idents_for_type_ident(ident, tree, processed_idents)
+                    self.shared_type_idents_for_type_ident(ident, tree, rec_idents, processed_idents)
             }, |ident, _| {
                     self.evaluate_shared_flag_for_type_ident(ident, tree)
             })?;
@@ -1164,65 +1207,69 @@ impl Typer
         Ok(())
     }
 
-    fn shared_type_idents_for_type_ident(&self, ident: &String, tree: &Tree, processed_idents: &BTreeSet<String>) -> FrontendResultWithErrors<Vec<String>>
+    fn shared_type_idents_for_type_ident(&self, ident: &String, tree: &Tree, rec_idents: &mut BTreeSet<String>, processed_idents: &BTreeSet<String>) -> FrontendResultWithErrors<Vec<String>>
     {
+        let mut cons: Vec<Rc<RefCell<Con>>> = Vec::new();
         match tree.type_var(ident) {
             Some(type_var) => {
-                let mut type_var_r = type_var.borrow_mut();
-                match &mut *type_var_r {
-                    TypeVar::Builtin(_, _, _) => Ok(Vec::new()),
-                    TypeVar::Data(_, cons, _) => {
-                        let mut idents: Vec<String> = Vec::new();
-                        for con in &*cons {
-                            let con_r = con.borrow();
-                            let con_ident = match &*con_r {
-                                Con::UnnamedField(tmp_con_ident, _, _, _) => tmp_con_ident.clone(),
-                                Con::NamedField(tmp_con_ident, _, _, _, _) => tmp_con_ident.clone(),
-                            };
-                            match tree.var(&con_ident) {
-                                Some(var) => {
-                                    let var_r = var.borrow();
-                                    match &*var_r {
-                                        Var::Fun(_, _, Some(typ)) => {
-                                            match &**typ.type_value() {
-                                                TypeValue::Type(UniqFlag::None, TypeValueName::Fun, type_values) => {
-                                                    if type_values.len() >= 1 {
-                                                        for type_value2 in &type_values[0..(type_values.len() - 1)]  {
-                                                            self.add_shared_type_idents_for_type_value(&**type_value2, tree, &mut idents, processed_idents)?
-                                                        }
-                                                    } else {
-                                                        return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_type_idents_for_type_ident: too few type values"))]))
-                                                    }
-                                                },
-                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_type_idents_for_type_ident: variable isn't function or no type"))])),
-                                            }
-                                        },
-                                        Var::Fun(_, _, None) => (),
-                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_type_idents_for_type_ident: variable isn't function"))])),
-                                    }
-                                },
-                                None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_type_idents_for_type_ident: no variable"))])),
-                            }
-                        }
-                        Ok(idents)
-                    },
-                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_type_idents_for_type_ident: type variable is type synonym"))])),
+                let type_var_r = type_var.borrow();
+                match &*type_var_r {
+                    TypeVar::Builtin(_, _, _) => (),
+                    TypeVar::Data(_, cons2, _) => cons = cons2.clone(),
+                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_type_idents_for_type_ident: type variable is type synonym"))])),
                 }
             },
-            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_type_idents_for_type_ident: no type variable"))])),
+            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_type_idents_for_type_ident: no type variable"))])),
         }
+        let mut idents: Vec<String> = Vec::new();
+        let mut is_rec = false;
+        for con in &*cons {
+            let con_r = con.borrow();
+            let con_ident = match &*con_r {
+                Con::UnnamedField(tmp_con_ident, _, _, _) => tmp_con_ident.clone(),
+                Con::NamedField(tmp_con_ident, _, _, _, _) => tmp_con_ident.clone(),
+            };
+            match tree.var(&con_ident) {
+                Some(var) => {
+                    let var_r = var.borrow();
+                    match &*var_r {
+                        Var::Fun(_, _, Some(typ)) => {
+                            match &**typ.type_value() {
+                                TypeValue::Type(UniqFlag::None, TypeValueName::Fun, type_values) => {
+                                    if type_values.len() >= 1 {
+                                        for type_value2 in &type_values[0..(type_values.len() - 1)]  {
+                                            self.add_shared_type_idents_for_type_value(&**type_value2, tree, &mut idents, rec_idents, &mut is_rec, processed_idents)?
+                                        }
+                                    } else {
+                                        return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_type_idents_for_type_ident: too few type values"))]))
+                                    }
+                                },
+                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_type_idents_for_type_ident: variable isn't function or no type"))])),
+                            }
+                        },
+                        Var::Fun(_, _, None) => (),
+                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_type_idents_for_type_ident: variable isn't function"))])),
+                    }
+                },
+                None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_type_idents_for_type_ident: no variable"))])),
+            }
+        }
+        if is_rec {
+            rec_idents.insert(ident.clone());
+        }
+        Ok(idents)
     }
     
-    fn add_shared_type_idents_for_type_value(&self, type_value: &TypeValue, tree: &Tree, idents: &mut Vec<String>, processed_idents: &BTreeSet<String>) -> FrontendResultWithErrors<()>
+    fn add_shared_type_idents_for_type_value(&self, type_value: &TypeValue, tree: &Tree, idents: &mut Vec<String>, rec_idents: &mut BTreeSet<String>, is_rec: &mut bool, processed_idents: &BTreeSet<String>) -> FrontendResultWithErrors<()>
     {
         match type_value {
             TypeValue::Type(UniqFlag::None, type_value_name, type_values) => {
                 match type_value_name {
-                    TypeValueName::Name(ident) => add_type_ident(ident, tree, idents, processed_idents)?,
+                    TypeValueName::Name(ident) => add_type_ident(ident, tree, idents, rec_idents, is_rec, processed_idents)?,
                     _ => (),
                 }
                 for type_value2 in type_values {
-                    self.add_shared_type_idents_for_type_value(&**type_value2, tree, idents, processed_idents)?;
+                    self.add_shared_type_idents_for_type_value(&**type_value2, tree, idents, rec_idents, is_rec, processed_idents)?;
                 }
             },
             _ => (),
@@ -1234,66 +1281,79 @@ impl Typer
     {
         match tree.type_var(ident) {
             Some(type_var) => {
-                let mut type_var_r = type_var.borrow_mut();
-                match &mut *type_var_r {
-                    TypeVar::Builtin(_, _, shared_flag) => {
-                        match self.builtins.type_var(ident) {
-                            Some(builtin_type_var) => {
-                                *shared_flag = Some(builtin_type_var.shared_flag);
-                                Ok(())
-                            },
-                            None => Ok(()),
-                        }
-                    },
-                    TypeVar::Data(_, cons, shared_flag) => {
-                        let mut new_shared_flag = SharedFlag::Shared;
-                        let mut is_success = true;
-                        for con in &*cons {
-                            let con_r = con.borrow();
-                            let con_ident = match &*con_r {
-                                Con::UnnamedField(tmp_con_ident, _, _, _) => tmp_con_ident.clone(),
-                                Con::NamedField(tmp_con_ident, _, _, _, _) => tmp_con_ident.clone(),
-                            };
-                            match tree.var(&con_ident) {
-                                Some(var) => {
-                                    let var_r = var.borrow();
-                                    match &*var_r {
-                                        Var::Fun(_, _, Some(typ)) => {
-                                            match &**typ.type_value() {
-                                                TypeValue::Type(UniqFlag::None, TypeValueName::Fun, type_values) => {
-                                                    if type_values.len() >= 1 {
-                                                        for type_value2 in &type_values[0..(type_values.len() - 1)]  {
-                                                            match self.evaluate_shared_flag_for_type_value(&**type_value2, tree)? {
-                                                                Some(shared_flag2) => {
-                                                                    if shared_flag2 == SharedFlag::None {
-                                                                        new_shared_flag = SharedFlag::None;
-                                                                    }
-                                                                },
-                                                                None => is_success = false,
-                                                            }
-                                                        }
-                                                    } else {
-                                                        return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_shared_flag_for_type_ident: too few type values"))]))
-                                                    }
-                                                },
-                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_shared_flag_for_type_ident: variable isn't function or no type"))])),
-                                            }
-                                        },
-                                        Var::Fun(_, _, None) => is_success = false,
-                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_shared_flag_for_type_ident: variable isn't function"))])),
-                                    }
-                                },
-                                None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_shared_flag_for_type_ident: no variable"))])),
+                let mut new_opt_shared_flag: Option<SharedFlag> = None;
+                {
+                    let type_var_r = type_var.borrow();
+                    match &*type_var_r {
+                        TypeVar::Builtin(_, _, _) => {
+                            match self.builtins.type_var(ident) {
+                                Some(builtin_type_var) => new_opt_shared_flag = Some(builtin_type_var.shared_flag),
+                                None => (),
                             }
-                        }
-                        if is_success {
-                            *shared_flag = Some(new_shared_flag);
-                        } else {
-                            *shared_flag = None;
-                        }
-                        Ok(())
-                    },
-                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_shared_flag_for_type_ident: type variable is type synonym"))])),
+                        },
+                        TypeVar::Data(_, cons, _) => {
+                            let mut new_shared_flag = SharedFlag::Shared;
+                            let mut is_success = true;
+                            for con in &*cons {
+                                let con_r = con.borrow();
+                                let con_ident = match &*con_r {
+                                    Con::UnnamedField(tmp_con_ident, _, _, _) => tmp_con_ident.clone(),
+                                    Con::NamedField(tmp_con_ident, _, _, _, _) => tmp_con_ident.clone(),
+                                };
+                                match tree.var(&con_ident) {
+                                    Some(var) => {
+                                        let var_r = var.borrow();
+                                        match &*var_r {
+                                            Var::Fun(_, _, Some(typ)) => {
+                                                match &**typ.type_value() {
+                                                    TypeValue::Type(UniqFlag::None, TypeValueName::Fun, type_values) => {
+                                                        if type_values.len() >= 1 {
+                                                            for type_value2 in &type_values[0..(type_values.len() - 1)]  {
+                                                                match self.evaluate_shared_flag_for_type_value(&**type_value2, tree)? {
+                                                                    Some(shared_flag2) => {
+                                                                        if shared_flag2 == SharedFlag::None {
+                                                                            new_shared_flag = SharedFlag::None;
+                                                                        }
+                                                                    },
+                                                                    None => is_success = false,
+                                                                }
+                                                            }
+                                                        } else {
+                                                            return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_shared_flag_for_type_ident: too few type values"))]))
+                                                        }
+                                                    },
+                                                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_shared_flag_for_type_ident: variable isn't function or no type"))])),
+                                                }
+                                            },
+                                            Var::Fun(_, _, None) => is_success = false,
+                                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_shared_flag_for_type_ident: variable isn't function"))])),
+                                        }
+                                    },
+                                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_shared_flag_for_type_ident: no variable"))])),
+                                }
+                            }
+                            if is_success {
+                                new_opt_shared_flag = Some(new_shared_flag);
+                            } else {
+                                new_opt_shared_flag = None;
+                            }
+                        },
+                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_shared_flag_for_type_ident: type variable is type synonym"))])),
+                    }
+                }
+                {
+                    let mut type_var_r = type_var.borrow_mut();
+                    match &mut *type_var_r {
+                        TypeVar::Builtin(_, _, shared_flag) => {
+                            *shared_flag = new_opt_shared_flag;
+                            Ok(())
+                        },
+                        TypeVar::Data(_, _, shared_flag) => {
+                            *shared_flag = new_opt_shared_flag;
+                            Ok(())
+                        },
+                        _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_shared_flag_for_type_ident: type variable is type synonym"))])),
+                    }
                 }
             },
             None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_shared_flag_for_type_ident: no type variable"))])),
@@ -1359,8 +1419,8 @@ impl Typer
     {
         match tree.type_var(ident) {
             Some(type_var) => {
-                let mut type_var_r = type_var.borrow_mut();
-                match &mut *type_var_r {
+                let type_var_r = type_var.borrow();
+                match &*type_var_r {
                     TypeVar::Data(_, cons, _) => {
                         let mut idents: Vec<String> = Vec::new();
                         for con in &*cons {
@@ -1421,8 +1481,8 @@ impl Typer
     {
         match tree.type_var(ident) {
             Some(type_var) => {
-                let mut type_var_r = type_var.borrow_mut();
-                match &mut *type_var_r {
+                let type_var_r = type_var.borrow_mut();
+                match &*type_var_r {
                     TypeVar::Builtin(_, _, _) => {
                         match self.builtins.type_var(ident) {
                             Some(builtin_type_var) => Ok(builtin_type_var.ref_type_flag),
