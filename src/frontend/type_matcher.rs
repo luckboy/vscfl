@@ -20,6 +20,7 @@ pub enum MismatchedTypeInfo
     Param(LocalType, TraitName, LocalType),
     Type(TypeName, TraitName, LocalType),
     Eq(LocalType, LocalType, LocalType),
+    SharedParam(LocalType),
     SharedClosure(LocalType),
     NoClosure(LocalType, LocalType),
     InNonUniqLambda,
@@ -41,6 +42,9 @@ impl<'a, 'b> fmt::Display for MismatchedTypeInfoWidthLocalTypes<'a, 'b>
             },
             MismatchedTypeInfo::Eq(local_type1, local_type2, local_type3) => {
                 write!(f, "type parameter {} is equal to type parameter {} that mustn't be equal to type parameter {}", LocalTypeWithLocalTypes(*local_type1, self.1), LocalTypeWithLocalTypes(*local_type2, self.1), LocalTypeWithLocalTypes(*local_type3, self.1))
+            },
+            MismatchedTypeInfo::SharedParam(local_type) => {
+                write!(f, "type parameter {} mustn't shared", LocalTypeWithLocalTypes(*local_type, self.1))
             },
             MismatchedTypeInfo::SharedClosure(local_type) => {
                 write!(f, "closure variable type {} mustn't shared", LocalTypeWithLocalTypes(*local_type, self.1))
@@ -241,6 +245,7 @@ impl TypeMatcher
                             }
                         }
                         if tmp_shared_flag1 == SharedFlag::None {
+                            infos.push(MismatchedTypeInfo::SharedParam(*local_type1));
                             is_success = false;
                         }
                     }
@@ -253,6 +258,7 @@ impl TypeMatcher
                             }
                         }
                         if tmp_shared_flag2 == SharedFlag::None {
+                            infos.push(MismatchedTypeInfo::SharedParam(*local_type2));
                             is_success = false;
                         }
                     }
