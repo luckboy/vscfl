@@ -367,19 +367,31 @@ impl TypeMatcher
                             return Ok(None);
                         }
                         let type_param_entry1_r = type_param_entry1.borrow();
-                        if type_param_entry1_r.type_values.len() != type_values2.len() {
-                            return Ok(None);
+                        let mut are_type_values1 = true;
+                        if (type_param_entry1_r.trait_names.is_empty() || (type_param_entry1_r.trait_names.len() == 1 && type_param_entry1_r.trait_names.contains(&TraitName::Shared))) && type_param_entry1_r.type_values.is_empty() {
+                            are_type_values1 = false;
                         }
                         let mut is_success = true;
                         let mut type_arg_shared_flag = SharedFlag::Shared;
-                        for (type_value3, type_value4) in type_param_entry1_r.type_values.iter().zip(type_values2.iter()) {
-                            match self.match_type_values_with_infos(type_value3, type_value4, tree, local_types, infos)? {
-                                Some(tmp_shared_flag) => {
-                                    if tmp_shared_flag == SharedFlag::None {
-                                        type_arg_shared_flag = SharedFlag::None;
-                                    }
-                                },
-                                None => is_success = false,
+                        if are_type_values1 {
+                            if type_param_entry1_r.type_values.len() != type_values2.len() {
+                                return Ok(None);
+                            }
+                            for (type_value3, type_value4) in type_param_entry1_r.type_values.iter().zip(type_values2.iter()) {
+                                match self.match_type_values_with_infos(type_value3, type_value4, tree, local_types, infos)? {
+                                    Some(tmp_shared_flag) => {
+                                        if tmp_shared_flag == SharedFlag::None {
+                                            type_arg_shared_flag = SharedFlag::None;
+                                        }
+                                    },
+                                    None => is_success = false,
+                                }
+                            }
+                        } else {
+                            for type_value4 in type_values2 {
+                                if self.shared_flag_for_type_value2(type_value4, None, tree, local_types)? == SharedFlag::None {
+                                    type_arg_shared_flag = SharedFlag::None;
+                                }
                             }
                         }
                         let shared_flag = self.shared_flag_for_type_value2(type_value2, Some(type_arg_shared_flag), tree, local_types)?;
