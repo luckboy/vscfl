@@ -2064,17 +2064,19 @@ impl Typer
             }
             for type_param_entry in typ.type_param_entries() {
                 let type_param_entry_r = type_param_entry.borrow();
-                if type_param_entry_r.trait_names.contains(&TraitName::Shared) {
+                if type_param_entry_r.trait_names.contains(&TraitName::Shared) && !type_param_entry_r.trait_names.contains(&TraitName::Fun) {
+                    let mut tmp_is_success = true;
                     for type_value in &type_param_entry_r.type_values {
                         if self.shared_flag_for_type_value(&**type_value, tree, typ)? == SharedFlag::None {
-                            match (&type_param_entry_r.ident, &type_param_entry_r.pos) {
-                                (Some(type_param_ident), Some(type_param_pos)) => {
-                                    errs.push(FrontendError::Message(type_param_pos.clone(), format!("type parameter {} must be shared", type_param_ident)));
-                                    is_success = false;
-                                },
-                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_where_tuples: no identifier or no position"))]))
-                            }
+                            tmp_is_success = false;
                         }
+                    }
+                    if !tmp_is_success {
+                        match (&type_param_entry_r.ident, &type_param_entry_r.pos) {
+                            (Some(type_param_ident), Some(type_param_pos)) => errs.push(FrontendError::Message(type_param_pos.clone(), format!("type parameter {} must be shared", type_param_ident))),
+                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_where_tuples: no identifier or no position"))]))
+                        }
+                        is_success = false;
                     }
                 }
             }

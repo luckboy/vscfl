@@ -1901,6 +1901,152 @@ trait V {};
 }
 
 #[test]
+fn test_evalute_type_with_where_evaluates_type_with_shared_type_parameter_for_data_type_and_function_type()
+{
+    let s = "
+builtin type Char;
+builtin type Int;
+data T<t1, t2> = C(t1, t2);
+trait T<t1, t2> {};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types_for_type_vars(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let s3 = "(t, Int)";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "t: shared + T <T<Int, Char>, (uniq Int) -> uniq Char>";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            assert_eq!(String::from("(t, Int)"), typ.to_string());
+                            assert_eq!(1, typ.type_param_entries().len());
+                            assert_eq!(1, typ.eq_type_param_set().len());
+                            match typ.type_param_entry(LocalType::new(0)) {
+                                Some(type_param_entry) => {
+                                    let type_param_entry_r = type_param_entry.borrow();
+                                    assert_eq!(2, type_param_entry_r.trait_names.len());
+                                    assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                    assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Name(String::from("T"))));
+                                    assert_eq!(2, type_param_entry_r.type_values.len());
+                                    assert_eq!(String::from("T<Int, Char>"), type_param_entry_r.type_values[0].to_string_without_fun());
+                                    assert_eq!(String::from("(uniq Int) -> uniq Char"), type_param_entry_r.type_values[1].to_string_without_fun());
+                                    assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                                    assert_eq!(Some(String::from("t")), type_param_entry_r.ident);
+                                    assert_eq!(None, type_param_entry_r.number);
+                                },
+                                None => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn test_evalute_type_with_where_evaluates_type_with_shared_type_parameter_for_function_trait()
+{
+    let s = "
+builtin type Char;
+builtin type Int;
+trait T<t1, t2> {};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types_for_type_vars(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let s3 = "(t, Int)";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "t: shared + -> + T <uniq Int, uniq Char>";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            assert_eq!(String::from("(t, Int)"), typ.to_string());
+                            assert_eq!(1, typ.type_param_entries().len());
+                            assert_eq!(1, typ.eq_type_param_set().len());
+                            match typ.type_param_entry(LocalType::new(0)) {
+                                Some(type_param_entry) => {
+                                    let type_param_entry_r = type_param_entry.borrow();
+                                    assert_eq!(3, type_param_entry_r.trait_names.len());
+                                    assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                    assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Fun));
+                                    assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Name(String::from("T"))));
+                                    assert_eq!(2, type_param_entry_r.type_values.len());
+                                    assert_eq!(String::from("uniq Int"), type_param_entry_r.type_values[0].to_string_without_fun());
+                                    assert_eq!(String::from("uniq Char"), type_param_entry_r.type_values[1].to_string_without_fun());
+                                    assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                                    assert_eq!(Some(String::from("t")), type_param_entry_r.ident);
+                                    assert_eq!(None, type_param_entry_r.number);
+                                },
+                                None => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
 fn test_evalute_type_with_where_evaluates_type_without_type_parameters()
 {
     let s = "
@@ -2351,6 +2497,258 @@ trait T<t1, t2> {};
                                     assert_eq!(1, pos.line);
                                     assert_eq!(1, pos.column);
                                     assert_eq!(String::from("type parameter t must be shared"), *msg);
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn test_evalute_type_with_where_complains_on_type_parameter_must_be_shared_for_unique_data_type()
+{
+    let s = "
+builtin type Int;
+data T<t1> = C(uniq Int, t1);
+trait T<t1, t2> {};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types_for_type_vars(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let s3 = "(t, Int)";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "t: shared + T <T<u>, Int>, u: shared";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Err(errs) => {
+                            assert_eq!(1, errs.errors().len());
+                            match &errs.errors()[0] {
+                                FrontendError::Message(pos, msg) => {
+                                    assert_eq!(1, pos.line);
+                                    assert_eq!(1, pos.column);
+                                    assert_eq!(String::from("type parameter t must be shared"), *msg);
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn test_evalute_type_with_where_complains_on_type_parameter_must_be_shared_for_unique_type()
+{
+    let s = "
+builtin type Int;
+trait T<t1, t2> {};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types_for_type_vars(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let s3 = "(t, Int)";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "t: shared + T <uniq Int, u>, u: shared";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Err(errs) => {
+                            assert_eq!(1, errs.errors().len());
+                            match &errs.errors()[0] {
+                                FrontendError::Message(pos, msg) => {
+                                    assert_eq!(1, pos.line);
+                                    assert_eq!(1, pos.column);
+                                    assert_eq!(String::from("type parameter t must be shared"), *msg);
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn test_evalute_type_with_where_complains_on_type_parameter_must_be_shared_for_two_unique_types()
+{
+    let s = "
+builtin type Char;
+builtin type Int;
+trait T<t1, t2> {};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types_for_type_vars(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let s3 = "(t, Int)";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "t: shared + T <uniq Int, uniq Char>";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Err(errs) => {
+                            assert_eq!(1, errs.errors().len());
+                            match &errs.errors()[0] {
+                                FrontendError::Message(pos, msg) => {
+                                    assert_eq!(1, pos.line);
+                                    assert_eq!(1, pos.column);
+                                    assert_eq!(String::from("type parameter t must be shared"), *msg);
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn test_evalute_type_with_where_complains_on_type_parameter_has_not_same_traits_as_type_parameter()
+{
+    let s = "
+builtin type Int;
+trait T<t1> {};
+trait U<t1> {};
+trait V<t1> {};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types_for_type_vars(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let s3 = "(t, Int) -> u";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "t: T + U <v>, u: T + V <v>, t == u";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &Some(String::from("T")), &pos, &tree) {
+                        Err(errs) => {
+                            assert_eq!(1, errs.errors().len());
+                            match &errs.errors()[0] {
+                                FrontendError::Message(pos, msg) => {
+                                    assert_eq!(1, pos.line);
+                                    assert_eq!(34, pos.column);
+                                    assert_eq!(String::from("type parameter u hasn't same traits as type parameter t"), *msg);
                                 },
                                 _ => assert!(false),
                             }
