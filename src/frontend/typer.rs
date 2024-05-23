@@ -1937,14 +1937,18 @@ impl Typer
             Some(type_param_entry) => {
                 let mut local_types: Vec<LocalType> = Vec::new();
                 let type_param_entry_r = type_param_entry.borrow();
-                match &type_param_entry_r.pos {
-                    Some(pos) => {
-                        for type_value in &type_param_entry_r.type_values {
-                            self.add_local_types_for_type_value_and_recursion(&**type_value, pos, typ, &mut local_types, processed_local_types, errs)?;
-                        }
-                        Ok(local_types)
-                    },
-                    None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_type_param_recursions_for_local_type: no position"))])),
+                if !type_param_entry_r.type_values.is_empty() {
+                    match &type_param_entry_r.pos {
+                        Some(pos) => {
+                            for type_value in &type_param_entry_r.type_values {
+                                self.add_local_types_for_type_value_and_recursion(&**type_value, pos, typ, &mut local_types, processed_local_types, errs)?;
+                            }
+                            Ok(local_types)
+                        },
+                        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_type_param_recursions_for_local_type: no position"))])),
+                    }
+                } else {
+                    Ok(local_types)
                 }
             },
             None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_type_param_recursions_for_local_type: no type parameter entry"))])),
@@ -1981,7 +1985,7 @@ impl Typer
                                     }
                                 },
                                 TraitName::Name(trait_ident) => {
-                                    let type_arg_count = type_arg_count_for_type_ident(trait_ident, tree)?;
+                                    let type_arg_count = type_arg_count_for_trait_ident(trait_ident, tree)?;
                                     if type_arg_count != type_exprs.len() {
                                         errs.push(FrontendError::Message(where_tuple_pos.clone(), format!("number of type arguments of trait {} isn't equal to number of type expressions of type parameter {}", trait_ident, type_param_ident)));
                                         is_success = false;

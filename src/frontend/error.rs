@@ -43,7 +43,7 @@ impl fmt::Display for FrontendError
         match self {
             FrontendError::Io(path, err) => write!(f, "{}: I/O: {}", path, err),
             FrontendError::Message(pos, msg) => write!(f, "{}: {}.{}: {}", pos.path, pos.line, pos.column, msg),
-            FrontendError::Internal(msg) => write!(f, "interal error: {}", msg),
+            FrontendError::Internal(msg) => write!(f, "internal error: {}", msg),
         }
     }
 }
