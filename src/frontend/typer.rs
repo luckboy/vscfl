@@ -2147,7 +2147,7 @@ impl Typer
                     let mut local_types: Vec<LocalType> = Vec::new();
                     for (i, type_param_entry) in typ.type_param_entries().iter().enumerate() {
                         let type_param_entry_r = type_param_entry.borrow();
-                        if !type_param_entry_r.trait_names.contains(&TraitName::Name(trait_ident.clone())) {
+                        if type_param_entry_r.trait_names.contains(&TraitName::Name(trait_ident.clone())) {
                             local_types.push(LocalType::new(i));
                         }
                     }
