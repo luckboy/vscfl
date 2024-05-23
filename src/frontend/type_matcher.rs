@@ -214,20 +214,45 @@ impl TypeMatcher
                 }
                 let type_param_entry1_r = type_param_entry1.borrow();
                 let type_param_entry2_r = type_param_entry2.borrow();
-                let mut are_type_values = true;
+                let mut are_type_values1 = true;
+                let mut are_type_values2 = true;
                 if (type_param_entry1_r.trait_names.is_empty() || (type_param_entry1_r.trait_names.len() == 1 && type_param_entry1_r.trait_names.contains(&TraitName::Shared))) && type_param_entry1_r.type_values.is_empty() {
-                    are_type_values = false;
+                    are_type_values1 = false;
                 }
-                if (type_param_entry1_r.trait_names.is_empty() || (type_param_entry1_r.trait_names.len() == 1 && type_param_entry1_r.trait_names.contains(&TraitName::Shared))) && type_param_entry2_r.type_values.is_empty() {
-                    are_type_values = false;
+                if (type_param_entry2_r.trait_names.is_empty() || (type_param_entry2_r.trait_names.len() == 1 && type_param_entry2_r.trait_names.contains(&TraitName::Shared))) && type_param_entry2_r.type_values.is_empty() {
+                    are_type_values2 = false;
                 }
                 let mut is_success = true;
-                if are_type_values {
+                if are_type_values1 && are_type_values2 {
                     if type_param_entry1_r.trait_names.len() != type_param_entry2_r.trait_names.len() {
                         return Ok(None);
                     }
                     for (type_value3, type_value4) in type_param_entry1_r.type_values.iter().zip(type_param_entry2_r.type_values.iter()) {
                         if self.match_type_values_with_infos(type_value3, type_value4, tree, local_types, infos)?.is_none() {
+                            is_success = false;
+                        }
+                    }
+                } else if are_type_values1 && !are_type_values2 {
+                    if type_param_entry2_r.trait_names.contains(&TraitName::Shared) && !type_param_entry1_r.trait_names.contains(&TraitName::Fun) {
+                        let mut tmp_shared_flag1 = SharedFlag::Shared; 
+                        for type_value3 in &type_param_entry1_r.type_values {
+                            if self.shared_flag_for_type_value2(type_value3, None, tree, local_types)? == SharedFlag::None {
+                                tmp_shared_flag1 = SharedFlag::None;
+                            }
+                        }
+                        if tmp_shared_flag1 == SharedFlag::None {
+                            is_success = false;
+                        }
+                    }
+                } else if !are_type_values1 && are_type_values2 {
+                    if type_param_entry1_r.trait_names.contains(&TraitName::Shared) && !type_param_entry2_r.trait_names.contains(&TraitName::Fun) {
+                        let mut tmp_shared_flag2 = SharedFlag::Shared; 
+                        for type_value4 in &type_param_entry2_r.type_values {
+                            if self.shared_flag_for_type_value2(type_value4, None, tree, local_types)? == SharedFlag::None {
+                                tmp_shared_flag2 = SharedFlag::None;
+                            }
+                        }
+                        if tmp_shared_flag2 == SharedFlag::None {
                             is_success = false;
                         }
                     }
