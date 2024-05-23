@@ -233,7 +233,7 @@ impl TypeMatcher
                         }
                     }
                 } else if are_type_values1 && !are_type_values2 {
-                    if type_param_entry2_r.trait_names.contains(&TraitName::Shared) && !type_param_entry1_r.trait_names.contains(&TraitName::Fun) {
+                    if type_param_entry2_r.trait_names.contains(&TraitName::Shared) && !type_param_entry1_r.trait_names.contains(&TraitName::Shared) && !type_param_entry1_r.trait_names.contains(&TraitName::Fun) {
                         let mut tmp_shared_flag1 = SharedFlag::Shared; 
                         for type_value3 in &type_param_entry1_r.type_values {
                             if self.shared_flag_for_type_value2(type_value3, None, tree, local_types)? == SharedFlag::None {
@@ -245,7 +245,7 @@ impl TypeMatcher
                         }
                     }
                 } else if !are_type_values1 && are_type_values2 {
-                    if type_param_entry1_r.trait_names.contains(&TraitName::Shared) && !type_param_entry2_r.trait_names.contains(&TraitName::Fun) {
+                    if type_param_entry1_r.trait_names.contains(&TraitName::Shared) && !type_param_entry2_r.trait_names.contains(&TraitName::Shared) && !type_param_entry2_r.trait_names.contains(&TraitName::Fun) {
                         let mut tmp_shared_flag2 = SharedFlag::Shared; 
                         for type_value4 in &type_param_entry2_r.type_values {
                             if self.shared_flag_for_type_value2(type_value4, None, tree, local_types)? == SharedFlag::None {
