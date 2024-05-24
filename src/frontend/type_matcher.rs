@@ -372,11 +372,11 @@ impl TypeMatcher
                             are_type_values1 = false;
                         }
                         let mut is_success = true;
-                        let mut type_arg_shared_flag = SharedFlag::Shared;
-                        if are_type_values1 {
+                        let shared_flag = if are_type_values1 {
                             if type_param_entry1_r.type_values.len() != type_values2.len() {
                                 return Ok(None);
                             }
+                            let mut type_arg_shared_flag = SharedFlag::Shared;
                             for (type_value3, type_value4) in type_param_entry1_r.type_values.iter().zip(type_values2.iter()) {
                                 match self.match_type_values_with_infos(type_value3, type_value4, tree, local_types, infos)? {
                                     Some(tmp_shared_flag) => {
@@ -387,14 +387,10 @@ impl TypeMatcher
                                     None => is_success = false,
                                 }
                             }
+                            self.shared_flag_for_type_value2(type_value2, Some(type_arg_shared_flag), tree, local_types)?
                         } else {
-                            for type_value4 in type_values2 {
-                                if self.shared_flag_for_type_value2(type_value4, None, tree, local_types)? == SharedFlag::None {
-                                    type_arg_shared_flag = SharedFlag::None;
-                                }
-                            }
-                        }
-                        let shared_flag = self.shared_flag_for_type_value2(type_value2, Some(type_arg_shared_flag), tree, local_types)?;
+                            self.shared_flag_for_type_value2(type_value2, None, tree, local_types)?
+                        };
                         for trait_name in &type_param_entry1_r.trait_names {
                             let type_name = match type_value2.type_name() {
                                 Some(tmp_type_name) => tmp_type_name,
