@@ -2450,7 +2450,7 @@ trait T<t1> {};
 }
 
 #[test]
-fn test_evalute_type_with_where_complains_on_type_parameter_must_be_shared()
+fn test_evalute_type_with_where_complains_on_type_parameter_must_not_be_shared()
 {
     let s = "
 builtin type Int;
@@ -2496,7 +2496,7 @@ trait T<t1, t2> {};
                                 FrontendError::Message(pos, msg) => {
                                     assert_eq!(1, pos.line);
                                     assert_eq!(1, pos.column);
-                                    assert_eq!(String::from("type parameter t must be shared"), *msg);
+                                    assert_eq!(String::from("type parameter t mustn't be shared"), *msg);
                                 },
                                 _ => assert!(false),
                             }
@@ -2512,7 +2512,7 @@ trait T<t1, t2> {};
 }
 
 #[test]
-fn test_evalute_type_with_where_complains_on_type_parameter_must_be_shared_for_unique_data_type()
+fn test_evalute_type_with_where_complains_on_type_parameter_must_not_be_shared_for_unique_data_type()
 {
     let s = "
 builtin type Int;
@@ -2559,7 +2559,7 @@ trait T<t1, t2> {};
                                 FrontendError::Message(pos, msg) => {
                                     assert_eq!(1, pos.line);
                                     assert_eq!(1, pos.column);
-                                    assert_eq!(String::from("type parameter t must be shared"), *msg);
+                                    assert_eq!(String::from("type parameter t mustn't be shared"), *msg);
                                 },
                                 _ => assert!(false),
                             }
@@ -2575,7 +2575,7 @@ trait T<t1, t2> {};
 }
 
 #[test]
-fn test_evalute_type_with_where_complains_on_type_parameter_must_be_shared_for_unique_type()
+fn test_evalute_type_with_where_complains_on_type_parameter_must_not_be_shared_for_unique_type()
 {
     let s = "
 builtin type Int;
@@ -2621,7 +2621,7 @@ trait T<t1, t2> {};
                                 FrontendError::Message(pos, msg) => {
                                     assert_eq!(1, pos.line);
                                     assert_eq!(1, pos.column);
-                                    assert_eq!(String::from("type parameter t must be shared"), *msg);
+                                    assert_eq!(String::from("type parameter t mustn't be shared"), *msg);
                                 },
                                 _ => assert!(false),
                             }
@@ -2637,7 +2637,7 @@ trait T<t1, t2> {};
 }
 
 #[test]
-fn test_evalute_type_with_where_complains_on_type_parameter_must_be_shared_for_two_unique_types()
+fn test_evalute_type_with_where_complains_on_type_parameter_must_not_be_shared_for_two_unique_types()
 {
     let s = "
 builtin type Char;
@@ -2684,7 +2684,7 @@ trait T<t1, t2> {};
                                 FrontendError::Message(pos, msg) => {
                                     assert_eq!(1, pos.line);
                                     assert_eq!(1, pos.column);
-                                    assert_eq!(String::from("type parameter t must be shared"), *msg);
+                                    assert_eq!(String::from("type parameter t mustn't be shared"), *msg);
                                 },
                                 _ => assert!(false),
                             }

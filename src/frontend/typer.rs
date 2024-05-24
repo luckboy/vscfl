@@ -2073,7 +2073,7 @@ impl Typer
                     }
                     if !tmp_is_success {
                         match (&type_param_entry_r.ident, &type_param_entry_r.pos) {
-                            (Some(type_param_ident), Some(type_param_pos)) => errs.push(FrontendError::Message(type_param_pos.clone(), format!("type parameter {} must be shared", type_param_ident))),
+                            (Some(type_param_ident), Some(type_param_pos)) => errs.push(FrontendError::Message(type_param_pos.clone(), format!("type parameter {} mustn't be shared", type_param_ident))),
                             _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_where_tuples: no identifier or no position"))]))
                         }
                         is_success = false;
