@@ -977,6 +977,7 @@ trait U<t1> {};
     assert_eq!(false, local_types.has_eq_type_params(LocalType::new(2), LocalType::new(4)));
     //          t4 t5
     assert_eq!(false, local_types.has_eq_type_params(LocalType::new(3), LocalType::new(4)));
+    assert_eq!(2, local_types.orig_eq_type_param_set().len());
 }
 
 #[test]
@@ -1071,4 +1072,5 @@ fn test_local_types_add_type_param_adds_type_parameters()
     assert_eq!(false, local_types.has_eq_type_params(LocalType::new(0), LocalType::new(2)));
     //    t2 t3
     assert_eq!(false, local_types.has_eq_type_params(LocalType::new(1), LocalType::new(2)));
+    assert_eq!(true, local_types.orig_eq_type_param_set().is_empty());
 }
