@@ -1149,7 +1149,7 @@ impl LocalTypes
     pub fn has_in_non_uniq_lambda(&self, local_type: LocalType) -> bool
     {
         if local_type.index() < self.eq_type_param_entries.len() {
-            let eq_root_idx = self.type_entries.root_of(local_type.index());
+            let eq_root_idx = self.eq_type_param_entries.root_of(local_type.index());
             self.eq_type_param_entries[eq_root_idx].is_in_non_uniq_lambda
         } else {
             false
@@ -1159,7 +1159,7 @@ impl LocalTypes
     pub fn set_in_non_uniq_lambda(&mut self, local_type: LocalType, is_in_non_uniq_lambda: bool) -> bool
     {
         if local_type.index() < self.eq_type_param_entries.len() {
-            let eq_root_idx = self.type_entries.root_of(local_type.index());
+            let eq_root_idx = self.eq_type_param_entries.root_of(local_type.index());
             self.eq_type_param_entries[eq_root_idx].is_in_non_uniq_lambda = is_in_non_uniq_lambda;
             true
         } else {
