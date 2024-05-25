@@ -926,9 +926,9 @@ trait U<t1> {};
         Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type)) => {
             assert!(Rc::ptr_eq(&new_type_param_entry1, type_param_entry));
             let type_param_entry_r = type_param_entry.borrow();
-            assert_eq!(type_param_entry_r.trait_names, expected_type_param_entry1.trait_names); 
-            assert_eq!(true, type_param_entry_r.type_values.iter().zip(expected_type_param_entry1.type_values.iter()).all(|p| Rc::ptr_eq(p.0, p.1))); 
-            assert_eq!(type_param_entry_r.closure_local_types, expected_type_param_entry1.closure_local_types);
+            assert_eq!(expected_type_param_entry1.trait_names, type_param_entry_r.trait_names); 
+            assert_eq!(true, expected_type_param_entry1.type_values.iter().zip(type_param_entry_r.type_values.iter()).all(|p| Rc::ptr_eq(p.0, p.1))); 
+            assert_eq!(expected_type_param_entry1.closure_local_types, type_param_entry_r.closure_local_types);
             assert_eq!(Some(3), type_param_entry_r.number);
             assert_eq!(None, type_param_entry_r.ident);
             assert_eq!(LocalType::new(3), *local_type);
@@ -939,9 +939,9 @@ trait U<t1> {};
         Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type)) => {
             assert!(Rc::ptr_eq(&new_type_param_entry2, type_param_entry));
             let type_param_entry_r = type_param_entry.borrow();
-            assert_eq!(type_param_entry_r.trait_names, expected_type_param_entry2.trait_names); 
-            assert_eq!(true, type_param_entry_r.type_values.iter().zip(expected_type_param_entry2.type_values.iter()).all(|p| Rc::ptr_eq(p.0, p.1))); 
-            assert_eq!(type_param_entry_r.closure_local_types, expected_type_param_entry2.closure_local_types);
+            assert_eq!(expected_type_param_entry2.trait_names, type_param_entry_r.trait_names); 
+            assert_eq!(true, expected_type_param_entry2.type_values.iter().zip(type_param_entry_r.type_values.iter()).all(|p| Rc::ptr_eq(p.0, p.1))); 
+            assert_eq!(expected_type_param_entry2.closure_local_types, type_param_entry_r.closure_local_types);
             assert_eq!(Some(4), type_param_entry_r.number);
             assert_eq!(None, type_param_entry_r.ident);
             assert_eq!(LocalType::new(4), *local_type);
@@ -1010,9 +1010,9 @@ fn test_local_types_add_type_param_adds_type_parameters()
         Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type)) => {
             assert!(Rc::ptr_eq(&new_type_param_entry1, type_param_entry));
             let type_param_entry_r = type_param_entry.borrow();
-            assert_eq!(type_param_entry_r.trait_names, expected_type_param_entry1.trait_names); 
-            assert_eq!(true, type_param_entry_r.type_values.iter().zip(expected_type_param_entry1.type_values.iter()).all(|p| Rc::ptr_eq(p.0, p.1))); 
-            assert_eq!(type_param_entry_r.closure_local_types, expected_type_param_entry1.closure_local_types);
+            assert_eq!(expected_type_param_entry1.trait_names, type_param_entry_r.trait_names); 
+            assert_eq!(true, expected_type_param_entry1.type_values.iter().zip(type_param_entry_r.type_values.iter()).all(|p| Rc::ptr_eq(p.0, p.1))); 
+            assert_eq!(expected_type_param_entry1.closure_local_types, type_param_entry_r.closure_local_types);
             assert_eq!(Some(1), type_param_entry_r.number);
             assert_eq!(None, type_param_entry_r.ident);
             assert_eq!(LocalType::new(0), *local_type);
@@ -1023,9 +1023,9 @@ fn test_local_types_add_type_param_adds_type_parameters()
         Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type)) => {
             assert!(Rc::ptr_eq(&new_type_param_entry2, type_param_entry));
             let type_param_entry_r = type_param_entry.borrow();
-            assert_eq!(type_param_entry_r.trait_names, expected_type_param_entry2.trait_names); 
-            assert_eq!(true, type_param_entry_r.type_values.iter().zip(expected_type_param_entry2.type_values.iter()).all(|p| Rc::ptr_eq(p.0, p.1))); 
-            assert_eq!(type_param_entry_r.closure_local_types, expected_type_param_entry2.closure_local_types);
+            assert_eq!(expected_type_param_entry2.trait_names, type_param_entry_r.trait_names); 
+            assert_eq!(true, expected_type_param_entry2.type_values.iter().zip(type_param_entry_r.type_values.iter()).all(|p| Rc::ptr_eq(p.0, p.1))); 
+            assert_eq!(expected_type_param_entry2.closure_local_types, type_param_entry_r.closure_local_types);
             assert_eq!(Some(2), type_param_entry_r.number);
             assert_eq!(None, type_param_entry_r.ident);
             assert_eq!(LocalType::new(1), *local_type);
@@ -1036,9 +1036,9 @@ fn test_local_types_add_type_param_adds_type_parameters()
         Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type)) => {
             assert!(Rc::ptr_eq(&new_type_param_entry3, type_param_entry));
             let type_param_entry_r = type_param_entry.borrow();
-            assert_eq!(type_param_entry_r.trait_names, expected_type_param_entry3.trait_names); 
-            assert_eq!(true, type_param_entry_r.type_values.iter().zip(expected_type_param_entry3.type_values.iter()).all(|p| Rc::ptr_eq(p.0, p.1))); 
-            assert_eq!(type_param_entry_r.closure_local_types, expected_type_param_entry3.closure_local_types);
+            assert_eq!(expected_type_param_entry3.trait_names, type_param_entry_r.trait_names); 
+            assert_eq!(true, expected_type_param_entry3.type_values.iter().zip(type_param_entry_r.type_values.iter()).all(|p| Rc::ptr_eq(p.0, p.1))); 
+            assert_eq!(expected_type_param_entry3.closure_local_types, type_param_entry_r.closure_local_types);
             assert_eq!(Some(3), type_param_entry_r.number);
             assert_eq!(None, type_param_entry_r.ident);
             assert_eq!(LocalType::new(2), *local_type);
@@ -1072,5 +1072,694 @@ fn test_local_types_add_type_param_adds_type_parameters()
     assert_eq!(false, local_types.has_eq_type_params(LocalType::new(0), LocalType::new(2)));
     //    t2 t3
     assert_eq!(false, local_types.has_eq_type_params(LocalType::new(1), LocalType::new(2)));
+    assert_eq!(true, local_types.orig_eq_type_param_set().is_empty());
+}
+
+#[test]
+fn test_local_types_add_type_value_adds_type_values()
+{
+    let mut local_types = LocalTypes::new();
+    let new_type_value1 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Int")), Vec::new()));
+    assert_eq!(LocalType::new(0), local_types.add_type_value(new_type_value1.clone()));
+    let new_type_value2 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Char")), Vec::new()));
+    assert_eq!(LocalType::new(1), local_types.add_type_value(new_type_value2.clone()));
+    let new_type_value3 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Float")), Vec::new()));
+    assert_eq!(LocalType::new(2), local_types.add_type_value(new_type_value3.clone()));
+    assert_eq!(3, local_types.type_entries().len());
+    match local_types.type_entry(LocalType::new(0)) {
+        Some(LocalTypeEntry::Type(type_value)) => assert!(Rc::ptr_eq(&new_type_value1, type_value)),
+        _ => assert!(false),
+    }
+    match local_types.type_entry(LocalType::new(1)) {
+        Some(LocalTypeEntry::Type(type_value)) => assert!(Rc::ptr_eq(&new_type_value2, type_value)),
+        _ => assert!(false),
+    }
+    match local_types.type_entry(LocalType::new(2)) {
+        Some(LocalTypeEntry::Type(type_value)) => assert!(Rc::ptr_eq(&new_type_value3, type_value)),
+        _ => assert!(false),
+    }
+    assert_eq!(3, local_types.eq_type_param_entries().len());
+    match local_types.eq_type_param_entry(LocalType::new(0)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(None, eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    match local_types.eq_type_param_entry(LocalType::new(1)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(None, eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    match local_types.eq_type_param_entry(LocalType::new(2)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(None, eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    // t1 t2 t3
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(0), LocalType::new(1)));
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(0), LocalType::new(2)));
+    //    t2 t3
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(1), LocalType::new(2)));
+    assert_eq!(true, local_types.orig_eq_type_param_set().is_empty());
+}
+
+#[test]
+fn test_local_types_set_type_sets_type()
+{
+    let s = "
+builtin type Int;
+builtin type Slice;
+trait T<t1> {};
+trait U<t1> {};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types_for_type_vars(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut local_types = LocalTypes::new();
+    let new_type_param_entry1 = Rc::new(RefCell::new(TypeParamEntry::new()));
+    assert_eq!(LocalType::new(0), local_types.add_type_param(new_type_param_entry1.clone()));
+    let new_type_param_entry2 = Rc::new(RefCell::new(TypeParamEntry::new()));
+    assert_eq!(LocalType::new(1), local_types.add_type_param(new_type_param_entry2.clone()));
+    let s3 = "(t, Int)";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "t: T <Slice<u>>, u: U<v>";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(1), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    assert_eq!(5, local_types.type_entries().len());
+    match local_types.type_entry(LocalType::new(0)) {
+        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type)) => {
+            assert!(Rc::ptr_eq(&new_type_param_entry1, type_param_entry));
+            assert_eq!(LocalType::new(0), *local_type);
+        },
+        _ => assert!(false),
+    }
+    match local_types.type_entry(LocalType::new(1)) {
+        Some(LocalTypeEntry::Type(type_value)) => {
+            assert_eq!(String::from("(t3, Int)"), type_value.to_string_without_fun()); 
+        },
+        _ => assert!(false),
+    }
+    match local_types.type_entry(LocalType::new(2)) {
+        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type)) => {
+            let type_param_entry_r = type_param_entry.borrow();
+            assert_eq!(1, type_param_entry_r.trait_names.len());
+            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Name(String::from("T"))));
+            assert_eq!(1, type_param_entry_r.type_values.len());
+            assert_eq!(String::from("Slice<t4>"), type_param_entry_r.type_values[0].to_string_without_fun());
+            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+            assert_eq!(Some(3), type_param_entry_r.number);
+            assert_eq!(None, type_param_entry_r.ident);
+            assert_eq!(LocalType::new(2), *local_type);
+        },
+        _ => assert!(false),
+    }
+    match local_types.type_entry(LocalType::new(3)) {
+        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type)) => {
+            let type_param_entry_r = type_param_entry.borrow();
+            assert_eq!(1, type_param_entry_r.trait_names.len());
+            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Name(String::from("U"))));
+            assert_eq!(1, type_param_entry_r.type_values.len());
+            assert_eq!(String::from("t5"), type_param_entry_r.type_values[0].to_string_without_fun());
+            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+            assert_eq!(Some(4), type_param_entry_r.number);
+            assert_eq!(None, type_param_entry_r.ident);
+            assert_eq!(LocalType::new(3), *local_type);
+        },
+        _ => assert!(false),
+    }
+    match local_types.type_entry(LocalType::new(4)) {
+        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type)) => {
+            let type_param_entry_r = type_param_entry.borrow();
+            assert_eq!(true, type_param_entry_r.trait_names.is_empty());
+            assert_eq!(true, type_param_entry_r.type_values.is_empty());
+            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+            assert_eq!(Some(5), type_param_entry_r.number);
+            assert_eq!(None, type_param_entry_r.ident);
+            assert_eq!(LocalType::new(4), *local_type);
+        },
+        _ => assert!(false),
+    }
+    assert_eq!(5, local_types.eq_type_param_entries().len());
+    match local_types.eq_type_param_entry(LocalType::new(0)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(None, eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    match local_types.eq_type_param_entry(LocalType::new(1)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(None, eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    match local_types.eq_type_param_entry(LocalType::new(2)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(None, eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    match local_types.eq_type_param_entry(LocalType::new(3)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(None, eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    match local_types.eq_type_param_entry(LocalType::new(4)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(None, eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    // t1 t2 t3 t4 t5
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(0), LocalType::new(1)));
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(0), LocalType::new(2)));
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(0), LocalType::new(3)));
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(0), LocalType::new(4)));
+    //    t2 t3 t4 t5
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(1), LocalType::new(2)));
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(1), LocalType::new(3)));
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(1), LocalType::new(4)));
+    //       t3 t4 t5
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(2), LocalType::new(3)));
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(2), LocalType::new(4)));
+    //          t4 t5
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(3), LocalType::new(4)));
+    assert_eq!(true, local_types.orig_eq_type_param_set().is_empty());
+}
+
+#[test]
+fn test_local_types_set_type_sets_type_with_equal_type_parameters()
+{
+    let s = "
+builtin type Char;
+builtin type Int;
+builtin type Float;
+trait T<t1> {};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types_for_type_vars(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut local_types = LocalTypes::new();
+    let new_type_value1 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Int")), Vec::new()));
+    assert_eq!(LocalType::new(0), local_types.add_type_value(new_type_value1.clone()));
+    let new_type_value2 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Char")), Vec::new()));
+    assert_eq!(LocalType::new(1), local_types.add_type_value(new_type_value2.clone()));
+    let s3 = "(t, u, v)";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "t: T <Int>, u: T<Char>, v: T<Float>, t == u == v";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(0), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    assert_eq!(5, local_types.type_entries().len());
+    match local_types.type_entry(LocalType::new(0)) {
+        Some(LocalTypeEntry::Type(type_value)) => {
+            assert_eq!(String::from("(t3, t4, t5)"), type_value.to_string_without_fun()); 
+        },
+        _ => assert!(false),
+    }
+    match local_types.type_entry(LocalType::new(1)) {
+        Some(LocalTypeEntry::Type(type_value)) => assert!(Rc::ptr_eq(&new_type_value2, type_value)),
+        _ => assert!(false),
+    }
+    match local_types.type_entry(LocalType::new(2)) {
+        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type)) => {
+            let type_param_entry_r = type_param_entry.borrow();
+            assert_eq!(1, type_param_entry_r.trait_names.len());
+            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Name(String::from("T"))));
+            assert_eq!(1, type_param_entry_r.type_values.len());
+            assert_eq!(String::from("Int"), type_param_entry_r.type_values[0].to_string_without_fun());
+            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+            assert_eq!(Some(1), type_param_entry_r.number);
+            assert_eq!(None, type_param_entry_r.ident);
+            assert_eq!(LocalType::new(2), *local_type);
+        },
+        _ => assert!(false),
+    }
+    match local_types.type_entry(LocalType::new(3)) {
+        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type)) => {
+            let type_param_entry_r = type_param_entry.borrow();
+            assert_eq!(1, type_param_entry_r.trait_names.len());
+            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Name(String::from("T"))));
+            assert_eq!(1, type_param_entry_r.type_values.len());
+            assert_eq!(String::from("Char"), type_param_entry_r.type_values[0].to_string_without_fun());
+            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+            assert_eq!(Some(2), type_param_entry_r.number);
+            assert_eq!(None, type_param_entry_r.ident);
+            assert_eq!(LocalType::new(3), *local_type);
+        },
+        _ => assert!(false),
+    }
+    match local_types.type_entry(LocalType::new(4)) {
+        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type)) => {
+            let type_param_entry_r = type_param_entry.borrow();
+            assert_eq!(1, type_param_entry_r.trait_names.len());
+            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Name(String::from("T"))));
+            assert_eq!(1, type_param_entry_r.type_values.len());
+            assert_eq!(String::from("Float"), type_param_entry_r.type_values[0].to_string_without_fun());
+            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+            assert_eq!(Some(3), type_param_entry_r.number);
+            assert_eq!(None, type_param_entry_r.ident);
+            assert_eq!(LocalType::new(4), *local_type);
+        },
+        _ => assert!(false),
+    }
+    assert_eq!(5, local_types.eq_type_param_entries().len());
+    match local_types.eq_type_param_entry(LocalType::new(0)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(None, eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    match local_types.eq_type_param_entry(LocalType::new(1)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(None, eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    match local_types.eq_type_param_entry(LocalType::new(2)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(None, eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    match local_types.eq_type_param_entry(LocalType::new(3)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(None, eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    match local_types.eq_type_param_entry(LocalType::new(4)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(None, eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    // t1 t2 t3 t4 t5
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(0), LocalType::new(1)));
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(0), LocalType::new(2)));
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(0), LocalType::new(3)));
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(0), LocalType::new(4)));
+    //    t2 t3 t4 t5
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(1), LocalType::new(2)));
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(1), LocalType::new(3)));
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(1), LocalType::new(4)));
+    //       t3 t4 t5
+    assert_eq!(true, local_types.has_eq_type_params(LocalType::new(2), LocalType::new(3)));
+    assert_eq!(true, local_types.has_eq_type_params(LocalType::new(2), LocalType::new(4)));
+    //          t4 t5
+    assert_eq!(true, local_types.has_eq_type_params(LocalType::new(3), LocalType::new(4)));
+    assert_eq!(true, local_types.orig_eq_type_param_set().is_empty());
+}
+
+#[test]
+fn test_local_types_set_type_param_sets_type_parameter_after_type_parameter_addition()
+{
+    let mut local_types = LocalTypes::new();
+    let new_type_param_entry1 = Rc::new(RefCell::new(TypeParamEntry::new()));
+    assert_eq!(LocalType::new(0), local_types.add_type_param(new_type_param_entry1.clone()));
+    let new_type_param_entry2 = Rc::new(RefCell::new(TypeParamEntry::new()));
+    assert_eq!(LocalType::new(1), local_types.add_type_param(new_type_param_entry2.clone()));
+    let mut type_param_entry3 = TypeParamEntry::new();
+    type_param_entry3.trait_names.insert(TraitName::Name(String::from("T")));
+    type_param_entry3.type_values.push(Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Int")), Vec::new())));
+    let expected_type_param_entry3 = type_param_entry3.clone();
+    let new_type_param_entry3 = Rc::new(RefCell::new(type_param_entry3));
+    assert_eq!(true, local_types.set_type_param(LocalType::new(1), new_type_param_entry3.clone()));
+    assert_eq!(2, local_types.type_entries().len());
+    match local_types.type_entry(LocalType::new(0)) {
+        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type)) => {
+            assert!(Rc::ptr_eq(&new_type_param_entry1, type_param_entry));
+            assert_eq!(LocalType::new(0), *local_type);
+        },
+        _ => assert!(false),
+    }
+    match local_types.type_entry(LocalType::new(1)) {
+        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type)) => {
+            assert!(Rc::ptr_eq(&new_type_param_entry3, type_param_entry));
+            let type_param_entry_r = type_param_entry.borrow();
+            assert_eq!(expected_type_param_entry3.trait_names, type_param_entry_r.trait_names); 
+            assert_eq!(true, expected_type_param_entry3.type_values.iter().zip(type_param_entry_r.type_values.iter()).all(|p| Rc::ptr_eq(p.0, p.1))); 
+            assert_eq!(expected_type_param_entry3.closure_local_types, type_param_entry_r.closure_local_types);
+            assert_eq!(Some(2), type_param_entry_r.number);
+            assert_eq!(None, type_param_entry_r.ident);
+            assert_eq!(LocalType::new(1), *local_type);
+        },
+        _ => assert!(false),
+    }
+    assert_eq!(2, local_types.eq_type_param_entries().len());
+    match local_types.eq_type_param_entry(LocalType::new(0)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(None, eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    match local_types.eq_type_param_entry(LocalType::new(1)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(None, eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    // t1 t2
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(0), LocalType::new(1)));
+    assert_eq!(true, local_types.orig_eq_type_param_set().is_empty());
+}
+
+#[test]
+fn test_local_types_set_type_param_sets_type_parameter_after_type_value_addition()
+{
+    let mut local_types = LocalTypes::new();
+    let new_type_value1 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Int")), Vec::new()));
+    assert_eq!(LocalType::new(0), local_types.add_type_value(new_type_value1.clone()));
+    let new_type_value2 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Char")), Vec::new()));
+    assert_eq!(LocalType::new(1), local_types.add_type_value(new_type_value2.clone()));
+    let mut type_param_entry3 = TypeParamEntry::new();
+    type_param_entry3.trait_names.insert(TraitName::Name(String::from("T")));
+    type_param_entry3.type_values.push(Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Int")), Vec::new())));
+    let expected_type_param_entry3 = type_param_entry3.clone();
+    let new_type_param_entry3 = Rc::new(RefCell::new(type_param_entry3));
+    assert_eq!(true, local_types.set_type_param(LocalType::new(0), new_type_param_entry3.clone()));
+    assert_eq!(2, local_types.type_entries().len());
+    match local_types.type_entry(LocalType::new(0)) {
+        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type)) => {
+            assert!(Rc::ptr_eq(&new_type_param_entry3, type_param_entry));
+            let type_param_entry_r = type_param_entry.borrow();
+            assert_eq!(expected_type_param_entry3.trait_names, type_param_entry_r.trait_names); 
+            assert_eq!(true, expected_type_param_entry3.type_values.iter().zip(type_param_entry_r.type_values.iter()).all(|p| Rc::ptr_eq(p.0, p.1))); 
+            assert_eq!(expected_type_param_entry3.closure_local_types, type_param_entry_r.closure_local_types);
+            assert_eq!(Some(1), type_param_entry_r.number);
+            assert_eq!(None, type_param_entry_r.ident);
+            assert_eq!(LocalType::new(0), *local_type);
+        },
+        _ => assert!(false),
+    }
+    match local_types.type_entry(LocalType::new(1)) {
+        Some(LocalTypeEntry::Type(type_value)) => assert!(Rc::ptr_eq(&new_type_value2, type_value)),
+        _ => assert!(false),
+    }
+    assert_eq!(2, local_types.eq_type_param_entries().len());
+    match local_types.eq_type_param_entry(LocalType::new(0)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(None, eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    match local_types.eq_type_param_entry(LocalType::new(1)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(None, eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    // t1 t2
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(0), LocalType::new(1)));
+    assert_eq!(true, local_types.orig_eq_type_param_set().is_empty());
+}
+
+#[test]
+fn test_local_types_set_type_param_entry_sets_type_parameter_entry_after_type_parameter_addition()
+{
+    let mut local_types = LocalTypes::new();
+    let new_type_param_entry1 = Rc::new(RefCell::new(TypeParamEntry::new()));
+    assert_eq!(LocalType::new(0), local_types.add_type_param(new_type_param_entry1.clone()));
+    let new_type_param_entry2 = Rc::new(RefCell::new(TypeParamEntry::new()));
+    assert_eq!(LocalType::new(1), local_types.add_type_param(new_type_param_entry2.clone()));
+    let mut type_param_entry3 = TypeParamEntry::new();
+    type_param_entry3.trait_names.insert(TraitName::Name(String::from("T")));
+    type_param_entry3.type_values.push(Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Int")), Vec::new())));
+    type_param_entry3.number = Some(1);
+    type_param_entry3.ident = Some(String::from("t1"));
+    let expected_type_param_entry3 = type_param_entry3.clone();
+    let new_type_param_entry3 = Rc::new(RefCell::new(type_param_entry3));
+    assert_eq!(true, local_types.set_type_param_entry(LocalType::new(1), new_type_param_entry3.clone(), DefinedFlag::Undefined));
+    assert_eq!(2, local_types.type_entries().len());
+    match local_types.type_entry(LocalType::new(0)) {
+        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type)) => {
+            assert!(Rc::ptr_eq(&new_type_param_entry1, type_param_entry));
+            assert_eq!(LocalType::new(0), *local_type);
+        },
+        _ => assert!(false),
+    }
+    match local_types.type_entry(LocalType::new(1)) {
+        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type)) => {
+            assert!(Rc::ptr_eq(&new_type_param_entry3, type_param_entry));
+            let type_param_entry_r = type_param_entry.borrow();
+            assert_eq!(expected_type_param_entry3.trait_names, type_param_entry_r.trait_names); 
+            assert_eq!(true, expected_type_param_entry3.type_values.iter().zip(type_param_entry_r.type_values.iter()).all(|p| Rc::ptr_eq(p.0, p.1))); 
+            assert_eq!(expected_type_param_entry3.closure_local_types, type_param_entry_r.closure_local_types);
+            assert_eq!(expected_type_param_entry3.number, type_param_entry_r.number);
+            assert_eq!(expected_type_param_entry3.ident, type_param_entry_r.ident);
+            assert_eq!(LocalType::new(1), *local_type);
+        },
+        _ => assert!(false),
+    }
+    assert_eq!(2, local_types.eq_type_param_entries().len());
+    match local_types.eq_type_param_entry(LocalType::new(0)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(None, eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    match local_types.eq_type_param_entry(LocalType::new(1)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(None, eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    // t1 t2
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(0), LocalType::new(1)));
+    assert_eq!(true, local_types.orig_eq_type_param_set().is_empty());
+}
+
+#[test]
+fn test_local_types_set_type_param_entry_sets_type_parameter_entry_after_type_value_addition()
+{
+    let mut local_types = LocalTypes::new();
+    let new_type_value1 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Int")), Vec::new()));
+    assert_eq!(LocalType::new(0), local_types.add_type_value(new_type_value1.clone()));
+    let new_type_value2 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Char")), Vec::new()));
+    assert_eq!(LocalType::new(1), local_types.add_type_value(new_type_value2.clone()));
+    let mut type_param_entry3 = TypeParamEntry::new();
+    type_param_entry3.trait_names.insert(TraitName::Name(String::from("T")));
+    type_param_entry3.type_values.push(Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Int")), Vec::new())));
+    type_param_entry3.number = Some(2);
+    type_param_entry3.ident = Some(String::from("t2"));
+    let expected_type_param_entry3 = type_param_entry3.clone();
+    let new_type_param_entry3 = Rc::new(RefCell::new(type_param_entry3));
+    assert_eq!(true, local_types.set_type_param_entry(LocalType::new(0), new_type_param_entry3.clone(), DefinedFlag::Defined));
+    assert_eq!(2, local_types.type_entries().len());
+    match local_types.type_entry(LocalType::new(0)) {
+        Some(LocalTypeEntry::Param(DefinedFlag::Defined, UniqFlag::None, type_param_entry, local_type)) => {
+            assert!(Rc::ptr_eq(&new_type_param_entry3, type_param_entry));
+            let type_param_entry_r = type_param_entry.borrow();
+            assert_eq!(expected_type_param_entry3.trait_names, type_param_entry_r.trait_names); 
+            assert_eq!(true, expected_type_param_entry3.type_values.iter().zip(type_param_entry_r.type_values.iter()).all(|p| Rc::ptr_eq(p.0, p.1))); 
+            assert_eq!(expected_type_param_entry3.closure_local_types, type_param_entry_r.closure_local_types);
+            assert_eq!(expected_type_param_entry3.number, type_param_entry_r.number);
+            assert_eq!(expected_type_param_entry3.ident, type_param_entry_r.ident);
+            assert_eq!(LocalType::new(0), *local_type);
+        },
+        _ => assert!(false),
+    }
+    match local_types.type_entry(LocalType::new(1)) {
+        Some(LocalTypeEntry::Type(type_value)) => assert!(Rc::ptr_eq(&new_type_value2, type_value)),
+        _ => assert!(false),
+    }
+    assert_eq!(2, local_types.eq_type_param_entries().len());
+    match local_types.eq_type_param_entry(LocalType::new(0)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(None, eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    match local_types.eq_type_param_entry(LocalType::new(1)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(None, eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    // t1 t2
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(0), LocalType::new(1)));
+    assert_eq!(true, local_types.orig_eq_type_param_set().is_empty());
+}
+
+#[test]
+fn test_local_types_set_type_value_sets_type_value_after_type_parameter_addition()
+{
+    let mut local_types = LocalTypes::new();
+    let new_type_param_entry1 = Rc::new(RefCell::new(TypeParamEntry::new()));
+    assert_eq!(LocalType::new(0), local_types.add_type_param(new_type_param_entry1.clone()));
+    let new_type_param_entry2 = Rc::new(RefCell::new(TypeParamEntry::new()));
+    assert_eq!(LocalType::new(1), local_types.add_type_param(new_type_param_entry2.clone()));
+    let new_type_value3 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Int")), Vec::new()));
+    assert_eq!(true, local_types.set_type_value(LocalType::new(1), new_type_value3.clone()));
+    assert_eq!(2, local_types.type_entries().len());
+    match local_types.type_entry(LocalType::new(0)) {
+        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type)) => {
+            assert!(Rc::ptr_eq(&new_type_param_entry1, type_param_entry));
+            assert_eq!(LocalType::new(0), *local_type);
+        },
+        _ => assert!(false),
+    }
+    match local_types.type_entry(LocalType::new(1)) {
+        Some(LocalTypeEntry::Type(type_value)) => assert!(Rc::ptr_eq(&new_type_value3, type_value)),
+        _ => assert!(false),
+    }
+    assert_eq!(2, local_types.eq_type_param_entries().len());
+    match local_types.eq_type_param_entry(LocalType::new(0)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(None, eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    match local_types.eq_type_param_entry(LocalType::new(1)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(Some(TypeValueName::Name(String::from("Int"))), eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    // t1 t2
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(0), LocalType::new(1)));
+    assert_eq!(true, local_types.orig_eq_type_param_set().is_empty());
+}
+
+#[test]
+fn test_local_types_set_type_value_sets_type_value_after_type_value_addition()
+{
+    let mut local_types = LocalTypes::new();
+    let new_type_value1 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Int")), Vec::new()));
+    assert_eq!(LocalType::new(0), local_types.add_type_value(new_type_value1.clone()));
+    let new_type_value2 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Char")), Vec::new()));
+    assert_eq!(LocalType::new(1), local_types.add_type_value(new_type_value2.clone()));
+    let new_type_value3 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Float")), Vec::new()));
+    assert_eq!(true, local_types.set_type_value(LocalType::new(0), new_type_value3.clone()));
+    assert_eq!(2, local_types.type_entries().len());
+    match local_types.type_entry(LocalType::new(0)) {
+        Some(LocalTypeEntry::Type(type_value)) => assert!(Rc::ptr_eq(&new_type_value3, type_value)),
+        _ => assert!(false),
+    }
+    match local_types.type_entry(LocalType::new(1)) {
+        Some(LocalTypeEntry::Type(type_value)) => assert!(Rc::ptr_eq(&new_type_value2, type_value)),
+        _ => assert!(false),
+    }
+    assert_eq!(2, local_types.eq_type_param_entries().len());
+    match local_types.eq_type_param_entry(LocalType::new(0)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(Some(TypeValueName::Name(String::from("Float"))), eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    match local_types.eq_type_param_entry(LocalType::new(1)) {
+        Some(eq_type_param_entry) => {
+            assert_eq!(None, eq_type_param_entry.type_value_name);
+            assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+        },
+        None => assert!(false),
+    }
+    // t1 t2
+    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(0), LocalType::new(1)));
     assert_eq!(true, local_types.orig_eq_type_param_set().is_empty());
 }
