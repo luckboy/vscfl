@@ -1130,9 +1130,12 @@ impl LocalTypes
             let root_idx = self.type_entries.root_of(local_type.index());
             match &self.type_entries[root_idx] {
                 LocalTypeEntry::Param(defined_flag, uniq_flag, type_param_entry, _) => {
+                    let eq_root_idx = self.eq_type_param_entries.root_of(local_type.index());
                     let new_local_type = LocalType::new(self.type_entries.len());
                     self.type_entries.push(LocalTypeEntry::Param(*defined_flag, *uniq_flag, type_param_entry.clone(), new_local_type));
+                    self.eq_type_param_entries.push(self.eq_type_param_entries[eq_root_idx].clone());
                     self.type_entries[root_idx] = LocalTypeEntry::Type(Rc::new(TypeValue::Param(UniqFlag::Uniq, new_local_type)));
+                    self.eq_type_param_entries[eq_root_idx] = EqTypeParamEntry::new();
                 },
                 LocalTypeEntry::Type(type_value) => {
                     let mut new_type_value = (**type_value).clone();
