@@ -1428,7 +1428,7 @@ data U = D(T);
 //
 
 #[test]
-fn test_evalute_type_with_where_evaluates_type()
+fn test_typer_evaluate_type_with_where_evaluates_type()
 {
     let s = "
 builtin type Int;
@@ -1498,7 +1498,7 @@ trait T<t> {};
 }
 
 #[test]
-fn test_evalute_type_with_where_evaluates_type_with_shared_and_function()
+fn test_typer_evaluate_type_with_where_evaluates_type_with_shared_and_function()
 {
     let s = "
 builtin type Int;
@@ -1571,7 +1571,7 @@ trait T<t1, t2> {};
 }
 
 #[test]
-fn test_evalute_type_with_where_evaluates_type_with_nested_type_parameters()
+fn test_typer_evaluate_type_with_where_evaluates_type_with_nested_type_parameters()
 {
     let s = "
 builtin type Int;
@@ -1672,7 +1672,7 @@ trait U<t1> {};
 }
 
 #[test]
-fn test_evalute_type_with_where_evaluates_type_with_equal_type_parameters()
+fn test_typer_evaluate_type_with_where_evaluates_type_with_equal_type_parameters()
 {
     let s = "
 builtin type Char;
@@ -1796,7 +1796,7 @@ trait V<t1> {};
 }
 
 #[test]
-fn test_evalute_type_with_where_evaluates_type_with_shared_type_parameters()
+fn test_typer_evaluate_type_with_where_evaluates_type_with_shared_type_parameters()
 {
     let s = "
 builtin type Int;
@@ -1901,7 +1901,7 @@ trait V {};
 }
 
 #[test]
-fn test_evalute_type_with_where_evaluates_type_with_shared_type_parameter_for_data_type_and_function_type()
+fn test_typer_evaluate_type_with_where_evaluates_type_with_shared_type_parameter_for_data_type_and_function_type()
 {
     let s = "
 builtin type Char;
@@ -1974,7 +1974,7 @@ trait T<t1, t2> {};
 }
 
 #[test]
-fn test_evalute_type_with_where_evaluates_type_with_shared_type_parameter_for_function_trait()
+fn test_typer_evaluate_type_with_where_evaluates_type_with_shared_type_parameter_for_function_trait()
 {
     let s = "
 builtin type Char;
@@ -2047,7 +2047,7 @@ trait T<t1, t2> {};
 }
 
 #[test]
-fn test_evalute_type_with_where_evaluates_type_without_type_parameters()
+fn test_typer_evaluate_type_with_where_evaluates_type_without_type_parameters()
 {
     let s = "
 builtin type Int;
@@ -2102,7 +2102,7 @@ builtin type Int;
 }
 
 #[test]
-fn test_evalute_type_with_where_evaluates_type_for_trait_identifier()
+fn test_typer_evaluate_type_with_where_evaluates_type_for_trait_identifier()
 {
     let s = "
 builtin type Int;
@@ -2200,7 +2200,7 @@ trait T<t1> {};
 }
 
 #[test]
-fn test_evalute_type_with_where_complains_on_number_of_type_arguments_of_trait_is_not_equal_to_number_of_type_expressions_of_type_parameter()
+fn test_typer_evaluate_type_with_where_complains_on_number_of_type_arguments_of_trait_is_not_equal_to_number_of_type_expressions_of_type_parameter()
 {
     let s = "
 builtin type Int;
@@ -2262,7 +2262,7 @@ trait T<t1, t2> {};
 }
 
 #[test]
-fn test_evalute_type_with_where_complains_on_no_type_expressions_of_type_parameter_for_trait_right_arrow()
+fn test_typer_evaluate_type_with_where_complains_on_no_type_expressions_of_type_parameter_for_trait_right_arrow()
 {
     let s = "
 builtin type Int;
@@ -2324,7 +2324,7 @@ trait T {};
 }
 
 #[test]
-fn test_evalute_type_with_where_complains_on_trait_definition_of_type_parameter_is_recursive()
+fn test_typer_evaluate_type_with_where_complains_on_trait_definition_of_type_parameter_is_recursive()
 {
     let s = "
 builtin type Int;
@@ -2388,7 +2388,7 @@ trait U<t1> {};
 }
 
 #[test]
-fn test_evalute_type_with_where_complains_on_trait_definition_of_type_parameter_is_recursive_for_little_recursion()
+fn test_typer_evaluate_type_with_where_complains_on_trait_definition_of_type_parameter_is_recursive_for_little_recursion()
 {
     let s = "
 builtin type Int;
@@ -2450,7 +2450,7 @@ trait T<t1> {};
 }
 
 #[test]
-fn test_evalute_type_with_where_complains_on_type_parameter_must_not_be_shared()
+fn test_typer_evaluate_type_with_where_complains_on_type_parameter_must_not_be_shared()
 {
     let s = "
 builtin type Int;
@@ -2512,7 +2512,7 @@ trait T<t1, t2> {};
 }
 
 #[test]
-fn test_evalute_type_with_where_complains_on_type_parameter_must_not_be_shared_for_unique_data_type()
+fn test_typer_evaluate_type_with_where_complains_on_type_parameter_must_not_be_shared_for_unique_data_type()
 {
     let s = "
 builtin type Int;
@@ -2575,7 +2575,7 @@ trait T<t1, t2> {};
 }
 
 #[test]
-fn test_evalute_type_with_where_complains_on_type_parameter_must_not_be_shared_for_unique_type()
+fn test_typer_evaluate_type_with_where_complains_on_type_parameter_must_not_be_shared_for_unique_type()
 {
     let s = "
 builtin type Int;
@@ -2637,7 +2637,7 @@ trait T<t1, t2> {};
 }
 
 #[test]
-fn test_evalute_type_with_where_complains_on_type_parameter_must_not_be_shared_for_two_unique_types()
+fn test_typer_evaluate_type_with_where_complains_on_type_parameter_must_not_be_shared_for_two_unique_types()
 {
     let s = "
 builtin type Char;
@@ -2700,7 +2700,7 @@ trait T<t1, t2> {};
 }
 
 #[test]
-fn test_evalute_type_with_where_complains_on_type_parameter_has_not_same_traits_as_type_parameter()
+fn test_typer_evaluate_type_with_where_complains_on_type_parameter_has_not_same_traits_as_type_parameter()
 {
     let s = "
 builtin type Int;
@@ -2764,7 +2764,7 @@ trait V<t1> {};
 }
 
 #[test]
-fn test_evalute_type_with_where_complains_on_type_of_variable_has_type_parameters_with_trait_which_are_not_equal()
+fn test_typer_evaluate_type_with_where_complains_on_type_of_variable_has_type_parameters_with_trait_which_are_not_equal()
 {
     let s = "
 builtin type Int;
@@ -2826,7 +2826,7 @@ trait T<t1> {};
 }
 
 #[test]
-fn test_evalute_type_with_where_complains_on_type_of_variable_has_not_type_parameters_with_trait()
+fn test_typer_evaluate_type_with_where_complains_on_type_of_variable_has_not_type_parameters_with_trait()
 {
     let s = "
 builtin type Int;
@@ -2889,7 +2889,7 @@ trait U<t1> {};
 }
 
 #[test]
-fn test_evalute_type_with_where_complains_on_type_of_variable_must_have_type_parameter_with_trait()
+fn test_typer_evaluate_type_with_where_complains_on_type_of_variable_must_have_type_parameter_with_trait()
 {
     let s = "
 builtin type Int;
