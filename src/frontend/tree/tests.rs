@@ -1466,7 +1466,7 @@ trait T<t1> {};
 }
 
 #[test]
-fn test_local_types_set_type_param_sets_type_parameter_after_type_parameter_addition()
+fn test_local_types_set_type_param_sets_type_parameter_after_type_parameter_additions()
 {
     let mut local_types = LocalTypes::new();
     let new_type_param_entry1 = Rc::new(RefCell::new(TypeParamEntry::new()));
@@ -1521,7 +1521,7 @@ fn test_local_types_set_type_param_sets_type_parameter_after_type_parameter_addi
 }
 
 #[test]
-fn test_local_types_set_type_param_sets_type_parameter_after_type_value_addition()
+fn test_local_types_set_type_param_sets_type_parameter_after_type_value_additions()
 {
     let mut local_types = LocalTypes::new();
     let new_type_value1 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Int")), Vec::new()));
@@ -1573,7 +1573,7 @@ fn test_local_types_set_type_param_sets_type_parameter_after_type_value_addition
 }
 
 #[test]
-fn test_local_types_set_type_param_entry_sets_type_parameter_entry_after_type_parameter_addition()
+fn test_local_types_set_type_param_entry_sets_type_parameter_entry_after_type_parameter_additions()
 {
     let mut local_types = LocalTypes::new();
     let new_type_param_entry1 = Rc::new(RefCell::new(TypeParamEntry::new()));
@@ -1630,7 +1630,7 @@ fn test_local_types_set_type_param_entry_sets_type_parameter_entry_after_type_pa
 }
 
 #[test]
-fn test_local_types_set_type_param_entry_sets_type_parameter_entry_after_type_value_addition()
+fn test_local_types_set_type_param_entry_sets_type_parameter_entry_after_type_value_additions()
 {
     let mut local_types = LocalTypes::new();
     let new_type_value1 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Int")), Vec::new()));
@@ -1684,7 +1684,7 @@ fn test_local_types_set_type_param_entry_sets_type_parameter_entry_after_type_va
 }
 
 #[test]
-fn test_local_types_set_type_value_sets_type_value_after_type_parameter_addition()
+fn test_local_types_set_type_value_sets_type_value_after_type_parameter_additions()
 {
     let mut local_types = LocalTypes::new();
     let new_type_param_entry1 = Rc::new(RefCell::new(TypeParamEntry::new()));
@@ -1726,7 +1726,7 @@ fn test_local_types_set_type_value_sets_type_value_after_type_parameter_addition
 }
 
 #[test]
-fn test_local_types_set_type_value_sets_type_value_after_type_value_addition()
+fn test_local_types_set_type_value_sets_type_value_after_type_value_additions()
 {
     let mut local_types = LocalTypes::new();
     let new_type_value1 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Int")), Vec::new()));
