@@ -2188,3 +2188,431 @@ trait T<t1> {};
     assert_eq!(true, local_types.has_eq_type_params(LocalType::new(2), LocalType::new(3)));
     assert_eq!(true, local_types.orig_eq_type_param_set().is_empty());
 }
+
+#[test]
+fn test_local_types_type_entry_for_type_value_returns_local_type_entries_for_defined_type_parameters()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+trait T<t1> {};
+trait U<t1> {};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types_for_type_vars(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut local_types = LocalTypes::new();
+    let s3 = "(t, Float, uniq u)";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "t: T <Int>, u: U<Float>";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            assert_eq!(LocalType::new(2), local_types.set_defined_type(&typ));
+                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(0)))) {
+                                Some(LocalTypeEntry::Param(DefinedFlag::Defined, UniqFlag::None, type_param_entry, local_type)) => {
+                                    assert!(Rc::ptr_eq(&typ.type_param_entries()[0], &type_param_entry));
+                                    assert_eq!(LocalType::new(0), local_type);
+                                },
+                                _ => assert!(false),
+                            }
+                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::Uniq, LocalType::new(1)))) {
+                                Some(LocalTypeEntry::Param(DefinedFlag::Defined, UniqFlag::Uniq, type_param_entry, local_type)) => {
+                                    assert!(Rc::ptr_eq(&typ.type_param_entries()[1], &type_param_entry));
+                                    assert_eq!(LocalType::new(1), local_type);
+                                },
+                                _ => assert!(false),
+                            }
+                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(2)))) {
+                                Some(LocalTypeEntry::Type(type_value)) => assert!(Rc::ptr_eq(typ.type_value(), &type_value)),
+                                _ => assert!(false),
+                            }
+                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::Uniq, LocalType::new(2)))) {
+                                Some(LocalTypeEntry::Type(type_value)) => {
+                                    assert_eq!(String::from("uniq (t1, Float, uniq t2)"), type_value.to_string_without_fun());
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn test_local_types_type_entry_for_type_value_returns_local_type_entries()
+{
+    let mut local_types = LocalTypes::new();
+    let new_type_param_entry1 = Rc::new(RefCell::new(TypeParamEntry::new()));
+    assert_eq!(LocalType::new(0), local_types.add_type_param(new_type_param_entry1.clone()));
+    let new_type_param_entry2 = Rc::new(RefCell::new(TypeParamEntry::new()));
+    assert_eq!(LocalType::new(1), local_types.add_type_param(new_type_param_entry2.clone()));
+    let new_type_value3 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Int")), Vec::new()));
+    assert_eq!(LocalType::new(2), local_types.add_type_value(new_type_value3.clone()));
+    let new_type_value4 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Char")), Vec::new()));
+    assert_eq!(LocalType::new(3), local_types.add_type_value(new_type_value4.clone()));
+    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(0)))) {
+        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type)) => {
+            assert!(Rc::ptr_eq(&new_type_param_entry1, &type_param_entry));
+            assert_eq!(LocalType::new(0), local_type);
+        },
+        _ => assert!(false),
+    }
+    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::Uniq, LocalType::new(1)))) {
+        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::Uniq, type_param_entry, local_type)) => {
+            assert!(Rc::ptr_eq(&new_type_param_entry2, &type_param_entry));
+            assert_eq!(LocalType::new(1), local_type);
+        },
+        _ => assert!(false),
+    }
+    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(2)))) {
+        Some(LocalTypeEntry::Type(type_value)) => assert!(Rc::ptr_eq(&new_type_value3, &type_value)),
+        _ => assert!(false),
+    }
+    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::Uniq, LocalType::new(3)))) {
+        Some(LocalTypeEntry::Type(type_value)) => {
+            assert_eq!(String::from("uniq Char"), type_value.to_string_without_fun());
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_local_types_type_entry_for_type_value_returns_local_type_entry_for_type_references_and_none_and_uniq()
+{
+    let mut local_types = LocalTypes::new();
+    let new_type_param_entry1 = Rc::new(RefCell::new(TypeParamEntry::new()));
+    assert_eq!(LocalType::new(0), local_types.add_type_param(new_type_param_entry1.clone()));
+    let new_type_value2 = Rc::new(TypeValue::Param(UniqFlag::Uniq, LocalType::new(0)));
+    assert_eq!(LocalType::new(1), local_types.add_type_value(new_type_value2.clone()));
+    let new_type_value3 = Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(1)));
+    assert_eq!(LocalType::new(2), local_types.add_type_value(new_type_value3.clone()));
+    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(2)))) {
+        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::Uniq, type_param_entry, local_type)) => {
+            assert!(Rc::ptr_eq(&new_type_param_entry1, &type_param_entry));
+            assert_eq!(LocalType::new(0), local_type);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_local_types_type_entry_for_type_value_returns_local_type_entry_for_type_references_and_uniq_and_none()
+{
+    let mut local_types = LocalTypes::new();
+    let new_type_param_entry1 = Rc::new(RefCell::new(TypeParamEntry::new()));
+    assert_eq!(LocalType::new(0), local_types.add_type_param(new_type_param_entry1.clone()));
+    let new_type_value2 = Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(0)));
+    assert_eq!(LocalType::new(1), local_types.add_type_value(new_type_value2.clone()));
+    let new_type_value3 = Rc::new(TypeValue::Param(UniqFlag::Uniq, LocalType::new(1)));
+    assert_eq!(LocalType::new(2), local_types.add_type_value(new_type_value3.clone()));
+    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(2)))) {
+        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::Uniq, type_param_entry, local_type)) => {
+            assert!(Rc::ptr_eq(&new_type_param_entry1, &type_param_entry));
+            assert_eq!(LocalType::new(0), local_type);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_local_types_type_entry_for_type_value_returns_local_type_entries_for_joining()
+{
+    let mut local_types = LocalTypes::new();
+    let new_type_param_entry1 = Rc::new(RefCell::new(TypeParamEntry::new()));
+    assert_eq!(LocalType::new(0), local_types.add_type_param(new_type_param_entry1.clone()));
+    let new_type_param_entry2 = Rc::new(RefCell::new(TypeParamEntry::new()));
+    assert_eq!(LocalType::new(1), local_types.add_type_param(new_type_param_entry2.clone()));
+    let new_type_param_entry3 = Rc::new(RefCell::new(TypeParamEntry::new()));
+    assert_eq!(LocalType::new(2), local_types.add_type_param(new_type_param_entry3.clone()));
+    let new_type_param_entry4 = Rc::new(RefCell::new(TypeParamEntry::new()));
+    assert_eq!(LocalType::new(3), local_types.add_type_param(new_type_param_entry4.clone()));
+    let (root_local_type, eq_root_local_type) = local_types.join_local_types(LocalType::new(0), LocalType::new(1));
+    let (root_local_type2, eq_root_local_type2) = local_types.join_local_types(LocalType::new(0), LocalType::new(2));
+    assert!(root_local_type.index() <= 1);
+    assert!(eq_root_local_type.index() <= 1);
+    assert!(root_local_type2.index() <= 2);
+    assert!(eq_root_local_type2.index() <= 2);
+    let new_type_param_entry5 = match root_local_type2.index() {
+        0 => new_type_param_entry1.clone(),
+        1 => new_type_param_entry2.clone(),
+        _ => new_type_param_entry3.clone(),
+    };
+    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(0)))) {
+        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type)) => {
+            assert!(Rc::ptr_eq(&new_type_param_entry5, &type_param_entry));
+            assert_eq!(root_local_type2, local_type);
+        },
+        _ => assert!(false),
+    }
+    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(1)))) {
+        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type)) => {
+            assert!(Rc::ptr_eq(&new_type_param_entry5, &type_param_entry));
+            assert_eq!(root_local_type2, local_type);
+        },
+        _ => assert!(false),
+    }
+    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(2)))) {
+        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type)) => {
+            assert!(Rc::ptr_eq(&new_type_param_entry5, &type_param_entry));
+            assert_eq!(root_local_type2, local_type);
+        },
+        _ => assert!(false),
+    }
+    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(3)))) {
+        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, local_type)) => {
+            assert!(Rc::ptr_eq(&new_type_param_entry4, &type_param_entry));
+            assert_eq!(LocalType::new(3), local_type);
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_local_types_type_entry_for_type_value_returns_local_type_entries_for_type_value_setting()
+{
+    let s = "
+builtin type Char;
+builtin type Int;
+builtin type Float;
+trait T<t1, t2> {};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types_for_type_vars(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut local_types = LocalTypes::new();
+    let new_type_param_entry1 = Rc::new(RefCell::new(TypeParamEntry::new()));
+    assert_eq!(LocalType::new(0), local_types.add_type_param(new_type_param_entry1.clone()));
+    let s3 = "(t, u)";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "t: T <Int, Char>, u: T<Char, Float>, t == u";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(0), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let new_type_value21 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Int")), Vec::new()));
+    let new_type_value22 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Char")), Vec::new()));
+    let new_type_value2 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("U")), vec![new_type_value21, new_type_value22]));
+    assert_eq!(true, local_types.set_type_value(LocalType::new(1), new_type_value2.clone()));
+    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(1)))) {
+        Some(LocalTypeEntry::Type(type_value)) => {
+            assert_eq!(String::from("U<Int, Char>"), type_value.to_string_without_fun()); 
+        },
+        _ => assert!(false),
+    }
+    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(2)))) {
+        Some(LocalTypeEntry::Type(type_value)) => {
+            assert_eq!(String::from("U<Char, Float>"), type_value.to_string_without_fun()); 
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_local_types_type_entry_for_type_value_returns_local_type_entry_for_type_value()
+{
+    let local_types = LocalTypes::new();
+    let new_type_value = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Char")), Vec::new()));
+    match local_types.type_entry_for_type_value(&new_type_value) {
+        Some(LocalTypeEntry::Type(type_value)) => assert!(Rc::ptr_eq(&new_type_value, &type_value)),
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_local_types_type_value_to_string_returns_string_for_type_paremeter()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+trait T<t1> {};
+trait U<t1> {};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types_for_type_vars(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut local_types = LocalTypes::new();
+    let s3 = "(t, Float, uniq u)";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "t: T <Int>, u: U<Float>";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => assert_eq!(LocalType::new(2), local_types.set_defined_type(&typ)),
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let new_type_param_entry1 = Rc::new(RefCell::new(TypeParamEntry::new()));
+    assert_eq!(LocalType::new(3), local_types.add_type_param(new_type_param_entry1.clone()));
+    let new_type_value21 = Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(0)));
+    let new_type_value22 = Rc::new(TypeValue::Param(UniqFlag::Uniq, LocalType::new(1)));
+    let new_type_value23 = Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(3)));
+    let new_type_value24 = Rc::new(TypeValue::Param(UniqFlag::Uniq, LocalType::new(3)));
+    let new_type_value25 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Int")), Vec::new()));
+    let new_type_value2 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Tuple, vec![new_type_value21, new_type_value22, new_type_value23, new_type_value24, new_type_value25]));
+    assert_eq!(LocalType::new(4), local_types.add_type_value(new_type_value2.clone()));
+    assert_eq!(String::from("(t, uniq u, t1, uniq t1, Int)"), local_types.type_value_to_string(&Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(4)))));
+}
+
+#[test]
+fn test_local_types_type_value_to_string_returns_string_for_type()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+trait T<t1> {};
+trait U<t1> {};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types_for_type_vars(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut local_types = LocalTypes::new();
+    let s3 = "(t, Float, uniq u)";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "t: T <Int>, u: U<Float>";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => assert_eq!(LocalType::new(2), local_types.set_defined_type(&typ)),
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let new_type_param_entry1 = Rc::new(RefCell::new(TypeParamEntry::new()));
+    assert_eq!(LocalType::new(3), local_types.add_type_param(new_type_param_entry1.clone()));
+    let new_type_value21 = Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(0)));
+    let new_type_value22 = Rc::new(TypeValue::Param(UniqFlag::Uniq, LocalType::new(1)));
+    let new_type_value23 = Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(3)));
+    let new_type_value24 = Rc::new(TypeValue::Param(UniqFlag::Uniq, LocalType::new(3)));
+    let new_type_value25 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Int")), Vec::new()));
+    let new_type_value2 = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Tuple, vec![new_type_value21, new_type_value22, new_type_value23, new_type_value24, new_type_value25]));
+    assert_eq!(String::from("(t, uniq u, t1, uniq t1, Int)"), local_types.type_value_to_string(&new_type_value2));
+}
