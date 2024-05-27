@@ -67,12 +67,14 @@ pub enum TypeMatcherResult
 }
 
 pub struct TypeMatcher
-{}
+{
+    empty_type_param_entry: Rc<RefCell<TypeParamEntry>>,
+}
 
 impl TypeMatcher
 {
     pub fn new() -> Self
-    { TypeMatcher {} }
+    { TypeMatcher { empty_type_param_entry: Rc::new(RefCell::new(TypeParamEntry::new())), } }
     
     fn uniq_flag_and_shared_flag_for_type_value2(&self, type_value: &Rc<TypeValue>, type_arg_shared_flag: Option<SharedFlag>, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<(UniqFlag, SharedFlag)>
     {
@@ -300,6 +302,8 @@ impl TypeMatcher
                 new_type_param_entry.closure_local_types = new_closure_local_types;
                 new_type_param_entry.number = new_number;
                 let is_in_non_uniq_lambda = local_types.has_in_non_uniq_lambda(*local_type1) | local_types.has_in_non_uniq_lambda(*local_type2);
+                local_types.set_type_param_entry(*local_type1, self.empty_type_param_entry.clone(), DefinedFlag::Undefined);
+                local_types.set_type_param_entry(*local_type2, self.empty_type_param_entry.clone(), DefinedFlag::Undefined);
                 let (root_local_type, eq_root_local_type) = local_types.join_local_types(*local_type1, *local_type2);
                 local_types.set_type_param_entry(root_local_type, Rc::new(RefCell::new(new_type_param_entry)), DefinedFlag::Undefined);
                 local_types.set_in_non_uniq_lambda(eq_root_local_type, is_in_non_uniq_lambda);
@@ -353,6 +357,8 @@ impl TypeMatcher
                     return Ok(None);
                 }
                 let is_in_non_uniq_lambda = local_types.has_in_non_uniq_lambda(*local_type1) | local_types.has_in_non_uniq_lambda(*local_type2);
+                local_types.set_type_param_entry(*local_type1, self.empty_type_param_entry.clone(), DefinedFlag::Undefined);
+                local_types.set_type_param_entry(*local_type2, self.empty_type_param_entry.clone(), DefinedFlag::Undefined);
                 let (root_local_type, eq_root_local_type) = local_types.join_local_types(*local_type1, *local_type2);
                 local_types.set_type_param_entry(root_local_type, type_param_entry2.clone(), DefinedFlag::Defined);
                 local_types.set_in_non_uniq_lambda(eq_root_local_type, is_in_non_uniq_lambda);
