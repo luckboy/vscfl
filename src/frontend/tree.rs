@@ -831,12 +831,28 @@ pub struct EqTypeParamEntry
 {
     pub type_value_name: Option<TypeValueName>,
     pub is_in_non_uniq_lambda: bool,
+    pub is_defined: bool,
 }
 
 impl EqTypeParamEntry
 {
     pub fn new() -> EqTypeParamEntry
-    { EqTypeParamEntry { type_value_name: None, is_in_non_uniq_lambda: false, } }
+    {
+        EqTypeParamEntry {
+            type_value_name: None,
+            is_in_non_uniq_lambda: false,
+            is_defined: false,
+        }
+    }
+
+    pub fn defined_new() -> EqTypeParamEntry
+    {
+        EqTypeParamEntry {
+            type_value_name: None,
+            is_in_non_uniq_lambda: false,
+            is_defined: true,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -973,7 +989,7 @@ impl LocalTypes
                 None => (),
             }
         }
-        self.eq_type_param_entries = disjoint_set_vec![EqTypeParamEntry::new(); typ.eq_type_param_set.len()];
+        self.eq_type_param_entries = disjoint_set_vec![EqTypeParamEntry::defined_new(); typ.eq_type_param_set.len()];
         for i in 0..typ.eq_type_param_set.len() {
             for j in (i + 1)..typ.eq_type_param_set.len() {
                 if typ.eq_type_param_set.is_joined(i, j) {
@@ -1169,7 +1185,28 @@ impl LocalTypes
             false
         }
     }
-    
+
+    pub fn has_defined_type_param_eq(&self, local_type: LocalType) -> bool
+    {
+        if local_type.index() < self.eq_type_param_entries.len() {
+            let eq_root_idx = self.eq_type_param_entries.root_of(local_type.index());
+            self.eq_type_param_entries[eq_root_idx].is_defined
+        } else {
+            false
+        }
+    }
+
+    pub fn set_defined_type_param_eq(&mut self, local_type: LocalType, is_defined: bool) -> bool
+    {
+        if local_type.index() < self.eq_type_param_entries.len() {
+            let eq_root_idx = self.eq_type_param_entries.root_of(local_type.index());
+            self.eq_type_param_entries[eq_root_idx].is_defined = is_defined;
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn add_type_param(&mut self, type_param_entry: Rc<RefCell<TypeParamEntry>>) -> LocalType
     {
         self.set_new_value_for_type_param_number_counter();
