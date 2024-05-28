@@ -57,7 +57,7 @@ impl<'a, 'b> fmt::Display for MismatchedTypeInfoWidthLocalTypes<'a, 'b>
                 write!(f, "closure variable type parameter mustn't be unique type in non-unique lambda")
             },
             MismatchedTypeInfo::DefinedTypeParamEq => {
-                write!(f, "type parameter is in defined type parameter equation")
+                write!(f, "type parameter mustn't be type in defined type parameter equation")
             },
         }
     }
