@@ -179,6 +179,17 @@ impl TypeMatcher
                 let mut type_param_entry_r = type_param_entry.borrow_mut();
                 if !type_param_entry_r.trait_names.contains(&TraitName::Shared) {
                     if defined_flag == DefinedFlag::Undefined { 
+                        if !type_param_entry_r.trait_names.contains(&TraitName::Fun) {
+                            let mut type_arg_shared_flag = SharedFlag::Shared;
+                            for type_value2 in &type_param_entry_r.type_values {
+                                if self.shared_flag_for_type_value2(type_value2, None, tree, local_types)? == SharedFlag::None {
+                                    type_arg_shared_flag = SharedFlag::None;
+                                }
+                            }
+                            if type_arg_shared_flag == SharedFlag::None {
+                                return Ok(false);
+                            }
+                        }
                         type_param_entry_r.trait_names.insert(TraitName::Shared);
                     } else {
                         return Ok(false);
@@ -693,3 +704,6 @@ impl TypeMatcher
         self.match_type_values_for_casting(&type_value1, &type_value2, tree, local_types, builtins)
     }
 }
+
+#[cfg(test)]
+mod tests;
