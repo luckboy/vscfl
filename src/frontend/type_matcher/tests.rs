@@ -661,12 +661,12 @@ trait U<t1, t2> {};
     }
     let mut local_types = LocalTypes::new();
     assert_eq!(LocalType::new(0), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
-    let s3 = "(t, u, v)";
+    let s3 = "(t, u, v, w)";
     let mut cursor2 = Cursor::new(s3.as_bytes());
     let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
     match parser2.parse_type() {
         Ok(type_expr) => {
-            let s4 = "t: shared + T <Int>, u: T <Float>, v: U<Int, uniq Float>";
+            let s4 = "t: shared + T <Int>, u: T <Float>, v: U<Int, uniq Float>, w: -> <uniq Float, Int>";
             let mut cursor3 = Cursor::new(s4.as_bytes());
             let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
             match parser3.parse_where() {
@@ -722,6 +722,17 @@ trait U<t1, t2> {};
         Some(LocalTypeEntry::Param(_, _, type_param_entry, _)) => {
             let type_param_entry_r = type_param_entry.borrow();
             assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+        },
+        _ => assert!(false),
+    }
+    match type_matcher.set_shared(LocalType::new(4), &tree, &local_types) {
+        Ok(true) => assert!(true),
+        _ => assert!(false),
+    }
+    match local_types.type_entry(LocalType::new(4)) {
+        Some(LocalTypeEntry::Param(_, _, type_param_entry, _)) => {
+            let type_param_entry_r = type_param_entry.borrow();
+            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Shared));
         },
         _ => assert!(false),
     }
