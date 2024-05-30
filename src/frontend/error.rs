@@ -41,7 +41,7 @@ impl fmt::Display for FrontendError
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
     {
         match self {
-            FrontendError::Io(path, err) => write!(f, "{}: I/O: {}", path, err),
+            FrontendError::Io(path, err) => write!(f, "{}: i/o error: {}", path, err),
             FrontendError::Message(pos, msg) => write!(f, "{}: {}.{}: {}", pos.path, pos.line, pos.column, msg),
             FrontendError::Internal(msg) => write!(f, "internal error: {}", msg),
         }
