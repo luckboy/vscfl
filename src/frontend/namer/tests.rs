@@ -904,7 +904,7 @@ m: Int =
         _ = abc.0.z <-> e ->;
     in  1;
 n() -> uniq Int = uniq x;
-o() -> Int = shared m();
+o() -> Int = shared n();
 p(x: t) -> (t, Float) = (x, 1.5): (t, Float);
 q: Float = x as Float;
 r: Int = if def then x else y;
