@@ -2650,16 +2650,17 @@ impl Typer
             }
         }
         let mut visited_local_types: BTreeSet<LocalType> = BTreeSet::new();
-        for local_type in &local_types {
+        for (i, local_type) in local_types.iter().enumerate() {
             match local_type {
-                Some(local_type) => {
-                    dfs_with_result(local_type, &mut visited_local_types, &mut type_values, |local_type, processed_local_types, type_values| {
+                None => {
+                    let old_local_type = LocalType::new(i);
+                    dfs_with_result(&old_local_type, &mut visited_local_types, &mut type_values, |local_type, processed_local_types, type_values| {
                             self.local_types_for_local_type(*local_type, type_values, typ, processed_local_types)
                     }, |local_type, type_values| {
                             self.substitute_for_local_type(*local_type, type_name, type_values, typ)
                     })?;
                 },
-                None => (),
+                Some(_) => (),
             }
         }
         let new_type_value = match typ.type_value().substitute(&type_values) {
