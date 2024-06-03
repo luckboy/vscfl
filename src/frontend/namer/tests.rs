@@ -894,7 +894,7 @@ g: Int = x;
 h: Int = let z = 1 in z;
 i: T = C(x, 2.5);
 j: T = D { y: 1.5f, z: 1, x: x, };
-k: Int = printf(\"%d\n\", x);
+k: Int = printf(\"%d\\n\", x);
 l: Int = e(x, y);
 m: Int =
     let _ = abc.0.z;
@@ -914,7 +914,7 @@ s: Int =
     in  z1 + z2;
 t: Int = C(1, 2.5) match {
         C(z1, z2) => z1 + (z2 as Int);
-        D { z: z, x: x, y: _ } => z - x;
+        D { z: z, x: x, y: _, } => z - x;
     };
 x: Int = 2;
 y: Int = 3;
