@@ -4527,6 +4527,16 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
             match &*var_r {
                 Var::Fun(fun, _, Some(typ)) => {
                     assert_eq!(String::from("(t) -> (t, Float)"), typ.to_string());
+                    assert_eq!(1, typ.type_param_entries().len());
+                    match typ.type_param_entry(LocalType::new(0)) {
+                        Some(type_param_entry) => {
+                            let type_param_entry_r = type_param_entry.borrow();
+                            assert_eq!(true, type_param_entry_r.trait_names.is_empty());
+                            assert_eq!(true, type_param_entry_r.type_values.is_empty());
+                            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                        },
+                        None => assert!(false),
+                    }
                     match &**fun {
                         Fun::Fun(_, args, _, _, expr, Some(ret_local_type), Some(local_types)) => {
                             assert_eq!(String::from("t"), local_types.local_type_to_string(LocalType::new(0)));
