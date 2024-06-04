@@ -5403,3 +5403,2305 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         _ => assert!(false),
     }
 }
+
+#[test]
+fn test_typer_evaluate_types_evaluates_types_for_patterns()
+{
+    let s = "
+trait OpAdd
+{
+    op_add(x: t, y: t) -> t where t: OpAdd;
+};
+builtin type Int;
+builtin type Float;
+builtin impl OpAdd for Int;
+data T = C(Int, Float) | D { x: Int, y: Float, z: Int, };
+a: Int = 1 match {
+        X => 1;
+        _ => 2;
+    };
+b: Int = C(1, 2.5) match {
+        C(x, y) => x + (y as Int);
+        D { y: _, z: y, x: x, } => x + y;
+    };
+c: Int = 2 match { x => x; };
+d: T = C(1, 2.5) match {
+        x @ D { x: 1, y: 2.5, z: 2, } => x;
+        _ => C(1, 2.5);
+    };
+e: Int = C(1, 2.5) match {
+        C(1, 2.5) | D { x: 1, y: 2.5, z: 2, } => 1;
+        _ => 2;
+    };
+X: Int = 1; 
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(errs) => {
+            println!("{}", errs);
+            assert!(false)
+        },
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(11, tree.defs().len());
+    match &*tree.defs()[0] {
+        Def::Trait(_, trait1, _) => {
+            let trait_r = trait1.borrow();
+            match &*trait_r {
+                Trait(_, trait_defs, _) => {
+                    assert_eq!(1, trait_defs.len());
+                    match &*trait_defs[0] {
+                        TraitDef(_, var, _) => {
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Fun(_, _, Some(typ)) => {
+                                    assert_eq!(String::from("(t, t) -> t"), typ.to_string());
+                                    assert_eq!(1, typ.type_param_entries().len());
+                                    match typ.type_param_entry(LocalType::new(0)) {
+                                        Some(type_param_entry) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(1, type_param_entry_r.trait_names.len());
+                                            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Name(String::from("OpAdd"))));
+                                            assert_eq!(true, type_param_entry_r.type_values.is_empty());
+                                            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                                        },
+                                        None => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[3] {
+        Def::Impl(impl1, _) => {
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Builtin(_, _, Some(impl_vars)) => {
+                    assert_eq!(1, impl_vars.vars().len());
+                    match impl_vars.var(&String::from("op_add")) {
+                        Some(impl_var) => {
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Builtin(Some(typ)) => {
+                                    assert_eq!(String::from("(Int, Int) -> Int"), typ.to_string());
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[5] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), Some(typ), None) => {
+                    assert_eq!(String::from("Int"), typ.to_string());
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Match(expr, cases, Some(local_type), _) => {
+                                    match &**expr {
+                                        Expr::Literal(_, Some(local_type), _) => {
+                                            assert_eq!(LocalType::new(1), *local_type);
+                                            assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(2, cases.len());
+                                    match &cases[0] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Const(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(2), *local_type);
+                                                    assert_eq!(String::from("t2"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(3), *local_type);
+                                                    assert_eq!(String::from("t3"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[1] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Wildcard(Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(4), *local_type);
+                                                    assert_eq!(String::from("t4"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(5), *local_type);
+                                                    assert_eq!(String::from("t5"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    assert_eq!(LocalType::new(6), *local_type);
+                                    assert_eq!(String::from("t6"), local_types.local_type_to_string(*local_type));
+                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[6] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), Some(typ), None) => {
+                    assert_eq!(String::from("Int"), typ.to_string());
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Match(expr, cases, Some(local_type), _) => {
+                                    match &**expr {
+                                        Expr::App(expr, exprs, Some(local_type), _) => {
+                                            match &**expr {
+                                                Expr::Var(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(1), *local_type);
+                                                    assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(2, exprs.len());
+                                            match &*exprs[0] {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(2), *local_type);
+                                                    assert_eq!(String::from("t2"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &*exprs[1] {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(3), *local_type);
+                                                    assert_eq!(String::from("t3"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(LocalType::new(4), *local_type);
+                                            assert_eq!(String::from("t4"), local_types.local_type_to_string(*local_type));
+                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(2, cases.len());
+                                    match &cases[0] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::UnnamedFieldCon(_, patterns, Some(con_local_type), Some(local_type), _) => {
+                                                    assert_eq!(2, patterns.len());
+                                                    match &*patterns[0] {
+                                                        Pattern::Var(_, _, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(5), *local_type);
+                                                            assert_eq!(String::from("t5"), local_types.local_type_to_string(*local_type));
+                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    match &*patterns[1] {
+                                                        Pattern::Var(_, _, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(6), *local_type);
+                                                            assert_eq!(String::from("t6"), local_types.local_type_to_string(*local_type));
+                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(LocalType::new(7), *con_local_type);
+                                                    assert_eq!(String::from("t7"), local_types.local_type_to_string(*con_local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *con_local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(LocalType::new(8), *local_type);
+                                                    assert_eq!(String::from("t8"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::App(expr, exprs, Some(local_type), _) => {
+                                                    match &**expr {
+                                                        Expr::Var(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(9), *local_type);
+                                                            assert_eq!(String::from("t9"), local_types.local_type_to_string(*local_type));
+                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(2, exprs.len());
+                                                    match &*exprs[0] {
+                                                        Expr::Var(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(5), *local_type);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    match &*exprs[1] {
+                                                        Expr::As(expr, _, Some(local_type), _) => {
+                                                            match &**expr {
+                                                                Expr::Var(_, Some(local_type), _) => {
+                                                                    assert_eq!(LocalType::new(6), *local_type);
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                            assert_eq!(LocalType::new(10), *local_type);
+                                                            assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(LocalType::new(11), *local_type);
+                                                    assert_eq!(String::from("t10"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[1] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::NamedFieldCon(_, pattern_named_field_pairs, Some(con_local_type), Some(local_type), _) => {
+                                                    assert_eq!(3, pattern_named_field_pairs.len());
+                                                    match &pattern_named_field_pairs[0] {
+                                                        NamedFieldPair(_, pattern, _) => {
+                                                            match &**pattern {
+                                                                Pattern::Wildcard(Some(local_type), _) => {
+                                                                    assert_eq!(LocalType::new(12), *local_type);
+                                                                    assert_eq!(String::from("t11"), local_types.local_type_to_string(*local_type));
+                                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                    }
+                                                    match &pattern_named_field_pairs[1] {
+                                                        NamedFieldPair(_, pattern, _) => {
+                                                            match &**pattern {
+                                                                Pattern::Var(_, _, Some(local_type), _) => {
+                                                                    assert_eq!(LocalType::new(13), *local_type);
+                                                                    assert_eq!(String::from("t12"), local_types.local_type_to_string(*local_type));
+                                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                    }
+                                                    match &pattern_named_field_pairs[2] {
+                                                        NamedFieldPair(_, pattern, _) => {
+                                                            match &**pattern {
+                                                                Pattern::Var(_, _, Some(local_type), _) => {
+                                                                    assert_eq!(LocalType::new(14), *local_type);
+                                                                    assert_eq!(String::from("t13"), local_types.local_type_to_string(*local_type));
+                                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                    }
+                                                    assert_eq!(LocalType::new(15), *con_local_type);
+                                                    assert_eq!(String::from("t14"), local_types.local_type_to_string(*con_local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *con_local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(LocalType::new(16), *local_type);
+                                                    assert_eq!(String::from("t15"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::App(expr, exprs, Some(local_type), _) => {
+                                                    match &**expr {
+                                                        Expr::Var(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(17), *local_type);
+                                                            assert_eq!(String::from("t16"), local_types.local_type_to_string(*local_type));
+                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(2, exprs.len());
+                                                    match &*exprs[0] {
+                                                        Expr::Var(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(14), *local_type);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    match &*exprs[1] {
+                                                        Expr::Var(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(13), *local_type);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(LocalType::new(18), *local_type);
+                                                    assert_eq!(String::from("t17"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    assert_eq!(LocalType::new(19), *local_type);
+                                    assert_eq!(String::from("t18"), local_types.local_type_to_string(*local_type));
+                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[7] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), Some(typ), None) => {
+                    assert_eq!(String::from("Int"), typ.to_string());
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Match(expr, cases, Some(local_type), _) => {
+                                    match &**expr {
+                                        Expr::Literal(_, Some(local_type), _) => {
+                                            assert_eq!(LocalType::new(1), *local_type);
+                                            assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(1, cases.len());
+                                    match &cases[0] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Var(_, _, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(2), *local_type);
+                                                    assert_eq!(String::from("t2"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Var(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(2), *local_type);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    assert_eq!(LocalType::new(3), *local_type);
+                                    assert_eq!(String::from("t3"), local_types.local_type_to_string(*local_type));
+                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[8] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), Some(typ), None) => {
+                    assert_eq!(String::from("T"), typ.to_string());
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("T"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Match(expr, cases, Some(local_type), _) => {
+                                    match &**expr {
+                                        Expr::App(expr, exprs, Some(local_type), _) => {
+                                            match &**expr {
+                                                Expr::Var(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(1), *local_type);
+                                                    assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(2, exprs.len());
+                                            match &*exprs[0] {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(2), *local_type);
+                                                    assert_eq!(String::from("t2"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &*exprs[1] {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(3), *local_type);
+                                                    assert_eq!(String::from("t3"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(LocalType::new(4), *local_type);
+                                            assert_eq!(String::from("t4"), local_types.local_type_to_string(*local_type));
+                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(2, cases.len());
+                                    match &cases[0] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::At(_, _, pattern, Some(local_type), _) => {
+                                                    match &**pattern {
+                                                        Pattern::NamedFieldCon(_, pattern_named_field_pairs, Some(con_local_type), Some(local_type), _) => {
+                                                            assert_eq!(3, pattern_named_field_pairs.len());
+                                                            match &pattern_named_field_pairs[0] {
+                                                                NamedFieldPair(_, pattern, _) => {
+                                                                    match &**pattern {
+                                                                        Pattern::Literal(_, Some(local_type), _) => {
+                                                                            assert_eq!(LocalType::new(6), *local_type);
+                                                                            assert_eq!(String::from("t6"), local_types.local_type_to_string(*local_type));
+                                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                                },
+                                                                                _ => assert!(false),
+                                                                            }
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                            }
+                                                            match &pattern_named_field_pairs[1] {
+                                                                NamedFieldPair(_, pattern, _) => {
+                                                                    match &**pattern {
+                                                                        Pattern::Literal( _, Some(local_type), _) => {
+                                                                            assert_eq!(LocalType::new(7), *local_type);
+                                                                            assert_eq!(String::from("t7"), local_types.local_type_to_string(*local_type));
+                                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                                },
+                                                                                _ => assert!(false),
+                                                                            }
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                            }
+                                                            match &pattern_named_field_pairs[2] {
+                                                                NamedFieldPair(_, pattern, _) => {
+                                                                    match &**pattern {
+                                                                        Pattern::Literal(_, Some(local_type), _) => {
+                                                                            assert_eq!(LocalType::new(8), *local_type);
+                                                                            assert_eq!(String::from("t8"), local_types.local_type_to_string(*local_type));
+                                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                                },
+                                                                                _ => assert!(false),
+                                                                            }
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                            }
+                                                            assert_eq!(LocalType::new(9), *con_local_type);
+                                                            assert_eq!(String::from("t9"), local_types.local_type_to_string(*con_local_type));
+                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *con_local_type))) {
+                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                            assert_eq!(LocalType::new(10), *local_type);
+                                                            assert_eq!(String::from("t10"), local_types.local_type_to_string(*local_type));
+                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(LocalType::new(5), *local_type);
+                                                    assert_eq!(String::from("t5"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Var(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(5), *local_type);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[1] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Wildcard(Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(11), *local_type);
+                                                    assert_eq!(String::from("t11"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::App(expr, exprs, Some(local_type), _) => {
+                                                    match &**expr {
+                                                        Expr::Var(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(12), *local_type);
+                                                            assert_eq!(String::from("t12"), local_types.local_type_to_string(*local_type));
+                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(2, exprs.len());
+                                                    match &*exprs[0] {
+                                                        Expr::Literal(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(13), *local_type);
+                                                            assert_eq!(String::from("t13"), local_types.local_type_to_string(*local_type));
+                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    match &*exprs[1] {
+                                                        Expr::Literal(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(14), *local_type);
+                                                            assert_eq!(String::from("t14"), local_types.local_type_to_string(*local_type));
+                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(LocalType::new(15), *local_type);
+                                                    assert_eq!(String::from("t15"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    assert_eq!(LocalType::new(16), *local_type);
+                                    assert_eq!(String::from("t16"), local_types.local_type_to_string(*local_type));
+                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[9] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), Some(typ), None) => {
+                    assert_eq!(String::from("Int"), typ.to_string());
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Match(expr, cases, Some(local_type), _) => {
+                                    match &**expr {
+                                        Expr::App(expr, exprs, Some(local_type), _) => {
+                                            match &**expr {
+                                                Expr::Var(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(1), *local_type);
+                                                    assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(2, exprs.len());
+                                            match &*exprs[0] {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(2), *local_type);
+                                                    assert_eq!(String::from("t2"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &*exprs[1] {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(3), *local_type);
+                                                    assert_eq!(String::from("t3"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(LocalType::new(4), *local_type);
+                                            assert_eq!(String::from("t4"), local_types.local_type_to_string(*local_type));
+                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(2, cases.len());
+                                    match &cases[0] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Alt(patterns, Some(local_type), _) => {
+                                                    assert_eq!(2, patterns.len());
+                                                    match &*patterns[0] {
+                                                        Pattern::UnnamedFieldCon(_, patterns, Some(con_local_type), Some(local_type), _) => {
+                                                            assert_eq!(2, patterns.len());
+                                                            match &*patterns[0] {
+                                                                Pattern::Literal(_, Some(local_type), _) => {
+                                                                    assert_eq!(LocalType::new(5), *local_type);
+                                                                    assert_eq!(String::from("t5"), local_types.local_type_to_string(*local_type));
+                                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                            match &*patterns[1] {
+                                                                Pattern::Literal(_, Some(local_type), _) => {
+                                                                    assert_eq!(LocalType::new(6), *local_type);
+                                                                    assert_eq!(String::from("t6"), local_types.local_type_to_string(*local_type));
+                                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                            assert_eq!(LocalType::new(7), *con_local_type);
+                                                            assert_eq!(String::from("t7"), local_types.local_type_to_string(*con_local_type));
+                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *con_local_type))) {
+                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                            assert_eq!(LocalType::new(8), *local_type);
+                                                            assert_eq!(String::from("t8"), local_types.local_type_to_string(*local_type));
+                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    match &*patterns[1] {
+                                                        Pattern::NamedFieldCon(_, pattern_named_field_pairs, Some(con_local_type), Some(local_type), _) => {
+                                                            assert_eq!(3, pattern_named_field_pairs.len());
+                                                            match &pattern_named_field_pairs[0] {
+                                                                NamedFieldPair(_, pattern, _) => {
+                                                                    match &**pattern {
+                                                                        Pattern::Literal(_, Some(local_type), _) => {
+                                                                            assert_eq!(LocalType::new(9), *local_type);
+                                                                            assert_eq!(String::from("t9"), local_types.local_type_to_string(*local_type));
+                                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                                },
+                                                                                _ => assert!(false),
+                                                                            }
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                            }
+                                                            match &pattern_named_field_pairs[1] {
+                                                                NamedFieldPair(_, pattern, _) => {
+                                                                    match &**pattern {
+                                                                        Pattern::Literal( _, Some(local_type), _) => {
+                                                                            assert_eq!(LocalType::new(10), *local_type);
+                                                                            assert_eq!(String::from("t10"), local_types.local_type_to_string(*local_type));
+                                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                                },
+                                                                                _ => assert!(false),
+                                                                            }
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                            }
+                                                            match &pattern_named_field_pairs[2] {
+                                                                NamedFieldPair(_, pattern, _) => {
+                                                                    match &**pattern {
+                                                                        Pattern::Literal(_, Some(local_type), _) => {
+                                                                            assert_eq!(LocalType::new(11), *local_type);
+                                                                            assert_eq!(String::from("t11"), local_types.local_type_to_string(*local_type));
+                                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                                },
+                                                                                _ => assert!(false),
+                                                                            }
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                            }
+                                                            assert_eq!(LocalType::new(12), *con_local_type);
+                                                            assert_eq!(String::from("t12"), local_types.local_type_to_string(*con_local_type));
+                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *con_local_type))) {
+                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                            assert_eq!(LocalType::new(13), *local_type);
+                                                            assert_eq!(String::from("t13"), local_types.local_type_to_string(*local_type));
+                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(LocalType::new(14), *local_type);
+                                                    assert_eq!(String::from("t14"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(15), *local_type);
+                                                    assert_eq!(String::from("t15"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[1] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Wildcard(Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(16), *local_type);
+                                                    assert_eq!(String::from("t16"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(17), *local_type);
+                                                    assert_eq!(String::from("t17"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    assert_eq!(LocalType::new(18), *local_type);
+                                    assert_eq!(String::from("t18"), local_types.local_type_to_string(*local_type));
+                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[10] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), Some(typ), None) => {
+                    assert_eq!(String::from("Int"), typ.to_string());
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(_, Some(local_type), _) => {
+                                    assert_eq!(LocalType::new(1), *local_type);
+                                    assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_evaluate_types_evaluates_types_for_expression_literals()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+a: Int = 1;
+b: (Int, Float) = (x, 2.0);
+c: [Int; 2] = [x, 2];
+d: [Int; 10] = [y; 10];
+x: Int = 1;
+y: Int = 2;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(8, tree.defs().len());
+    match &*tree.defs()[2] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), Some(typ), None) => {
+                    assert_eq!(String::from("Int"), typ.to_string());
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(_, Some(local_type), _) => {
+                                    assert_eq!(LocalType::new(1), *local_type);
+                                    assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[3] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), Some(typ), None) => {
+                    assert_eq!(String::from("(Int, Float)"), typ.to_string());
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("(Int, Float)"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(literal, Some(local_type), _) => {
+                                    match &**literal {
+                                        Literal::Tuple(exprs) => {
+                                            assert_eq!(2, exprs.len());
+                                            match &*exprs[0] {
+                                                Expr::Var(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(1), *local_type);
+                                                    assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &*exprs[1] {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(2), *local_type);
+                                                    assert_eq!(String::from("t2"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(LocalType::new(3), *local_type);
+                                    assert_eq!(String::from("t3"), local_types.local_type_to_string(*local_type));
+                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[4] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), Some(typ), None) => {
+                    assert_eq!(String::from("[Int; 2]"), typ.to_string());
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("[Int; 2]"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(literal, Some(local_type), _) => {
+                                    match &**literal {
+                                        Literal::Array(exprs) => {
+                                            assert_eq!(2, exprs.len());
+                                            match &*exprs[0] {
+                                                Expr::Var(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(1), *local_type);
+                                                    assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &*exprs[1] {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(2), *local_type);
+                                                    assert_eq!(String::from("t2"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(LocalType::new(3), *local_type);
+                                    assert_eq!(String::from("t3"), local_types.local_type_to_string(*local_type));
+                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[5] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), Some(typ), None) => {
+                    assert_eq!(String::from("[Int; 10]"), typ.to_string());
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("[Int; 10]"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(literal, Some(local_type), _) => {
+                                    match &**literal {
+                                        Literal::FilledArray(expr, _) => {
+                                            match &**expr {
+                                                Expr::Var(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(1), *local_type);
+                                                    assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(LocalType::new(2), *local_type);
+                                    assert_eq!(String::from("t2"), local_types.local_type_to_string(*local_type));
+                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[6] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), Some(typ), None) => {
+                    assert_eq!(String::from("Int"), typ.to_string());
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(_, Some(local_type), _) => {
+                                    assert_eq!(LocalType::new(1), *local_type);
+                                    assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[7] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), Some(typ), None) => {
+                    assert_eq!(String::from("Int"), typ.to_string());
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(_, Some(local_type), _) => {
+                                    assert_eq!(LocalType::new(1), *local_type);
+                                    assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_evaluate_types_evaluates_types_for_pattern_literals()
+{
+    let s = "
+trait OpAdd
+{
+    op_add(x: t, y: t) -> t where t: OpAdd;
+};
+trait OpSub
+{
+    op_sub(x: t, y: t) -> t where t: OpSub;
+};
+builtin type Int;
+builtin type Float;
+builtin impl OpAdd for Int;
+builtin impl OpSub for Int;
+a: Int = (1, 1.5) match {
+        (x, y) => x - (y as Int);
+    };
+b: Int = [1, 2] match {
+        [x, y] => x + y;
+    };
+c: Int = [1; 2] match {
+        [x; 2] => x;
+        _ => 1;
+    };
+d: Int = 1 match {
+        1.5 as Int => 1;
+        _ => 2;
+    };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(errs) => {
+            println!("{}", errs);
+            assert!(false)
+        },
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(10, tree.defs().len());
+    match &*tree.defs()[0] {
+        Def::Trait(_, trait1, _) => {
+            let trait_r = trait1.borrow();
+            match &*trait_r {
+                Trait(_, trait_defs, _) => {
+                    assert_eq!(1, trait_defs.len());
+                    match &*trait_defs[0] {
+                        TraitDef(_, var, _) => {
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Fun(_, _, Some(typ)) => {
+                                    assert_eq!(String::from("(t, t) -> t"), typ.to_string());
+                                    assert_eq!(1, typ.type_param_entries().len());
+                                    match typ.type_param_entry(LocalType::new(0)) {
+                                        Some(type_param_entry) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(1, type_param_entry_r.trait_names.len());
+                                            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Name(String::from("OpAdd"))));
+                                            assert_eq!(true, type_param_entry_r.type_values.is_empty());
+                                            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                                        },
+                                        None => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[1] {
+        Def::Trait(_, trait1, _) => {
+            let trait_r = trait1.borrow();
+            match &*trait_r {
+                Trait(_, trait_defs, _) => {
+                    assert_eq!(1, trait_defs.len());
+                    match &*trait_defs[0] {
+                        TraitDef(_, var, _) => {
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Fun(_, _, Some(typ)) => {
+                                    assert_eq!(String::from("(t, t) -> t"), typ.to_string());
+                                    assert_eq!(1, typ.type_param_entries().len());
+                                    match typ.type_param_entry(LocalType::new(0)) {
+                                        Some(type_param_entry) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(1, type_param_entry_r.trait_names.len());
+                                            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Name(String::from("OpSub"))));
+                                            assert_eq!(true, type_param_entry_r.type_values.is_empty());
+                                            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                                        },
+                                        None => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[4] {
+        Def::Impl(impl1, _) => {
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Builtin(_, _, Some(impl_vars)) => {
+                    assert_eq!(1, impl_vars.vars().len());
+                    match impl_vars.var(&String::from("op_add")) {
+                        Some(impl_var) => {
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Builtin(Some(typ)) => {
+                                    assert_eq!(String::from("(Int, Int) -> Int"), typ.to_string());
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[5] {
+        Def::Impl(impl1, _) => {
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Builtin(_, _, Some(impl_vars)) => {
+                    assert_eq!(1, impl_vars.vars().len());
+                    match impl_vars.var(&String::from("op_sub")) {
+                        Some(impl_var) => {
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Builtin(Some(typ)) => {
+                                    assert_eq!(String::from("(Int, Int) -> Int"), typ.to_string());
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[6] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), Some(typ), None) => {
+                    assert_eq!(String::from("Int"), typ.to_string());
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Match(expr, cases, Some(local_type), _) => {
+                                    match &**expr {
+                                        Expr::Literal(literal, Some(local_type), _) => {
+                                            match &**literal {
+                                                Literal::Tuple(exprs) => {
+                                                    assert_eq!(2, exprs.len());
+                                                    match &*exprs[0] {
+                                                        Expr::Literal(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(1), *local_type);
+                                                            assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    match &*exprs[1] {
+                                                        Expr::Literal(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(2), *local_type);
+                                                            assert_eq!(String::from("t2"), local_types.local_type_to_string(*local_type));
+                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(LocalType::new(3), *local_type);
+                                            assert_eq!(String::from("t3"), local_types.local_type_to_string(*local_type));
+                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(1, cases.len());
+                                    match &cases[0] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, Some(local_type), _) => {
+                                                    match &**literal {
+                                                        Literal::Tuple(patterns) => {
+                                                            assert_eq!(2, patterns.len());
+                                                            match &*patterns[0] {
+                                                                Pattern::Var(_, _, Some(local_type), _) => {
+                                                                    assert_eq!(LocalType::new(4), *local_type);
+                                                                    assert_eq!(String::from("t4"), local_types.local_type_to_string(*local_type));
+                                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                            match &*patterns[1] {
+                                                                Pattern::Var(_, _, Some(local_type), _) => {
+                                                                    assert_eq!(LocalType::new(5), *local_type);
+                                                                    assert_eq!(String::from("t5"), local_types.local_type_to_string(*local_type));
+                                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(LocalType::new(6), *local_type);
+                                                    assert_eq!(String::from("t6"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::App(expr, exprs, Some(local_type), _) => {
+                                                    match &**expr {
+                                                        Expr::Var(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(7), *local_type);
+                                                            assert_eq!(String::from("t7"), local_types.local_type_to_string(*local_type));
+                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(2, exprs.len());
+                                                    match &*exprs[0] {
+                                                        Expr::Var(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(4), *local_type);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    match &*exprs[1] {
+                                                        Expr::As(expr, _, Some(local_type), _) => {
+                                                            match &**expr { 
+                                                                Expr::Var(_, Some(local_type), _) => {
+                                                                    assert_eq!(LocalType::new(5), *local_type);
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                            assert_eq!(LocalType::new(8), *local_type);
+                                                            assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(LocalType::new(9), *local_type);
+                                                    assert_eq!(String::from("t8"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    assert_eq!(LocalType::new(10), *local_type);
+                                    assert_eq!(String::from("t9"), local_types.local_type_to_string(*local_type));
+                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[7] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), Some(typ), None) => {
+                    assert_eq!(String::from("Int"), typ.to_string());
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Match(expr, cases, Some(local_type), _) => {
+                                    match &**expr {
+                                        Expr::Literal(literal, Some(local_type), _) => {
+                                            match &**literal {
+                                                Literal::Array(exprs) => {
+                                                    assert_eq!(2, exprs.len());
+                                                    match &*exprs[0] {
+                                                        Expr::Literal(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(1), *local_type);
+                                                            assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    match &*exprs[1] {
+                                                        Expr::Literal(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(2), *local_type);
+                                                            assert_eq!(String::from("t2"), local_types.local_type_to_string(*local_type));
+                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(LocalType::new(3), *local_type);
+                                            assert_eq!(String::from("t3"), local_types.local_type_to_string(*local_type));
+                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(1, cases.len());
+                                    match &cases[0] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, Some(local_type), _) => {
+                                                    match &**literal {
+                                                        Literal::Array(patterns) => {
+                                                            assert_eq!(2, patterns.len());
+                                                            match &*patterns[0] {
+                                                                Pattern::Var(_, _, Some(local_type), _) => {
+                                                                    assert_eq!(LocalType::new(4), *local_type);
+                                                                    assert_eq!(String::from("t4"), local_types.local_type_to_string(*local_type));
+                                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                            match &*patterns[1] {
+                                                                Pattern::Var(_, _, Some(local_type), _) => {
+                                                                    assert_eq!(LocalType::new(5), *local_type);
+                                                                    assert_eq!(String::from("t5"), local_types.local_type_to_string(*local_type));
+                                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(LocalType::new(6), *local_type);
+                                                    assert_eq!(String::from("t6"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::App(expr, exprs, Some(local_type), _) => {
+                                                    match &**expr {
+                                                        Expr::Var(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(7), *local_type);
+                                                            assert_eq!(String::from("t7"), local_types.local_type_to_string(*local_type));
+                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(2, exprs.len());
+                                                    match &*exprs[0] {
+                                                        Expr::Var(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(4), *local_type);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    match &*exprs[1] {
+                                                        Expr::Var(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(5), *local_type);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(LocalType::new(8), *local_type);
+                                                    assert_eq!(String::from("t8"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    assert_eq!(LocalType::new(9), *local_type);
+                                    assert_eq!(String::from("t9"), local_types.local_type_to_string(*local_type));
+                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[8] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), Some(typ), None) => {
+                    assert_eq!(String::from("Int"), typ.to_string());
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Match(expr, cases, Some(local_type), _) => {
+                                    match &**expr {
+                                        Expr::Literal(literal, Some(local_type), _) => {
+                                            match &**literal {
+                                                Literal::FilledArray(expr, _) => {
+                                                    match &**expr {
+                                                        Expr::Literal(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(1), *local_type);
+                                                            assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(LocalType::new(2), *local_type);
+                                            assert_eq!(String::from("t2"), local_types.local_type_to_string(*local_type));
+                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(2, cases.len());
+                                    match &cases[0] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Literal(literal, Some(local_type), _) => {
+                                                    match &**literal {
+                                                        Literal::FilledArray(pattern, _) => {
+                                                            match &**pattern {
+                                                                Pattern::Var(_, _, Some(local_type), _) => {
+                                                                    assert_eq!(LocalType::new(3), *local_type);
+                                                                    assert_eq!(String::from("t3"), local_types.local_type_to_string(*local_type));
+                                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(LocalType::new(4), *local_type);
+                                                    assert_eq!(String::from("t4"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Var(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(3), *local_type);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[1] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Wildcard(Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(5), *local_type);
+                                                    assert_eq!(String::from("t5"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(6), *local_type);
+                                                    assert_eq!(String::from("t6"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    assert_eq!(LocalType::new(7), *local_type);
+                                    assert_eq!(String::from("t7"), local_types.local_type_to_string(*local_type));
+                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[9] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), Some(typ), None) => {
+                    assert_eq!(String::from("Int"), typ.to_string());
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Match(expr, cases, Some(local_type), _) => {
+                                    match &**expr {
+                                        Expr::Literal(_, Some(local_type), _) => {
+                                            assert_eq!(LocalType::new(1), *local_type);
+                                            assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(2, cases.len());
+                                    match &cases[0] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::As(_, _, Some(literal_local_type), Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(2), *literal_local_type);
+                                                    assert_eq!(String::from("t2"), local_types.local_type_to_string(*literal_local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *literal_local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(LocalType::new(3), *local_type);
+                                                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(4), *local_type);
+                                                    assert_eq!(String::from("t3"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[1] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Wildcard(Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(5), *local_type);
+                                                    assert_eq!(String::from("t4"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(6), *local_type);
+                                                    assert_eq!(String::from("t5"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    assert_eq!(LocalType::new(7), *local_type);
+                                    assert_eq!(String::from("t6"), local_types.local_type_to_string(*local_type));
+                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
