@@ -4596,7 +4596,8 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
                                                 _ => assert!(false),
                                             }
                                             assert_eq!(LocalType::new(5), *local_type);
-                                            assert_eq!(String::from("(t, Float)"), local_types.local_type_to_string(*local_type));                                        },
+                                            assert_eq!(String::from("(t, Float)"), local_types.local_type_to_string(*local_type));
+                                        },
                                         _ => assert!(false),
                                     }
                                 },
@@ -8512,6 +8513,1418 @@ d(x: t) -> (t, t) where t: shared = (x, x);
                     }
                 },
                 _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_evaluate_types_evaluates_types_for_functions()
+{
+    let s = "
+trait OpAdd
+{
+    op_add(x: t, y: t) -> t where t: OpAdd;
+};
+builtin type Int;
+builtin impl OpAdd for Int;
+f(x: Int, y: Int) -> Int = x + y;
+g(x: t, y: u) -> (t, u) = (x, y);
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(errs) => {
+            println!("{}", errs);
+            assert!(false)
+        },
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(5, tree.defs().len());
+    match &*tree.defs()[0] {
+        Def::Trait(_, trait1, _) => {
+            let trait_r = trait1.borrow();
+            match &*trait_r {
+                Trait(_, trait_defs, _) => {
+                    assert_eq!(1, trait_defs.len());
+                    match &*trait_defs[0] {
+                        TraitDef(_, var, _) => {
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Fun(_, _, Some(typ)) => {
+                                    assert_eq!(String::from("(t, t) -> t"), typ.to_string());
+                                    assert_eq!(1, typ.type_param_entries().len());
+                                    match typ.type_param_entry(LocalType::new(0)) {
+                                        Some(type_param_entry) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(1, type_param_entry_r.trait_names.len());
+                                            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Name(String::from("OpAdd"))));
+                                            assert_eq!(true, type_param_entry_r.type_values.is_empty());
+                                            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                                        },
+                                        None => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[2] {
+        Def::Impl(impl1, _) => {
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Builtin(_, _, Some(impl_vars)) => {
+                    assert_eq!(1, impl_vars.vars().len());
+                    match impl_vars.var(&String::from("op_add")) {
+                        Some(impl_var) => {
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Builtin(Some(typ)) => {
+                                    assert_eq!(String::from("(Int, Int) -> Int"), typ.to_string());
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[3] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Fun(fun, _, Some(typ)) => {
+                    assert_eq!(String::from("(Int, Int) -> Int"), typ.to_string());
+                    match &**fun {
+                        Fun::Fun(_, args, _, _, expr, Some(ret_local_type), Some(local_types)) => {
+                            assert_eq!(2, args.len());
+                            match &args[0] {
+                                Arg(_, _, Some(local_type), _) => {
+                                    assert_eq!(LocalType::new(0), *local_type);
+                                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                },
+                                _ => assert!(false),
+                            }
+                            match &args[1] {
+                                Arg(_, _, Some(local_type), _) => {
+                                    assert_eq!(LocalType::new(1), *local_type);
+                                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                },
+                                _ => assert!(false),
+                            }
+                            assert_eq!(LocalType::new(2), *ret_local_type);
+                            assert_eq!(String::from("Int"), local_types.local_type_to_string(*ret_local_type));
+                            match expr {
+                                Some(expr) => {
+                                    match &**expr {
+                                        Expr::App(expr, exprs, Some(local_type), _) => {
+                                            match &**expr {
+                                                Expr::Var(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(3), *local_type);
+                                                    assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(2, exprs.len());
+                                            match &*exprs[0] {
+                                                Expr::Var(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(0), *local_type);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &*exprs[1] {
+                                                Expr::Var(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(1), *local_type);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(LocalType::new(4), *local_type);
+                                            assert_eq!(String::from("t2"), local_types.local_type_to_string(*local_type));
+                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                None => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[4] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Fun(fun, _, Some(typ)) => {
+                    assert_eq!(String::from("(t, u) -> (t, u)"), typ.to_string());
+                    assert_eq!(2, typ.type_param_entries().len());
+                    match typ.type_param_entry(LocalType::new(0)) {
+                        Some(type_param_entry) => {
+                            let type_param_entry_r = type_param_entry.borrow();
+                            assert_eq!(true, type_param_entry_r.trait_names.is_empty());
+                            assert_eq!(true, type_param_entry_r.type_values.is_empty());
+                            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                        },
+                        None => assert!(false),
+                    }
+                    match typ.type_param_entry(LocalType::new(1)) {
+                        Some(type_param_entry) => {
+                            let type_param_entry_r = type_param_entry.borrow();
+                            assert_eq!(true, type_param_entry_r.trait_names.is_empty());
+                            assert_eq!(true, type_param_entry_r.type_values.is_empty());
+                            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                        },
+                        None => assert!(false),
+                    }
+                    match &**fun {
+                        Fun::Fun(_, args, _, _, expr, Some(ret_local_type), Some(local_types)) => {
+                            assert_eq!(String::from("t"), local_types.local_type_to_string(LocalType::new(0)));
+                            assert_eq!(String::from("u"), local_types.local_type_to_string(LocalType::new(1)));
+                            assert_eq!(2, args.len());
+                            match &args[0] {
+                                Arg(_, _, Some(local_type), _) => {
+                                    assert_eq!(LocalType::new(2), *local_type);
+                                    assert_eq!(String::from("t"), local_types.local_type_to_string(*local_type));
+                                },
+                                _ => assert!(false),
+                            }
+                            match &args[1] {
+                                Arg(_, _, Some(local_type), _) => {
+                                    assert_eq!(LocalType::new(3), *local_type);
+                                    assert_eq!(String::from("u"), local_types.local_type_to_string(*local_type));
+                                },
+                                _ => assert!(false),
+                            }
+                            assert_eq!(LocalType::new(4), *ret_local_type);
+                            assert_eq!(String::from("(t, u)"), local_types.local_type_to_string(*ret_local_type));
+                            match expr {
+                                Some(expr) => {
+                                    match &**expr {
+                                        Expr::Literal(literal, Some(local_type), _) => {
+                                            match &**literal {
+                                                Literal::Tuple(exprs) => {
+                                                    assert_eq!(2, exprs.len());
+                                                    match &*exprs[0] {
+                                                        Expr::Var(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(2), *local_type);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    match &*exprs[1] {
+                                                        Expr::Var(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(3), *local_type);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(LocalType::new(5), *local_type);
+                                            assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                None => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_evaluate_types_evaluates_types_for_implemented_variabale_and_implemented_function()
+{
+    let s = "
+trait OpAdd
+{
+    op_add(x: t, y: t) -> t where t: OpAdd;
+};
+builtin type Int;
+builtin impl OpAdd for Int;
+trait T
+{
+    a: t where t: shared + T;
+    f(x: t, y: t) -> t where t: T;
+};
+impl T for Int
+{
+    a = 1.5 as t;
+    f(x, y) = x + y;
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(5, tree.defs().len());
+    match &*tree.defs()[0] {
+        Def::Trait(_, trait1, _) => {
+            let trait_r = trait1.borrow();
+            match &*trait_r {
+                Trait(_, trait_defs, _) => {
+                    assert_eq!(1, trait_defs.len());
+                    match &*trait_defs[0] {
+                        TraitDef(_, var, _) => {
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Fun(_, _, Some(typ)) => {
+                                    assert_eq!(String::from("(t, t) -> t"), typ.to_string());
+                                    assert_eq!(1, typ.type_param_entries().len());
+                                    match typ.type_param_entry(LocalType::new(0)) {
+                                        Some(type_param_entry) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(1, type_param_entry_r.trait_names.len());
+                                            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Name(String::from("OpAdd"))));
+                                            assert_eq!(true, type_param_entry_r.type_values.is_empty());
+                                            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                                        },
+                                        None => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[2] {
+        Def::Impl(impl1, _) => {
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Builtin(_, _, Some(impl_vars)) => {
+                    assert_eq!(1, impl_vars.vars().len());
+                    match impl_vars.var(&String::from("op_add")) {
+                        Some(impl_var) => {
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Builtin(Some(typ)) => {
+                                    assert_eq!(String::from("(Int, Int) -> Int"), typ.to_string());
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[3] {
+        Def::Trait(_, trait1, _) => {
+            let trait_r = trait1.borrow();
+            match &*trait_r {
+                Trait(_, trait_defs, _) => {
+                    assert_eq!(2, trait_defs.len());
+                    match &*trait_defs[0] {
+                        TraitDef(_, var, _) => {
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Var(_, _, _, _, _, _, _, Some(typ), None) => {
+                                    assert_eq!(String::from("t"), typ.to_string());
+                                    assert_eq!(1, typ.type_param_entries().len());
+                                    match typ.type_param_entry(LocalType::new(0)) {
+                                        Some(type_param_entry) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(2, type_param_entry_r.trait_names.len());
+                                            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Name(String::from("T"))));
+                                            assert_eq!(true, type_param_entry_r.type_values.is_empty());
+                                            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                                        },
+                                        None => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                    match &*trait_defs[1] {
+                        TraitDef(_, var, _) => {
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Fun(_, _, Some(typ)) => {
+                                    assert_eq!(String::from("(t, t) -> t"), typ.to_string());
+                                    assert_eq!(1, typ.type_param_entries().len());
+                                    match typ.type_param_entry(LocalType::new(0)) {
+                                        Some(type_param_entry) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(1, type_param_entry_r.trait_names.len());
+                                            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Name(String::from("T"))));
+                                            assert_eq!(true, type_param_entry_r.type_values.is_empty());
+                                            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                                        },
+                                        None => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[4] {
+        Def::Impl(impl1, _) => {
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Impl(_, _, impl_defs, _) => {
+                    assert_eq!(2, impl_defs.len());
+                    match &*impl_defs[0] {
+                        ImplDef(_, impl_var, _) => {
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Var(expr, Some(local_type), Some(local_types), Some(typ), _) => {
+                                    assert_eq!(String::from("Int"), typ.to_string());
+                                    assert_eq!(LocalType::new(0), *local_type);
+                                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                    assert_eq!(String::from("Int"), local_types.local_type_to_string(LocalType::new(1)));
+                                    match &**expr {
+                                        Expr::As(expr, _, Some(local_type), _) => {
+                                            match &**expr {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(2), *local_type);
+                                                    assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(LocalType::new(3), *local_type);
+                                            assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                    match &*impl_defs[1] {
+                        ImplDef(_, impl_var, _) => {
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Fun(fun, Some(typ)) => {
+                                    assert_eq!(String::from("(Int, Int) -> Int"), typ.to_string());
+                                    match &**fun {
+                                        ImplFun(impl_args, expr, Some(ret_local_type), Some(local_types)) => {
+                                            assert_eq!(2, impl_args.len());
+                                            match &impl_args[0] {
+                                                ImplArg(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(0), *local_type);
+                                                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &impl_args[1] {
+                                                ImplArg(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(1), *local_type);
+                                                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(LocalType::new(2), *ret_local_type);
+                                            assert_eq!(String::from("Int"), local_types.local_type_to_string(*ret_local_type));
+                                            assert_eq!(String::from("Int"), local_types.local_type_to_string(LocalType::new(3)));
+                                            match &**expr {
+                                                Expr::App(expr, exprs, Some(local_type), _) => {
+                                                    match &**expr {
+                                                        Expr::Var(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(4), *local_type);
+                                                            assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(2, exprs.len());
+                                                    match &*exprs[0] {
+                                                        Expr::Var(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(0), *local_type);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    match &*exprs[1] {
+                                                        Expr::Var(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(1), *local_type);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(LocalType::new(5), *local_type);
+                                                    assert_eq!(String::from("t2"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                }, 
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_evaluate_types_evaluates_types_for_implemented_trait_with_parameters()
+{
+    let s = "
+trait OpAdd
+{
+    op_add(x: t, y: t) -> t where t: OpAdd;
+};
+builtin type Int;
+builtin type Float;
+builtin impl OpAdd for Int;
+builtin impl OpAdd for Float;
+trait T<t1, t2>
+{
+    f(x: t) -> Int where t: T <Int, u> = 1;
+    g(x: t, y: u) -> (Int, Float) where t: T<Int, Float>, u: T<Float, Int>, t == u;
+};
+data U<t1, t2> = C(Int, t1, t2);
+impl T for U
+{
+    g(x, y) = (x.1 + y.2, x.2 + y.1); 
+};
+data V<t1, t2> = D(uniq Int, t1, t2);
+impl T for V
+{
+    f(x) = x.1;
+    g(x, y) = (x.1, y.1); 
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(10, tree.defs().len());
+    match &*tree.defs()[0] {
+        Def::Trait(_, trait1, _) => {
+            let trait_r = trait1.borrow();
+            match &*trait_r {
+                Trait(_, trait_defs, _) => {
+                    assert_eq!(1, trait_defs.len());
+                    match &*trait_defs[0] {
+                        TraitDef(_, var, _) => {
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Fun(_, _, Some(typ)) => {
+                                    assert_eq!(String::from("(t, t) -> t"), typ.to_string());
+                                    assert_eq!(1, typ.type_param_entries().len());
+                                    match typ.type_param_entry(LocalType::new(0)) {
+                                        Some(type_param_entry) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(1, type_param_entry_r.trait_names.len());
+                                            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Name(String::from("OpAdd"))));
+                                            assert_eq!(true, type_param_entry_r.type_values.is_empty());
+                                            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                                        },
+                                        None => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[3] {
+        Def::Impl(impl1, _) => {
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Builtin(_, _, Some(impl_vars)) => {
+                    assert_eq!(1, impl_vars.vars().len());
+                    match impl_vars.var(&String::from("op_add")) {
+                        Some(impl_var) => {
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Builtin(Some(typ)) => {
+                                    assert_eq!(String::from("(Int, Int) -> Int"), typ.to_string());
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[4] {
+        Def::Impl(impl1, _) => {
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Builtin(_, _, Some(impl_vars)) => {
+                    assert_eq!(1, impl_vars.vars().len());
+                    match impl_vars.var(&String::from("op_add")) {
+                        Some(impl_var) => {
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Builtin(Some(typ)) => {
+                                    assert_eq!(String::from("(Float, Float) -> Float"), typ.to_string());
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[5] {
+        Def::Trait(_, trait1, _) => {
+            let trait_r = trait1.borrow();
+            match &*trait_r {
+                Trait(_, trait_defs, _) => {
+                    assert_eq!(2, trait_defs.len());
+                    match &*trait_defs[0] {
+                        TraitDef(_, var, _) => {
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Fun(fun, _, Some(typ)) => {
+                                    assert_eq!(String::from("(t) -> Int"), typ.to_string());
+                                    assert_eq!(2, typ.type_param_entries().len());
+                                    match typ.type_param_entry(LocalType::new(0)) {
+                                        Some(type_param_entry) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(1, type_param_entry_r.trait_names.len());
+                                            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Name(String::from("T"))));
+                                            assert_eq!(2, type_param_entry_r.type_values.len());
+                                            assert_eq!(String::from("Int"), type_param_entry_r.type_values[0].to_string_without_fun());
+                                            assert_eq!(String::from("t2"), type_param_entry_r.type_values[1].to_string_without_fun());
+                                            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                                        },
+                                        None => assert!(false),
+                                    }
+                                    match typ.type_param_entry(LocalType::new(1)) {
+                                        Some(type_param_entry) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(true, type_param_entry_r.trait_names.is_empty());
+                                            assert_eq!(true, type_param_entry_r.type_values.is_empty());
+                                            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                                        },
+                                        None => assert!(false),
+                                    }
+                                    // t u
+                                    assert_eq!(false, typ.has_eq_type_params(LocalType::new(0), LocalType::new(1)));
+                                    match &**fun {
+                                        Fun::Fun(_, args, _, _, expr, Some(ret_local_type), Some(local_types)) => {
+                                            assert_eq!(String::from("t"), local_types.local_type_to_string(LocalType::new(0)));
+                                            assert_eq!(String::from("u"), local_types.local_type_to_string(LocalType::new(1)));
+                                            assert_eq!(1, args.len());
+                                            match &args[0] {
+                                                Arg(_, _, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(2), *local_type);
+                                                    assert_eq!(String::from("t"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(LocalType::new(3), *ret_local_type);
+                                            assert_eq!(String::from("Int"), local_types.local_type_to_string(*ret_local_type));
+                                            match expr {
+                                                Some(expr) => {
+                                                    match &**expr {
+                                                        Expr::Literal(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(4), *local_type);
+                                                            assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                None => assert!(false),
+                                            }
+                                        }
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                    match &*trait_defs[1] {
+                        TraitDef(_, var, _) => {
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Fun(_, _, Some(typ)) => {
+                                    assert_eq!(String::from("(t, u) -> (Int, Float)"), typ.to_string());
+                                    assert_eq!(2, typ.type_param_entries().len());
+                                    match typ.type_param_entry(LocalType::new(0)) {
+                                        Some(type_param_entry) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(1, type_param_entry_r.trait_names.len());
+                                            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Name(String::from("T"))));
+                                            assert_eq!(2, type_param_entry_r.type_values.len());
+                                            assert_eq!(String::from("Int"), type_param_entry_r.type_values[0].to_string_without_fun());
+                                            assert_eq!(String::from("Float"), type_param_entry_r.type_values[1].to_string_without_fun());
+                                            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                                        },
+                                        None => assert!(false),
+                                    }
+                                    match typ.type_param_entry(LocalType::new(1)) {
+                                        Some(type_param_entry) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(1, type_param_entry_r.trait_names.len());
+                                            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Name(String::from("T"))));
+                                            assert_eq!(2, type_param_entry_r.type_values.len());
+                                            assert_eq!(String::from("Float"), type_param_entry_r.type_values[0].to_string_without_fun());
+                                            assert_eq!(String::from("Int"), type_param_entry_r.type_values[1].to_string_without_fun());
+                                            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                                        },
+                                        None => assert!(false),
+                                    }
+                                    // t u
+                                    assert_eq!(true, typ.has_eq_type_params(LocalType::new(0), LocalType::new(1)));
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[7] {
+        Def::Impl(impl1, _) => {
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Impl(_, _, impl_defs, _) => {
+                    assert_eq!(1, impl_defs.len());
+                    match &*impl_defs[0] {
+                        ImplDef(_, impl_var, _) => {
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Fun(fun, Some(typ)) => {
+                                    assert_eq!(String::from("(U<Int, Float>, U<Float, Int>) -> (Int, Float)"), typ.to_string());
+                                    match &**fun {
+                                        ImplFun(impl_args, expr, Some(ret_local_type), Some(local_types)) => {
+                                            assert_eq!(2, impl_args.len());
+                                            match &impl_args[0] {
+                                                ImplArg(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(0), *local_type);
+                                                    assert_eq!(String::from("U<Int, Float>"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &impl_args[1] {
+                                                ImplArg(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(1), *local_type);
+                                                    assert_eq!(String::from("U<Float, Int>"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(LocalType::new(2), *ret_local_type);
+                                            assert_eq!(String::from("(Int, Float)"), local_types.local_type_to_string(*ret_local_type));
+                                            assert_eq!(String::from("U<Int, Float>"), local_types.local_type_to_string(LocalType::new(3)));
+                                            assert_eq!(String::from("U<Float, Int>"), local_types.local_type_to_string(LocalType::new(4)));
+                                            match &**expr {
+                                                Expr::Literal(literal, Some(local_type), _) => {
+                                                    match &**literal {
+                                                        Literal::Tuple(exprs) => {
+                                                            assert_eq!(2, exprs.len());
+                                                            match &*exprs[0] {
+                                                                Expr::App(expr, exprs, Some(local_type), _) => {
+                                                                    match &**expr {
+                                                                        Expr::Var(_, Some(local_type), _) => {
+                                                                            assert_eq!(LocalType::new(5), *local_type);
+                                                                            assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                                },
+                                                                                _ => assert!(false),
+                                                                            }
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                    assert_eq!(2, exprs.len());
+                                                                    match &*exprs[0] {
+                                                                        Expr::GetField(expr, _, Some(local_type), _) => {
+                                                                            match &**expr {
+                                                                                Expr::Var(_, Some(local_type), _) => {
+                                                                                    assert_eq!(LocalType::new(0), *local_type);
+                                                                                },
+                                                                                _ => assert!(false),
+                                                                            }
+                                                                            assert_eq!(LocalType::new(6), *local_type);
+                                                                            assert_eq!(String::from("t2"), local_types.local_type_to_string(*local_type));
+                                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                                },
+                                                                                _ => assert!(false),
+                                                                            }
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                    match &*exprs[1] {
+                                                                        Expr::GetField(expr, _, Some(local_type), _) => {
+                                                                            match &**expr {
+                                                                                Expr::Var(_, Some(local_type), _) => {
+                                                                                    assert_eq!(LocalType::new(1), *local_type);
+                                                                                },
+                                                                                _ => assert!(false),
+                                                                            }
+                                                                            assert_eq!(LocalType::new(7), *local_type);
+                                                                            assert_eq!(String::from("t3"), local_types.local_type_to_string(*local_type));
+                                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                                },
+                                                                                _ => assert!(false),
+                                                                            }
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                    assert_eq!(LocalType::new(8), *local_type);
+                                                                    assert_eq!(String::from("t4"), local_types.local_type_to_string(*local_type));
+                                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                            match &*exprs[1] {
+                                                                Expr::App(expr, exprs, Some(local_type), _) => {
+                                                                    match &**expr {
+                                                                        Expr::Var(_, Some(local_type), _) => {
+                                                                            assert_eq!(LocalType::new(9), *local_type);
+                                                                            assert_eq!(String::from("t5"), local_types.local_type_to_string(*local_type));
+                                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                                },
+                                                                                _ => assert!(false),
+                                                                            }
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                    assert_eq!(2, exprs.len());
+                                                                    match &*exprs[0] {
+                                                                        Expr::GetField(expr, _, Some(local_type), _) => {
+                                                                            match &**expr {
+                                                                                Expr::Var(_, Some(local_type), _) => {
+                                                                                    assert_eq!(LocalType::new(0), *local_type);
+                                                                                },
+                                                                                _ => assert!(false),
+                                                                            }
+                                                                            assert_eq!(LocalType::new(10), *local_type);
+                                                                            assert_eq!(String::from("t6"), local_types.local_type_to_string(*local_type));
+                                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                                },
+                                                                                _ => assert!(false),
+                                                                            }
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                    match &*exprs[1] {
+                                                                        Expr::GetField(expr, _, Some(local_type), _) => {
+                                                                            match &**expr {
+                                                                                Expr::Var(_, Some(local_type), _) => {
+                                                                                    assert_eq!(LocalType::new(1), *local_type);
+                                                                                },
+                                                                                _ => assert!(false),
+                                                                            }
+                                                                            assert_eq!(LocalType::new(11), *local_type);
+                                                                            assert_eq!(String::from("t7"), local_types.local_type_to_string(*local_type));
+                                                                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                                Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                                                    assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                                },
+                                                                                _ => assert!(false),
+                                                                            }
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                    assert_eq!(LocalType::new(12), *local_type);
+                                                                    assert_eq!(String::from("t8"), local_types.local_type_to_string(*local_type));
+                                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(LocalType::new(13), *local_type);
+                                                    assert_eq!(String::from("t9"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                }, 
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[9] {
+        Def::Impl(impl1, _) => {
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Impl(_, _, impl_defs, _) => {
+                    assert_eq!(2, impl_defs.len());
+                    match &*impl_defs[0] {
+                        ImplDef(_, impl_var, _) => {
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Fun(fun, Some(typ)) => {
+                                    assert_eq!(String::from("(V<Int, u>) -> Int"), typ.to_string());
+                                    assert_eq!(1, typ.type_param_entries().len());
+                                    match typ.type_param_entry(LocalType::new(0)) {
+                                        Some(type_param_entry) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(true, type_param_entry_r.trait_names.is_empty());
+                                            assert_eq!(true, type_param_entry_r.type_values.is_empty());
+                                            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                                        },
+                                        None => assert!(false),
+                                    }
+                                    match &**fun {
+                                        ImplFun(impl_args, expr, Some(ret_local_type), Some(local_types)) => {
+                                            assert_eq!(String::from("u"), local_types.local_type_to_string(LocalType::new(0)));
+                                            assert_eq!(1, impl_args.len());
+                                            match &impl_args[0] {
+                                                ImplArg(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(1), *local_type);
+                                                    assert_eq!(String::from("V<Int, u>"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(LocalType::new(2), *ret_local_type);
+                                            assert_eq!(String::from("Int"), local_types.local_type_to_string(*ret_local_type));
+                                            assert_eq!(String::from("V<Int, u>"), local_types.local_type_to_string(LocalType::new(3)));
+                                            match &**expr {
+                                                Expr::GetField(expr, _, Some(local_type), _) => {
+                                                    match &**expr {
+                                                        Expr::Var(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(1), *local_type);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(LocalType::new(4), *local_type);
+                                                    assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                }, 
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                    match &*impl_defs[1] {
+                        ImplDef(_, impl_var, _) => {
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Fun(fun, Some(typ)) => {
+                                    assert_eq!(String::from("(V<Int, Float>, V<Float, Int>) -> (Int, Float)"), typ.to_string());
+                                    match &**fun {
+                                        ImplFun(impl_args, expr, Some(ret_local_type), Some(local_types)) => {
+                                            assert_eq!(2, impl_args.len());
+                                            match &impl_args[0] {
+                                                ImplArg(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(0), *local_type);
+                                                    assert_eq!(String::from("V<Int, Float>"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &impl_args[1] {
+                                                ImplArg(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(1), *local_type);
+                                                    assert_eq!(String::from("V<Float, Int>"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(LocalType::new(2), *ret_local_type);
+                                            assert_eq!(String::from("(Int, Float)"), local_types.local_type_to_string(*ret_local_type));
+                                            assert_eq!(String::from("V<Int, Float>"), local_types.local_type_to_string(LocalType::new(3)));
+                                            assert_eq!(String::from("V<Float, Int>"), local_types.local_type_to_string(LocalType::new(4)));
+                                            match &**expr {
+                                                Expr::Literal(literal, Some(local_type), _) => {
+                                                    match &**literal {
+                                                        Literal::Tuple(exprs) => {
+                                                            assert_eq!(2, exprs.len());
+                                                            match &*exprs[0] {
+                                                                Expr::GetField(expr, _, Some(local_type), _) => {
+                                                                    match &**expr {
+                                                                        Expr::Var(_, Some(local_type), _) => {
+                                                                            assert_eq!(LocalType::new(0), *local_type);
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                    assert_eq!(LocalType::new(5), *local_type);
+                                                                    assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                            match &*exprs[1] {
+                                                                Expr::GetField(expr, _, Some(local_type), _) => {
+                                                                    match &**expr {
+                                                                        Expr::Var(_, Some(local_type), _) => {
+                                                                            assert_eq!(LocalType::new(1), *local_type);
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                    assert_eq!(LocalType::new(6), *local_type);
+                                                                    assert_eq!(String::from("t2"), local_types.local_type_to_string(*local_type));
+                                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                                        },
+                                                                        _ => assert!(false),
+                                                                    }
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(LocalType::new(7), *local_type);
+                                                    assert_eq!(String::from("t3"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                }, 
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_evaluate_types_evaluates_types_for_implemented_trait_with_nested_parameters()
+{
+    let s = "
+trait T<t1>
+{
+    f(x: t) -> w where t: T<u>, u: T<v>, v: T<w>, t == u == v;
+};
+data U<t1> = C(t1);
+impl T for U
+{
+    f(x) = x.0.0.0;
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(3, tree.defs().len());
+    match &*tree.defs()[0] {
+        Def::Trait(_, trait1, _) => {
+            let trait_r = trait1.borrow();
+            match &*trait_r {
+                Trait(_, trait_defs, _) => {
+                    assert_eq!(1, trait_defs.len());
+                    match &*trait_defs[0] {
+                        TraitDef(_, var, _) => {
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Fun(_, _, Some(typ)) => {
+                                    assert_eq!(String::from("(t) -> w"), typ.to_string());
+                                    assert_eq!(4, typ.type_param_entries().len());
+                                    match typ.type_param_entry(LocalType::new(0)) {
+                                        Some(type_param_entry) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(1, type_param_entry_r.trait_names.len());
+                                            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Name(String::from("T"))));
+                                            assert_eq!(1, type_param_entry_r.type_values.len());
+                                            assert_eq!(String::from("t3"), type_param_entry_r.type_values[0].to_string_without_fun());
+                                            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                                        },
+                                        None => assert!(false),
+                                    }
+                                    match typ.type_param_entry(LocalType::new(1)) {
+                                        Some(type_param_entry) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(true, type_param_entry_r.trait_names.is_empty());
+                                            assert_eq!(true, type_param_entry_r.type_values.is_empty());
+                                            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                                        },
+                                        None => assert!(false),
+                                    }
+                                    match typ.type_param_entry(LocalType::new(2)) {
+                                        Some(type_param_entry) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(1, type_param_entry_r.trait_names.len());
+                                            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Name(String::from("T"))));
+                                            assert_eq!(1, type_param_entry_r.type_values.len());
+                                            assert_eq!(String::from("t4"), type_param_entry_r.type_values[0].to_string_without_fun());
+                                            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                                        },
+                                        None => assert!(false),
+                                    }
+                                    match typ.type_param_entry(LocalType::new(3)) {
+                                        Some(type_param_entry) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(1, type_param_entry_r.trait_names.len());
+                                            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Name(String::from("T"))));
+                                            assert_eq!(1, type_param_entry_r.type_values.len());
+                                            assert_eq!(String::from("t2"), type_param_entry_r.type_values[0].to_string_without_fun());
+                                            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                                        },
+                                        None => assert!(false),
+                                    }
+                                    // t w u v
+                                    assert_eq!(false, typ.has_eq_type_params(LocalType::new(0), LocalType::new(1)));
+                                    assert_eq!(true, typ.has_eq_type_params(LocalType::new(0), LocalType::new(2)));
+                                    assert_eq!(true, typ.has_eq_type_params(LocalType::new(0), LocalType::new(3)));
+                                    //   w u v
+                                    assert_eq!(false, typ.has_eq_type_params(LocalType::new(1), LocalType::new(2)));
+                                    assert_eq!(false, typ.has_eq_type_params(LocalType::new(1), LocalType::new(3)));
+                                    //     u v
+                                    assert_eq!(true, typ.has_eq_type_params(LocalType::new(2), LocalType::new(3)));
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[2] {
+        Def::Impl(impl1, _) => {
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Impl(_, _, impl_defs, _) => {
+                    assert_eq!(1, impl_defs.len());
+                    match &*impl_defs[0] {
+                        ImplDef(_, impl_var, _) => {
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Fun(fun, Some(typ)) => {
+                                    assert_eq!(String::from("(U<U<U<w>>>) -> w"), typ.to_string());
+                                    assert_eq!(1, typ.type_param_entries().len());
+                                    match typ.type_param_entry(LocalType::new(0)) {
+                                        Some(type_param_entry) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(true, type_param_entry_r.trait_names.is_empty());
+                                            assert_eq!(true, type_param_entry_r.type_values.is_empty());
+                                            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                                        },
+                                        None => assert!(false),
+                                    }
+                                    match &**fun {
+                                        ImplFun(impl_args, expr, Some(ret_local_type), Some(local_types)) => {
+                                            assert_eq!(String::from("w"), local_types.local_type_to_string(LocalType::new(0)));
+                                            assert_eq!(1, impl_args.len());
+                                            match &impl_args[0] {
+                                                ImplArg(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(1), *local_type);
+                                                    assert_eq!(String::from("U<U<U<w>>>"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(LocalType::new(2), *ret_local_type);
+                                            assert_eq!(String::from("w"), local_types.local_type_to_string(*ret_local_type));
+                                            assert_eq!(String::from("U<U<U<w>>>"), local_types.local_type_to_string(LocalType::new(3)));
+                                            assert_eq!(String::from("U<U<w>>"), local_types.local_type_to_string(LocalType::new(4)));
+                                            assert_eq!(String::from("U<w>"), local_types.local_type_to_string(LocalType::new(5)));
+                                            match &**expr {
+                                                Expr::GetField(expr, _, Some(local_type), _) => {
+                                                    match &**expr {
+                                                        Expr::Var(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(1), *local_type);
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(LocalType::new(6), *local_type);
+                                                    assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                }, 
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_evaluate_types_evaluates_types_for_implemented_zero_trait()
+{
+    let s = "
+trait Zero
+{
+    builtin zero;
+};
+builtin type Int;
+data T = C(Int);
+impl Zero for T {};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(4, tree.defs().len());
+    match &*tree.defs()[0] {
+        Def::Trait(_, trait1, _) => {
+            let trait_r = trait1.borrow();
+            match &*trait_r {
+                Trait(_, trait_defs, _) => {
+                    assert_eq!(1, trait_defs.len());
+                    match &*trait_defs[0] {
+                        TraitDef(_, var, _) => {
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Builtin(_, Some(typ)) => {
+                                    assert_eq!(String::from("() -> t"), typ.to_string());
+                                    assert_eq!(1, typ.type_param_entries().len());
+                                    match typ.type_param_entry(LocalType::new(0)) {
+                                        Some(type_param_entry) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(1, type_param_entry_r.trait_names.len());
+                                            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Name(String::from("Zero"))));
+                                            assert_eq!(true, type_param_entry_r.type_values.is_empty());
+                                            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+                                        },
+                                        None => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
             }
         },
         _ => assert!(false),

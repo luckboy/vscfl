@@ -2650,17 +2650,14 @@ impl Typer
             }
         }
         let mut visited_local_types: BTreeSet<LocalType> = BTreeSet::new();
-        for (i, local_type) in local_types.iter().enumerate() {
-            match local_type {
-                None => {
-                    let old_local_type = LocalType::new(i);
-                    dfs_with_result(&old_local_type, &mut visited_local_types, &mut type_values, |local_type, processed_local_types, type_values| {
-                            self.local_types_for_local_type(*local_type, type_values, typ, processed_local_types)
-                    }, |local_type, type_values| {
-                            self.substitute_for_local_type(*local_type, type_name, type_values, typ)
-                    })?;
-                },
-                Some(_) => (),
+        for (j, local_type) in local_types.iter().enumerate() {
+            if local_type.is_none() {
+                let old_local_type = LocalType::new(j);
+                dfs_with_result(&old_local_type, &mut visited_local_types, &mut type_values, |local_type, processed_local_types, type_values| {
+                        self.local_types_for_local_type(*local_type, type_values, typ, processed_local_types)
+                }, |local_type, type_values| {
+                        self.substitute_for_local_type(*local_type, type_name, type_values, typ)
+                })?;
             }
         }
         let new_type_value = match typ.type_value().substitute(&type_values) {
@@ -2668,7 +2665,7 @@ impl Typer
             Ok(None) => typ.type_value().clone(),
             Err(err) => return Err(FrontendErrors::new(vec![FrontendError::Internal(format!("new_type_by_substitution: {}", err))])),
         };
-        let mut new_type = Type::new_with_type_param_entry_count(new_type_value, typ.type_param_entries().len());
+        let mut new_type = Type::new_with_type_param_entry_count(new_type_value, i);
         for (local_type, type_param_entry) in local_types.iter().zip(typ.type_param_entries().iter()) {
             match local_type {
                 Some(local_type) => {
