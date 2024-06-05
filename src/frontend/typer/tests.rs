@@ -7707,7 +7707,7 @@ d: Int = 1 match {
 }
 
 #[test]
-fn test_typer_evaluate_types_sets_shareds()
+fn test_typer_evaluate_types_sets_shareds_for_types()
 {
     let s = "
 builtin type Bool;
