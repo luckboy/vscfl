@@ -9930,3 +9930,685 @@ impl Zero for T {};
         _ => assert!(false),
     }
 }
+
+#[test]
+fn test_typer_evaluate_types_complains_on_too_few_type_arguments_of_type()
+{
+    let s = "
+trait T<t1, t2> {};
+data U<t1> = C(t1);
+impl T for U {};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(3, pos.line);
+                    assert_eq!(1, pos.column);
+                    assert_eq!(String::from("too few type arguments of type U"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_evaluate_types_complains_on_too_many_type_arguments_of_type()
+{
+    let s = "
+trait T<t1, t2> {};
+data U<t1, t2, t3> = C(t1, t2, t3);
+impl T for U {};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(3, pos.line);
+                    assert_eq!(1, pos.column);
+                    assert_eq!(String::from("too many type arguments of type U"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_evaluate_types_complains_on_too_few_type_arguments_for_variable()
+{
+    let s = "
+builtin type Int;
+data T<t1, t2> = C(t1, t2);
+a: T<Int> = C(1, 2);
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(3, pos.line);
+                    assert_eq!(4, pos.column);
+                    assert_eq!(String::from("too few type arguments"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_evaluate_types_complains_on_too_few_type_arguments_for_function()
+{
+    let s = "
+builtin type Int;
+data T<t1, t2> = C(t1, t2);
+f(x: T<Int>) -> T<Int, Int> = x;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(3, pos.line);
+                    assert_eq!(6, pos.column);
+                    assert_eq!(String::from("too few type arguments"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_evaluate_types_complains_on_number_of_type_arguments_of_trait_is_not_equal_to_number_of_type_expressions_of_type_parameter_for_function()
+{
+    let s = "
+trait T<t1, t2> {};
+f(x: t) -> t  where t: T<u> = x;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(2, pos.line);
+                    assert_eq!(21, pos.column);
+                    assert_eq!(String::from("number of type arguments of trait T isn't equal to number of type expressions of type parameter t"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_evaluate_types_complains_on_type_of_variable_has_type_parameters_with_trait_which_are_not_equal_for_trait_function()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+trait T<t1>
+{
+    f(x: t, u: x) -> (t, u) where t: T<Int>, u: T<Float>;
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(5, pos.line);
+                    assert_eq!(5, pos.column);
+                    assert_eq!(String::from("type of variable f has type parameters with trait T which aren't equal"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_evaluate_types_complains_on_too_few_type_arguments_for_typed_expression()
+{
+    let s = "
+builtin type Int;
+data T<t1, t2> = C(t1, t2);
+a: T<Int, Int> = C(1, 2): T<Int>;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(3, pos.line);
+                    assert_eq!(27, pos.column);
+                    assert_eq!(String::from("too few type arguments"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_evaluate_types_complains_on_too_few_type_arguments_for_as_expression()
+{
+    let s = "
+builtin type Int;
+type T<t1, t2> = (t1, t2);
+a: (Int, Int) = (1, 2): T<Int>;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(3, pos.line);
+                    assert_eq!(25, pos.column);
+                    assert_eq!(String::from("too few type arguments"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_evaluate_types_complains_on_variable_must_not_be_shared_with_type()
+{
+    let s = "
+f(x: t) -> (t, t) = (x, x);
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(1, pos.line);
+                    assert_eq!(25, pos.column);
+                    assert_eq!(String::from("variable x mustn't be shared with type t"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_evaluate_types_complains_on_variable_must_not_be_non_shared_with_type()
+{
+    let s = "
+builtin type Int;
+data T = C(uniq Int);
+a: T = C(uniq 1);
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(3, pos.line);
+                    assert_eq!(4, pos.column);
+                    assert_eq!(String::from("variable a mustn't be non-shared with type T"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_evaluate_types_complains_on_too_many_arguments()
+{
+    let s = "
+trait Zero
+{
+    builtin zero;
+};
+builtin type Int;
+data T = C(Int);
+impl Zero for T
+{
+    zero(x) = x;
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(9, pos.line);
+                    assert_eq!(5, pos.column);
+                    assert_eq!(String::from("too many arguments"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_evaluate_types_complains_on_defined_implementation_of_trait_for_type_that_is_unique_type_for_variable()
+{
+    let s = "
+trait T
+{
+    a: t where t: shared + T;
+};
+builtin type Int;
+data U = C(uniq Int);
+impl T for U
+{
+    a = C(uniq 1);
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(7, pos.line);
+                    assert_eq!(1, pos.column);
+                    assert_eq!(String::from("defined implementation of trait T for type U that is unique type"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_evaluate_types_complains_on_defined_implementation_of_trait_for_type_that_is_unique_type_for_function()
+{
+    let s = "
+trait T
+{
+    f(x: t) -> (t, t) where t: shared + T;
+};
+builtin type Int;
+data U = C(uniq Int);
+impl T for U
+{
+    f(x) = (x, x);
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Err(errs) => {
+            assert_eq!(2, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(7, pos.line);
+                    assert_eq!(1, pos.column);
+                    assert_eq!(String::from("defined implementation of trait T for type U that is unique type"), *msg);
+                },
+                _ => assert!(false),
+            }
+            match &errs.errors()[1] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(9, pos.line);
+                    assert_eq!(16, pos.column);
+                    assert_eq!(String::from("variable x mustn't be shared with type U"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_evaluate_types_complains_on_built_in_variable_has_not_evaluated_type_in_trait()
+{
+    let s = "
+trait T
+{
+    builtin no_builtin;
+};
+builtin type Int;
+data U = C(Int);
+impl T for U
+{
+    no_builtin = C(1);
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Err(errs) => {
+            assert_eq!(2, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(3, pos.line);
+                    assert_eq!(5, pos.column);
+                    assert_eq!(String::from("variable no_builtin mustn't be built-in variable"), *msg);
+                },
+                _ => assert!(false),
+            }
+            match &errs.errors()[1] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(9, pos.line);
+                    assert_eq!(5, pos.column);
+                    assert_eq!(String::from("built-in variable no_builtin hasn't evaluated type in trait T"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_evaluate_types_complains_on_variable_has_not_evaluated_type_in_trait()
+{
+    let s = "
+trait T
+{
+    a: Int;
+};
+builtin type Int;
+data U = C(Int);
+impl T for U
+{
+    a = 1;
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Err(errs) => {
+            assert_eq!(2, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(3, pos.line);
+                    assert_eq!(5, pos.column);
+                    assert_eq!(String::from("type of variable a must have type parameter with trait T"), *msg);
+                },
+                _ => assert!(false),
+            }
+            match &errs.errors()[1] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(9, pos.line);
+                    assert_eq!(5, pos.column);
+                    assert_eq!(String::from("variable a hasn't evaluated type in trait T"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_evaluate_types_complains_on_function_has_not_evaluated_type_in_trait()
+{
+    let s = "
+trait T
+{
+    f(x: Int) -> Int;
+};
+builtin type Int;
+data U = C(Int);
+impl T for U
+{
+    f(x) = x;
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Err(errs) => {
+            assert_eq!(2, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(3, pos.line);
+                    assert_eq!(5, pos.column);
+                    assert_eq!(String::from("type of variable f must have type parameter with trait T"), *msg);
+                },
+                _ => assert!(false),
+            }
+            match &errs.errors()[1] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(9, pos.line);
+                    assert_eq!(5, pos.column);
+                    assert_eq!(String::from("function f hasn't evaluated type in trait T"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
