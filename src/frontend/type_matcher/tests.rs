@@ -68,7 +68,7 @@ trait T<t1> {};
     }
     let type_value = Rc::new(TypeValue::Param(UniqFlag::Uniq, LocalType::new(0)));
     assert_eq!(LocalType::new(3), local_types.add_type_value(type_value.clone()));
-    let type_matcher = TypeMatcher::new();
+    let type_matcher = typer.type_matcher();
     match type_matcher.uniq_flag_and_shared_flag(LocalType::new(0), &tree, &local_types) {
         Ok((UniqFlag::None, SharedFlag::Shared)) => assert!(true),
         _ => assert!(false),
@@ -143,7 +143,7 @@ trait T<t1> {};
     }
     let type_value = Rc::new(TypeValue::Param(UniqFlag::Uniq, LocalType::new(1)));
     assert_eq!(LocalType::new(3), local_types.add_type_value(type_value.clone()));
-    let type_matcher = TypeMatcher::new();
+    let type_matcher = typer.type_matcher();
     match type_matcher.uniq_flag_and_shared_flag(LocalType::new(1), &tree, &local_types) {
         Ok((UniqFlag::None, SharedFlag::Shared)) => assert!(true),
         _ => assert!(false),
@@ -216,7 +216,7 @@ trait T<t1> {};
         },
         Err(_) => assert!(false),
     }
-    let type_matcher = TypeMatcher::new();
+    let type_matcher = typer.type_matcher();
     match type_matcher.uniq_flag_and_shared_flag(LocalType::new(0), &tree, &local_types) {
         Ok((UniqFlag::None, SharedFlag::Shared)) => assert!(true),
         _ => assert!(false),
@@ -281,7 +281,7 @@ trait T<t1> {};
         },
         Err(_) => assert!(false),
     }
-    let type_matcher = TypeMatcher::new();
+    let type_matcher = typer.type_matcher();
     match type_matcher.uniq_flag_and_shared_flag(LocalType::new(0), &tree, &local_types) {
         Ok((UniqFlag::Uniq, SharedFlag::None)) => assert!(true),
         _ => assert!(false),
@@ -346,7 +346,7 @@ trait T<t1> {};
         },
         Err(_) => assert!(false),
     }
-    let type_matcher = TypeMatcher::new();
+    let type_matcher = typer.type_matcher();
     match type_matcher.uniq_flag_and_shared_flag(LocalType::new(0), &tree, &local_types) {
         Ok((UniqFlag::None, SharedFlag::Shared)) => assert!(true),
         _ => assert!(false),
@@ -412,7 +412,7 @@ trait U<t1> {};
         },
         Err(_) => assert!(false),
     }
-    let type_matcher = TypeMatcher::new();
+    let type_matcher = typer.type_matcher();
     match type_matcher.uniq_flag_and_shared_flag(LocalType::new(0), &tree, &local_types) {
         Ok((UniqFlag::None, SharedFlag::Shared)) => assert!(true),
         _ => assert!(false),
@@ -478,7 +478,7 @@ trait U<t1> {};
         },
         Err(_) => assert!(false),
     }
-    let type_matcher = TypeMatcher::new();
+    let type_matcher = typer.type_matcher();
     match type_matcher.uniq_flag_and_shared_flag(LocalType::new(0), &tree, &local_types) {
         Ok((UniqFlag::Uniq, SharedFlag::None)) => assert!(true),
         _ => assert!(false),
@@ -544,7 +544,7 @@ trait U<t1> {};
         },
         Err(_) => assert!(false),
     }
-    let type_matcher = TypeMatcher::new();
+    let type_matcher = typer.type_matcher();
     match type_matcher.uniq_flag_and_shared_flag(LocalType::new(0), &tree, &local_types) {
         Ok((UniqFlag::Uniq, SharedFlag::None)) => assert!(true),
         _ => assert!(false),
@@ -605,7 +605,7 @@ trait T<t1> {};
         },
         Err(_) => assert!(false),
     }
-    let type_matcher = TypeMatcher::new();
+    let type_matcher = typer.type_matcher();
     match type_matcher.set_shared(LocalType::new(0), &tree, &local_types) {
         Ok(true) => assert!(true),
         _ => assert!(false),
@@ -689,7 +689,7 @@ trait U<t1, t2> {};
         },
         Err(_) => assert!(false),
     }
-    let type_matcher = TypeMatcher::new();
+    let type_matcher = typer.type_matcher();
     match type_matcher.set_shared(LocalType::new(1), &tree, &local_types) {
         Ok(true) => assert!(true),
         _ => assert!(false),
@@ -795,7 +795,7 @@ trait U<t1> {};
         },
         Err(_) => assert!(false),
     }
-    let type_matcher = TypeMatcher::new();
+    let type_matcher = typer.type_matcher();
     match type_matcher.set_shared(LocalType::new(0), &tree, &local_types) {
         Ok(true) => assert!(true),
         _ => assert!(false),
@@ -861,7 +861,7 @@ trait U<t1> {};
         },
         Err(_) => assert!(false),
     }
-    let type_matcher = TypeMatcher::new();
+    let type_matcher = typer.type_matcher();
     match type_matcher.set_shared(LocalType::new(0), &tree, &local_types) {
         Ok(false) => assert!(true),
         _ => assert!(false),

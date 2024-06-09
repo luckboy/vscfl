@@ -537,6 +537,9 @@ impl Typer
     pub fn set_builtins(&mut self, builtins: Builtins)
     { self.builtins = builtins; }
 
+    pub fn type_matcher(&self) -> &TypeMatcher
+    { &self.type_matcher }
+    
     pub fn evaluate_types_for_type_vars(&self, tree: &Tree) -> FrontendResultWithErrors<()>
     {
         let mut errs: Vec<FrontendError> = Vec::new();
