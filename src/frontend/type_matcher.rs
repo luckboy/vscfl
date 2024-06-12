@@ -14,7 +14,7 @@ use crate::frontend::builtins::*;
 use crate::frontend::error::*;
 use crate::frontend::tree::*;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum MismatchedTypeInfo
 {
     Param(LocalType, TraitName, LocalType),
@@ -63,7 +63,7 @@ impl<'a, 'b> fmt::Display for MismatchedTypeInfoWidthLocalTypes<'a, 'b>
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum TypeMatcherResult
 {
     Matched,
