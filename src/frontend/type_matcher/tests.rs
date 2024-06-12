@@ -2960,17 +2960,10 @@ data T<t1, t2> = C(Int, t1, t2);
     match type_matcher.matches(LocalType::new(0), LocalType::new(1), &tree, &mut local_types) {
         Ok(TypeMatcherResult::Matched) => {
             let local_type1 = LocalType::new(0);
-            let local_type2 = LocalType::new(1);
             assert_eq!(String::from("T<Int, Float>"), local_types.local_type_to_string(local_type1));
             match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type1))) {
                 Some(LocalTypeEntry::Type(type_value)) => {
                     assert!(Rc::ptr_eq(&expected_type_value, &type_value));
-                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type2))) {
-                        Some(LocalTypeEntry::Type(type_value2)) => {
-                            assert!(Rc::ptr_eq(&expected_type_value, &type_value2));
-                        },
-                        _ => assert!(false),
-                    }
                 },
                 _ => assert!(false),
             }
@@ -2980,17 +2973,10 @@ data T<t1, t2> = C(Int, t1, t2);
     match type_matcher.matches(LocalType::new(1), LocalType::new(0), &tree, &mut local_types2) {
         Ok(TypeMatcherResult::Matched) => {
             let local_type1 = LocalType::new(0);
-            let local_type2 = LocalType::new(1);
             assert_eq!(String::from("T<Int, Float>"), local_types2.local_type_to_string(local_type1));
             match local_types2.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type1))) {
                 Some(LocalTypeEntry::Type(type_value)) => {
                     assert!(Rc::ptr_eq(&expected_type_value, &type_value));
-                    match local_types2.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type2))) {
-                        Some(LocalTypeEntry::Type(type_value2)) => {
-                            assert!(Rc::ptr_eq(&expected_type_value, &type_value2));
-                        },
-                        _ => assert!(false),
-                    }
                 },
                 _ => assert!(false),
             }
@@ -3100,17 +3086,10 @@ data T<t1, t2> = C(uniq Int, t1, t2);
     match type_matcher.matches(LocalType::new(0), LocalType::new(1), &tree, &mut local_types) {
         Ok(TypeMatcherResult::Matched) => {
             let local_type1 = LocalType::new(0);
-            let local_type2 = LocalType::new(1);
             assert_eq!(String::from("T<Int, Float>"), local_types.local_type_to_string(local_type1));
             match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type1))) {
                 Some(LocalTypeEntry::Type(type_value)) => {
                     assert!(Rc::ptr_eq(&expected_type_value, &type_value));
-                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type2))) {
-                        Some(LocalTypeEntry::Type(type_value2)) => {
-                            assert!(Rc::ptr_eq(&expected_type_value, &type_value2));
-                        },
-                        _ => assert!(false),
-                    }
                 },
                 _ => assert!(false),
             }
@@ -3120,17 +3099,10 @@ data T<t1, t2> = C(uniq Int, t1, t2);
     match type_matcher.matches(LocalType::new(1), LocalType::new(0), &tree, &mut local_types2) {
         Ok(TypeMatcherResult::Matched) => {
             let local_type1 = LocalType::new(0);
-            let local_type2 = LocalType::new(1);
             assert_eq!(String::from("T<Int, Float>"), local_types2.local_type_to_string(local_type1));
             match local_types2.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type1))) {
                 Some(LocalTypeEntry::Type(type_value)) => {
                     assert!(Rc::ptr_eq(&expected_type_value, &type_value));
-                    match local_types2.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type2))) {
-                        Some(LocalTypeEntry::Type(type_value2)) => {
-                            assert!(Rc::ptr_eq(&expected_type_value, &type_value2));
-                        },
-                        _ => assert!(false),
-                    }
                 },
                 _ => assert!(false),
             }
@@ -3244,17 +3216,10 @@ impl V for T {};
     match type_matcher.matches(LocalType::new(0), LocalType::new(1), &tree, &mut local_types) {
         Ok(TypeMatcherResult::Matched) => {
             let local_type1 = LocalType::new(0);
-            let local_type2 = LocalType::new(1);
             assert_eq!(String::from("T<Int, Float>"), local_types.local_type_to_string(local_type1));
             match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type1))) {
                 Some(LocalTypeEntry::Type(type_value)) => {
                     assert!(Rc::ptr_eq(&expected_type_value, &type_value));
-                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type2))) {
-                        Some(LocalTypeEntry::Type(type_value2)) => {
-                            assert!(Rc::ptr_eq(&expected_type_value, &type_value2));
-                        },
-                        _ => assert!(false),
-                    }
                 },
                 _ => assert!(false),
             }
@@ -3264,17 +3229,10 @@ impl V for T {};
     match type_matcher.matches(LocalType::new(1), LocalType::new(0), &tree, &mut local_types2) {
         Ok(TypeMatcherResult::Matched) => {
             let local_type1 = LocalType::new(0);
-            let local_type2 = LocalType::new(1);
             assert_eq!(String::from("T<Int, Float>"), local_types2.local_type_to_string(local_type1));
             match local_types2.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type1))) {
                 Some(LocalTypeEntry::Type(type_value)) => {
                     assert!(Rc::ptr_eq(&expected_type_value, &type_value));
-                    match local_types2.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type2))) {
-                        Some(LocalTypeEntry::Type(type_value2)) => {
-                            assert!(Rc::ptr_eq(&expected_type_value, &type_value2));
-                        },
-                        _ => assert!(false),
-                    }
                 },
                 _ => assert!(false),
             }
@@ -3386,17 +3344,10 @@ impl U for [_; 10] {};
     match type_matcher.matches(LocalType::new(0), LocalType::new(1), &tree, &mut local_types) {
         Ok(TypeMatcherResult::Matched) => {
             let local_type1 = LocalType::new(0);
-            let local_type2 = LocalType::new(1);
             assert_eq!(String::from("[Int; 10]"), local_types.local_type_to_string(local_type1));
             match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type1))) {
                 Some(LocalTypeEntry::Type(type_value)) => {
                     assert!(Rc::ptr_eq(&expected_type_value, &type_value));
-                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type2))) {
-                        Some(LocalTypeEntry::Type(type_value2)) => {
-                            assert!(Rc::ptr_eq(&expected_type_value, &type_value2));
-                        },
-                        _ => assert!(false),
-                    }
                 },
                 _ => assert!(false),
             }
@@ -3406,17 +3357,10 @@ impl U for [_; 10] {};
     match type_matcher.matches(LocalType::new(1), LocalType::new(0), &tree, &mut local_types2) {
         Ok(TypeMatcherResult::Matched) => {
             let local_type1 = LocalType::new(0);
-            let local_type2 = LocalType::new(1);
             assert_eq!(String::from("[Int; 10]"), local_types2.local_type_to_string(local_type1));
             match local_types2.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type1))) {
                 Some(LocalTypeEntry::Type(type_value)) => {
                     assert!(Rc::ptr_eq(&expected_type_value, &type_value));
-                    match local_types2.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type2))) {
-                        Some(LocalTypeEntry::Type(type_value2)) => {
-                            assert!(Rc::ptr_eq(&expected_type_value, &type_value2));
-                        },
-                        _ => assert!(false),
-                    }
                 },
                 _ => assert!(false),
             }
@@ -3535,17 +3479,10 @@ builtin type Float;
     match type_matcher.matches(LocalType::new(0), LocalType::new(1), &tree, &mut local_types) {
         Ok(TypeMatcherResult::Matched) => {
             let local_type1 = LocalType::new(0);
-            let local_type2 = LocalType::new(1);
             assert_eq!(String::from("(Int) -> Float"), local_types.local_type_to_string(local_type1));
             match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type1))) {
                 Some(LocalTypeEntry::Type(type_value)) => {
                     assert!(Rc::ptr_eq(&expected_type_value, &type_value));
-                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type2))) {
-                        Some(LocalTypeEntry::Type(type_value2)) => {
-                            assert!(Rc::ptr_eq(&expected_type_value, &type_value2));
-                        },
-                        _ => assert!(false),
-                    }
                     match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(3)))) {
                         Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry2, _)) => {
                             let type_param_entry2_r = type_param_entry2.borrow();
@@ -3569,17 +3506,10 @@ builtin type Float;
     match type_matcher.matches(LocalType::new(1), LocalType::new(0), &tree, &mut local_types2) {
         Ok(TypeMatcherResult::Matched) => {
             let local_type1 = LocalType::new(0);
-            let local_type2 = LocalType::new(1);
             assert_eq!(String::from("(Int) -> Float"), local_types2.local_type_to_string(local_type1));
             match local_types2.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type1))) {
                 Some(LocalTypeEntry::Type(type_value)) => {
                     assert!(Rc::ptr_eq(&expected_type_value, &type_value));
-                    match local_types2.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type2))) {
-                        Some(LocalTypeEntry::Type(type_value2)) => {
-                            assert!(Rc::ptr_eq(&expected_type_value, &type_value2));
-                        },
-                        _ => assert!(false),
-                    }
                     match local_types2.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(3)))) {
                         Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry2, _)) => {
                             let type_param_entry2_r = type_param_entry2.borrow();
@@ -3707,17 +3637,10 @@ impl V for T {};
     match type_matcher.matches(LocalType::new(0), LocalType::new(1), &tree, &mut local_types) {
         Ok(TypeMatcherResult::Matched) => {
             let local_type1 = LocalType::new(0);
-            let local_type2 = LocalType::new(1);
             assert_eq!(String::from("uniq T<Int, Float>"), local_types.local_type_to_string(local_type1));
             match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type1))) {
                 Some(LocalTypeEntry::Type(type_value)) => {
                     assert!(Rc::ptr_eq(&expected_type_value, &type_value));
-                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type2))) {
-                        Some(LocalTypeEntry::Type(type_value2)) => {
-                            assert!(Rc::ptr_eq(&expected_type_value, &type_value2));
-                        },
-                        _ => assert!(false),
-                    }
                 },
                 _ => assert!(false),
             }
@@ -3727,17 +3650,10 @@ impl V for T {};
     match type_matcher.matches(LocalType::new(1), LocalType::new(0), &tree, &mut local_types2) {
         Ok(TypeMatcherResult::Matched) => {
             let local_type1 = LocalType::new(0);
-            let local_type2 = LocalType::new(1);
             assert_eq!(String::from("uniq T<Int, Float>"), local_types2.local_type_to_string(local_type1));
             match local_types2.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type1))) {
                 Some(LocalTypeEntry::Type(type_value)) => {
                     assert!(Rc::ptr_eq(&expected_type_value, &type_value));
-                    match local_types2.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type2))) {
-                        Some(LocalTypeEntry::Type(type_value2)) => {
-                            assert!(Rc::ptr_eq(&expected_type_value, &type_value2));
-                        },
-                        _ => assert!(false),
-                    }
                 },
                 _ => assert!(false),
             }
@@ -3851,17 +3767,10 @@ impl V for T {};
     match type_matcher.matches(LocalType::new(0), LocalType::new(1), &tree, &mut local_types) {
         Ok(TypeMatcherResult::Matched) => {
             let local_type1 = LocalType::new(0);
-            let local_type2 = LocalType::new(1);
             assert_eq!(String::from("uniq T<Int, Float>"), local_types.local_type_to_string(local_type1));
             match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type1))) {
                 Some(LocalTypeEntry::Type(type_value)) => {
                     assert!(Rc::ptr_eq(&expected_type_value, &type_value));
-                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type2))) {
-                        Some(LocalTypeEntry::Type(type_value2)) => {
-                            assert!(Rc::ptr_eq(&expected_type_value, &type_value2));
-                        },
-                        _ => assert!(false),
-                    }
                 },
                 _ => assert!(false),
             }
@@ -3871,17 +3780,10 @@ impl V for T {};
     match type_matcher.matches(LocalType::new(1), LocalType::new(0), &tree, &mut local_types2) {
         Ok(TypeMatcherResult::Matched) => {
             let local_type1 = LocalType::new(0);
-            let local_type2 = LocalType::new(1);
             assert_eq!(String::from("uniq T<Int, Float>"), local_types2.local_type_to_string(local_type1));
             match local_types2.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type1))) {
                 Some(LocalTypeEntry::Type(type_value)) => {
                     assert!(Rc::ptr_eq(&expected_type_value, &type_value));
-                    match local_types2.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type2))) {
-                        Some(LocalTypeEntry::Type(type_value2)) => {
-                            assert!(Rc::ptr_eq(&expected_type_value, &type_value2));
-                        },
-                        _ => assert!(false),
-                    }
                 },
                 _ => assert!(false),
             }
