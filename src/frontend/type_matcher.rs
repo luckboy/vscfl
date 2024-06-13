@@ -236,9 +236,9 @@ impl TypeMatcher
                         None => return Err(FrontendError::Internal(String::from("set_trait_names_for_local_types: no local type entry"))),
                     }
                 }
-                for eq_local_type in eq_local_types {
-                    if *eq_local_type != root_local_type1 && *eq_local_type != root_local_type2 {
-                        match local_types.type_entry(*eq_local_type) {
+                for eq_local_type2 in eq_local_types {
+                    if *eq_local_type2 != root_local_type1 && *eq_local_type2 != root_local_type2 {
+                        match local_types.type_entry(*eq_local_type2) {
                             Some(LocalTypeEntry::Param(_, _, type_param_entry, _)) => {
                                 let mut type_param_entry_r = type_param_entry.borrow_mut();
                                 type_param_entry_r.trait_names = trait_names.clone();
