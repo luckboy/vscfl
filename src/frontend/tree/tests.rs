@@ -326,6 +326,7 @@ trait U<t1> {};
                                     assert_eq!(None, eq_type_param_entry.type_value_name);
                                     assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
                                     assert_eq!(true, eq_type_param_entry.is_defined);
+                                    assert_eq!(true, eq_type_param_entry.local_types.is_empty());
                                 },
                                 None => assert!(false),
                             }
@@ -334,6 +335,7 @@ trait U<t1> {};
                                     assert_eq!(None, eq_type_param_entry.type_value_name);
                                     assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
                                     assert_eq!(true, eq_type_param_entry.is_defined);
+                                    assert_eq!(true, eq_type_param_entry.local_types.is_empty());
                                 },
                                 None => assert!(false),
                             }
@@ -342,6 +344,7 @@ trait U<t1> {};
                                     assert_eq!(None, eq_type_param_entry.type_value_name);
                                     assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
                                     assert_eq!(false, eq_type_param_entry.is_defined);
+                                    assert_eq!(true, eq_type_param_entry.local_types.is_empty());
                                 },
                                 None => assert!(false),
                             }
@@ -440,6 +443,7 @@ trait T<t1> {};
                                     assert_eq!(None, eq_type_param_entry.type_value_name);
                                     assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
                                     assert_eq!(true, eq_type_param_entry.is_defined);
+                                    assert_eq!(2, eq_type_param_entry.local_types.len());
                                 },
                                 None => assert!(false),
                             }
@@ -448,6 +452,7 @@ trait T<t1> {};
                                     assert_eq!(None, eq_type_param_entry.type_value_name);
                                     assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
                                     assert_eq!(true, eq_type_param_entry.is_defined);
+                                    assert_eq!(2, eq_type_param_entry.local_types.len());
                                 },
                                 None => assert!(false),
                             }
@@ -456,6 +461,7 @@ trait T<t1> {};
                                     assert_eq!(None, eq_type_param_entry.type_value_name);
                                     assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
                                     assert_eq!(true, eq_type_param_entry.is_defined);
+                                    assert_eq!(2, eq_type_param_entry.local_types.len());
                                 },
                                 None => assert!(false),
                             }
@@ -464,6 +470,7 @@ trait T<t1> {};
                                     assert_eq!(None, eq_type_param_entry.type_value_name);
                                     assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
                                     assert_eq!(false, eq_type_param_entry.is_defined);
+                                    assert_eq!(true, eq_type_param_entry.local_types.is_empty());
                                 },
                                 None => assert!(false),
                             }
@@ -577,6 +584,7 @@ trait U<t1> {};
                                     assert_eq!(None, eq_type_param_entry.type_value_name);
                                     assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
                                     assert_eq!(true, eq_type_param_entry.is_defined);
+                                    assert_eq!(true, eq_type_param_entry.local_types.is_empty());
                                 },
                                 None => assert!(false),
                             }
@@ -585,6 +593,7 @@ trait U<t1> {};
                                     assert_eq!(None, eq_type_param_entry.type_value_name);
                                     assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
                                     assert_eq!(true, eq_type_param_entry.is_defined);
+                                    assert_eq!(true, eq_type_param_entry.local_types.is_empty());
                                 },
                                 None => assert!(false),
                             }
@@ -593,6 +602,7 @@ trait U<t1> {};
                                     assert_eq!(None, eq_type_param_entry.type_value_name);
                                     assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
                                     assert_eq!(false, eq_type_param_entry.is_defined);
+                                    assert_eq!(true, eq_type_param_entry.local_types.is_empty());
                                 },
                                 None => assert!(false),
                             }
@@ -601,6 +611,7 @@ trait U<t1> {};
                                     assert_eq!(None, eq_type_param_entry.type_value_name);
                                     assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
                                     assert_eq!(false, eq_type_param_entry.is_defined);
+                                    assert_eq!(true, eq_type_param_entry.local_types.is_empty());
                                 },
                                 None => assert!(false),
                             }
@@ -609,6 +620,7 @@ trait U<t1> {};
                                     assert_eq!(None, eq_type_param_entry.type_value_name);
                                     assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
                                     assert_eq!(false, eq_type_param_entry.is_defined);
+                                    assert_eq!(true, eq_type_param_entry.local_types.is_empty());
                                 },
                                 None => assert!(false),
                             }
@@ -738,6 +750,7 @@ trait T<t1> {};
                                     assert_eq!(None, eq_type_param_entry.type_value_name);
                                     assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
                                     assert_eq!(true, eq_type_param_entry.is_defined);
+                                    assert_eq!(2, eq_type_param_entry.local_types.len());
                                 },
                                 None => assert!(false),
                             }
@@ -746,6 +759,7 @@ trait T<t1> {};
                                     assert_eq!(None, eq_type_param_entry.type_value_name);
                                     assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
                                     assert_eq!(true, eq_type_param_entry.is_defined);
+                                    assert_eq!(2, eq_type_param_entry.local_types.len());
                                 },
                                 None => assert!(false),
                             }
@@ -754,6 +768,7 @@ trait T<t1> {};
                                     assert_eq!(None, eq_type_param_entry.type_value_name);
                                     assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
                                     assert_eq!(true, eq_type_param_entry.is_defined);
+                                    assert_eq!(2, eq_type_param_entry.local_types.len());
                                 },
                                 None => assert!(false),
                             }
@@ -762,6 +777,7 @@ trait T<t1> {};
                                     assert_eq!(None, eq_type_param_entry.type_value_name);
                                     assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
                                     assert_eq!(false, eq_type_param_entry.is_defined);
+                                    assert_eq!(true, eq_type_param_entry.local_types.is_empty());
                                 },
                                 None => assert!(false),
                             }
@@ -770,6 +786,7 @@ trait T<t1> {};
                                     assert_eq!(None, eq_type_param_entry.type_value_name);
                                     assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
                                     assert_eq!(false, eq_type_param_entry.is_defined);
+                                    assert_eq!(true, eq_type_param_entry.local_types.is_empty());
                                 },
                                 None => assert!(false),
                             }
@@ -778,6 +795,7 @@ trait T<t1> {};
                                     assert_eq!(None, eq_type_param_entry.type_value_name);
                                     assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
                                     assert_eq!(false, eq_type_param_entry.is_defined);
+                                    assert_eq!(true, eq_type_param_entry.local_types.is_empty());
                                 },
                                 None => assert!(false),
                             }
@@ -786,6 +804,7 @@ trait T<t1> {};
                                     assert_eq!(None, eq_type_param_entry.type_value_name);
                                     assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
                                     assert_eq!(false, eq_type_param_entry.is_defined);
+                                    assert_eq!(true, eq_type_param_entry.local_types.is_empty());
                                 },
                                 None => assert!(false),
                             }
@@ -899,6 +918,7 @@ trait U<t1> {};
                                     assert_eq!(None, eq_type_param_entry.type_value_name);
                                     assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
                                     assert_eq!(true, eq_type_param_entry.is_defined);
+                                    assert_eq!(true, eq_type_param_entry.local_types.is_empty());
                                 },
                                 None => assert!(false),
                             }
@@ -907,6 +927,7 @@ trait U<t1> {};
                                     assert_eq!(None, eq_type_param_entry.type_value_name);
                                     assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
                                     assert_eq!(true, eq_type_param_entry.is_defined);
+                                    assert_eq!(true, eq_type_param_entry.local_types.is_empty());
                                 },
                                 None => assert!(false),
                             }
@@ -915,6 +936,7 @@ trait U<t1> {};
                                     assert_eq!(None, eq_type_param_entry.type_value_name);
                                     assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
                                     assert_eq!(false, eq_type_param_entry.is_defined);
+                                    assert_eq!(true, eq_type_param_entry.local_types.is_empty());
                                 },
                                 None => assert!(false),
                             }
@@ -981,6 +1003,7 @@ trait U<t1> {};
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -989,6 +1012,7 @@ trait U<t1> {};
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1079,6 +1103,7 @@ fn test_local_types_add_type_param_adds_type_parameters()
         Some(eq_type_param_entry) => {
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1087,6 +1112,7 @@ fn test_local_types_add_type_param_adds_type_parameters()
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1095,6 +1121,7 @@ fn test_local_types_add_type_param_adds_type_parameters()
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1142,6 +1169,7 @@ fn test_local_types_add_type_value_adds_type_values()
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1150,6 +1178,7 @@ fn test_local_types_add_type_value_adds_type_values()
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1291,6 +1320,7 @@ trait U<t1> {};
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1299,6 +1329,7 @@ trait U<t1> {};
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1307,6 +1338,7 @@ trait U<t1> {};
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1315,6 +1347,7 @@ trait U<t1> {};
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1456,6 +1489,7 @@ trait T<t1> {};
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1464,6 +1498,7 @@ trait T<t1> {};
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1472,6 +1507,7 @@ trait T<t1> {};
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(2, eq_type_param_entry.local_types.len());
         },
         None => assert!(false),
     }
@@ -1480,6 +1516,7 @@ trait T<t1> {};
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(2, eq_type_param_entry.local_types.len());
         },
         None => assert!(false),
     }
@@ -1488,6 +1525,7 @@ trait T<t1> {};
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(2, eq_type_param_entry.local_types.len());
         },
         None => assert!(false),
     }
@@ -1549,6 +1587,7 @@ fn test_local_types_set_type_param_sets_type_parameter_after_type_parameter_addi
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1557,6 +1596,7 @@ fn test_local_types_set_type_param_sets_type_parameter_after_type_parameter_addi
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1603,6 +1643,7 @@ fn test_local_types_set_type_param_sets_type_parameter_after_type_value_addition
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1611,6 +1652,7 @@ fn test_local_types_set_type_param_sets_type_parameter_after_type_value_addition
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1662,6 +1704,7 @@ fn test_local_types_set_type_param_entry_sets_type_parameter_entry_after_type_pa
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1670,6 +1713,7 @@ fn test_local_types_set_type_param_entry_sets_type_parameter_entry_after_type_pa
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1718,6 +1762,7 @@ fn test_local_types_set_type_param_entry_sets_type_parameter_entry_after_type_va
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1726,6 +1771,7 @@ fn test_local_types_set_type_param_entry_sets_type_parameter_entry_after_type_va
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1762,6 +1808,7 @@ fn test_local_types_set_type_value_sets_type_value_after_type_parameter_addition
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1770,6 +1817,7 @@ fn test_local_types_set_type_value_sets_type_value_after_type_parameter_addition
             assert_eq!(Some(TypeValueName::Name(String::from("Int"))), eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1803,6 +1851,7 @@ fn test_local_types_set_type_value_sets_type_value_after_type_value_additions()
             assert_eq!(Some(TypeValueName::Name(String::from("Float"))), eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1811,6 +1860,7 @@ fn test_local_types_set_type_value_sets_type_value_after_type_value_additions()
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1863,6 +1913,7 @@ fn test_local_types_set_uniq_sets_unique_flag_after_type_parameter_additions()
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1871,6 +1922,7 @@ fn test_local_types_set_uniq_sets_unique_flag_after_type_parameter_additions()
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1909,6 +1961,7 @@ fn test_local_types_set_uniq_sets_unique_flag_after_type_value_additions()
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1917,6 +1970,7 @@ fn test_local_types_set_uniq_sets_unique_flag_after_type_value_additions()
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1955,6 +2009,7 @@ fn test_local_types_set_in_non_uniq_lambda_sets_in_non_unique_lambda_after_type_
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1963,6 +2018,7 @@ fn test_local_types_set_in_non_uniq_lambda_sets_in_non_unique_lambda_after_type_
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(true, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -1993,6 +2049,7 @@ fn test_local_types_set_in_non_uniq_lambda_sets_in_non_unique_lambda_after_type_
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -2001,6 +2058,7 @@ fn test_local_types_set_in_non_uniq_lambda_sets_in_non_unique_lambda_after_type_
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -2041,6 +2099,7 @@ fn test_local_types_set_defined_type_type_param_eq_sets_defined_type_parameter_e
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -2049,6 +2108,7 @@ fn test_local_types_set_defined_type_type_param_eq_sets_defined_type_parameter_e
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(true, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -2079,6 +2139,7 @@ fn test_local_types_set_defined_type_type_param_eq_sets_defined_type_parameter_e
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -2087,6 +2148,7 @@ fn test_local_types_set_defined_type_type_param_eq_sets_defined_type_parameter_e
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -2156,6 +2218,7 @@ fn test_local_types_join_local_types_joins_types()
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(true, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -2164,6 +2227,7 @@ fn test_local_types_join_local_types_joins_types()
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(true, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -2172,6 +2236,7 @@ fn test_local_types_join_local_types_joins_types()
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(true, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -2180,6 +2245,7 @@ fn test_local_types_join_local_types_joins_types()
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -2308,6 +2374,7 @@ trait T<t1> {};
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(false, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(true, eq_type_param_entry.local_types.is_empty());
         },
         None => assert!(false),
     }
@@ -2316,6 +2383,7 @@ trait T<t1> {};
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(true, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(1, eq_type_param_entry.local_types.len());
         },
         None => assert!(false),
     }
@@ -2324,6 +2392,7 @@ trait T<t1> {};
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(true, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(1, eq_type_param_entry.local_types.len());
         },
         None => assert!(false),
     }
@@ -2332,6 +2401,7 @@ trait T<t1> {};
             assert_eq!(None, eq_type_param_entry.type_value_name);
             assert_eq!(true, eq_type_param_entry.is_in_non_uniq_lambda);
             assert_eq!(false, eq_type_param_entry.is_defined);
+            assert_eq!(1, eq_type_param_entry.local_types.len());
         },
         None => assert!(false),
     }

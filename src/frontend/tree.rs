@@ -832,6 +832,7 @@ pub struct EqTypeParamEntry
     pub type_value_name: Option<TypeValueName>,
     pub is_in_non_uniq_lambda: bool,
     pub is_defined: bool,
+    pub local_types: BTreeSet<LocalType>,
 }
 
 impl EqTypeParamEntry
@@ -842,6 +843,7 @@ impl EqTypeParamEntry
             type_value_name: None,
             is_in_non_uniq_lambda: false,
             is_defined: false,
+            local_types: BTreeSet::new(),
         }
     }
 
@@ -851,6 +853,7 @@ impl EqTypeParamEntry
             type_value_name: None,
             is_in_non_uniq_lambda: false,
             is_defined: true,
+            local_types: BTreeSet::new(),
         }
     }
 }
@@ -994,6 +997,19 @@ impl LocalTypes
             for j in (i + 1)..typ.eq_type_param_set.len() {
                 if typ.eq_type_param_set.is_joined(i, j) {
                     self.eq_type_param_entries.join(i, j);
+                    let eq_root_idx = self.eq_type_param_entries.root_of(i);
+                    if eq_root_idx == i {
+                        self.eq_type_param_entries[j].local_types.clear();
+                        self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(j));
+                    } else if eq_root_idx == j {
+                        self.eq_type_param_entries[i].local_types.clear();
+                        self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(i));
+                    } else {
+                        self.eq_type_param_entries[i].local_types.clear();
+                        self.eq_type_param_entries[j].local_types.clear();
+                        self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(i));
+                        self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(j));
+                    }
                 }
             }
         }
@@ -1058,6 +1074,19 @@ impl LocalTypes
                 for j in (i + 1)..(idx + typ.eq_type_param_set.len()) {
                     if typ.eq_type_param_set.is_joined(i - idx, j - idx) {
                         self.eq_type_param_entries.join(i, j);
+                        let eq_root_idx = self.eq_type_param_entries.root_of(i);
+                        if eq_root_idx == i {
+                            self.eq_type_param_entries[j].local_types.clear();
+                            self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(j));
+                        } else if eq_root_idx == j {
+                            self.eq_type_param_entries[i].local_types.clear();
+                            self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(i));
+                        } else {
+                            self.eq_type_param_entries[i].local_types.clear();
+                            self.eq_type_param_entries[j].local_types.clear();
+                            self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(i));
+                            self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(j));
+                        }
                     }
                 }
             }
@@ -1206,6 +1235,16 @@ impl LocalTypes
             false
         }
     }
+    
+    pub fn eq_root_local_type_and_eq_local_types(&self, local_type: LocalType) -> Option<(LocalType, &BTreeSet<LocalType>)>
+    {
+        if local_type.index() < self.eq_type_param_entries.len() {
+            let eq_root_idx = self.eq_type_param_entries.root_of(local_type.index());
+            Some((LocalType::new(eq_root_idx), &self.eq_type_param_entries[eq_root_idx].local_types))
+        } else {
+            None
+        }
+    }
 
     pub fn add_type_param(&mut self, type_param_entry: Rc<RefCell<TypeParamEntry>>) -> LocalType
     {
@@ -1233,9 +1272,27 @@ impl LocalTypes
     
     pub fn join_local_types(&mut self, local_type1: LocalType, local_type2: LocalType) -> (LocalType, LocalType)
     {
+        let root_idx1 = self.type_entries.root_of(local_type1.index());
+        let root_idx2 = self.type_entries.root_of(local_type2.index());
+        let eq_root_idx1 = self.eq_type_param_entries.root_of(local_type1.index());
+        let eq_root_idx2 = self.eq_type_param_entries.root_of(local_type2.index());
         self.type_entries.join(local_type1.index(), local_type2.index());
         self.eq_type_param_entries.join(local_type1.index(), local_type2.index());
-        (LocalType::new(self.type_entries.root_of(local_type1.index())), LocalType::new(self.eq_type_param_entries.root_of(local_type2.index())))
+        let root_idx = self.type_entries.root_of(local_type1.index());
+        let eq_root_idx = self.eq_type_param_entries.root_of(local_type1.index());
+        let mut eq_local_types: BTreeSet<LocalType> = self.eq_type_param_entries[eq_root_idx1].local_types.union(&self.eq_type_param_entries[eq_root_idx2].local_types).map(|e| e.clone()).collect();
+        eq_local_types.insert(LocalType::new(eq_root_idx1));
+        eq_local_types.insert(LocalType::new(eq_root_idx2));
+        if root_idx1 == eq_root_idx {
+            eq_local_types.remove(&LocalType::new(root_idx2));
+        } else if root_idx2 == eq_root_idx {
+            eq_local_types.remove(&LocalType::new(root_idx1));
+        } else {
+            eq_local_types.remove(&LocalType::new(root_idx1));
+        }
+        eq_local_types.remove(&LocalType::new(eq_root_idx));
+        self.eq_type_param_entries[eq_root_idx].local_types = eq_local_types;
+        (LocalType::new(root_idx), LocalType::new(eq_root_idx))
     }
     
     pub fn type_value_to_string(&self, type_value: &Rc<TypeValue>) -> String

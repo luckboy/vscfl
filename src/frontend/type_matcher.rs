@@ -221,6 +221,39 @@ impl TypeMatcher
         self.set_shared_for_type_value(&type_value, tree, local_types)
     }
 
+    fn set_trait_names_for_local_types(&self, root_local_type1: LocalType, root_local_type2: LocalType, root_local_type: LocalType, trait_names: &BTreeSet<TraitName>, local_types: &mut LocalTypes) -> FrontendResult<()>
+    {
+        match local_types.eq_root_local_type_and_eq_local_types(root_local_type) {
+            Some((eq_root_local_type, eq_local_types)) => {
+                let eq_local_type = LocalType::new(local_types.type_entries().root_of(eq_root_local_type.index()));
+                if eq_local_type != root_local_type1 && eq_local_type != root_local_type2 {
+                    match local_types.type_entry(eq_local_type) {
+                        Some(LocalTypeEntry::Param(_, _, type_param_entry, _)) => {
+                            let mut type_param_entry_r = type_param_entry.borrow_mut();
+                            type_param_entry_r.trait_names = trait_names.clone();
+                        },
+                        Some(_) => return Err(FrontendError::Internal(String::from("set_trait_names_for_local_types: no type parameter entry"))),
+                        None => return Err(FrontendError::Internal(String::from("set_trait_names_for_local_types: no local type entry"))),
+                    }
+                }
+                for eq_local_type in eq_local_types {
+                    if *eq_local_type != root_local_type1 && *eq_local_type != root_local_type2 {
+                        match local_types.type_entry(*eq_local_type) {
+                            Some(LocalTypeEntry::Param(_, _, type_param_entry, _)) => {
+                                let mut type_param_entry_r = type_param_entry.borrow_mut();
+                                type_param_entry_r.trait_names = trait_names.clone();
+                            },
+                            Some(_) => return Err(FrontendError::Internal(String::from("set_trait_names_for_local_types: no type parameter entry"))),
+                            None => return Err(FrontendError::Internal(String::from("set_trait_names_for_local_types: no local type entry"))),
+                        }
+                    }
+                }
+                Ok(())
+            },
+            None => Err(FrontendError::Internal(String::from("set_trait_names_for_local_types: no equation root local type and no equation local types"))),
+        }
+    }
+    
     fn match_local_type_entries_with_infos(&self, local_type_entry1: &LocalTypeEntry, local_type_entry2: &LocalTypeEntry, tree: &Tree, local_types: &mut LocalTypes, infos: &mut Vec<MismatchedTypeInfo>) -> FrontendResult<Option<SharedFlag>>
     {
         match (local_type_entry1, local_type_entry2) {
@@ -312,7 +345,7 @@ impl TypeMatcher
                     (None, None) => None,
                 };
                 let mut new_type_param_entry = TypeParamEntry::new();
-                new_type_param_entry.trait_names = new_trait_names;
+                new_type_param_entry.trait_names = new_trait_names.clone();
                 new_type_param_entry.type_values = new_type_values;
                 new_type_param_entry.closure_local_types = new_closure_local_types;
                 new_type_param_entry.number = new_number;
@@ -324,6 +357,7 @@ impl TypeMatcher
                 local_types.set_type_param_entry(root_local_type, Rc::new(RefCell::new(new_type_param_entry)), DefinedFlag::Undefined);
                 local_types.set_in_non_uniq_lambda(eq_root_local_type, is_in_non_uniq_lambda);
                 local_types.set_defined_type_param_eq(eq_root_local_type, is_defined_type_param_eq);
+                self.set_trait_names_for_local_types(*local_type1, *local_type2, eq_root_local_type, &new_trait_names, local_types)?;
                 let shared_flag = self.shared_flag_for_type_value2(&Rc::new(TypeValue::Param(uniq_flag, root_local_type)), None, tree, local_types)?;
                 Ok(Some(shared_flag))
             },
@@ -381,6 +415,7 @@ impl TypeMatcher
                 local_types.set_type_param_entry(root_local_type, type_param_entry2.clone(), DefinedFlag::Defined);
                 local_types.set_in_non_uniq_lambda(eq_root_local_type, is_in_non_uniq_lambda);
                 local_types.set_defined_type_param_eq(eq_root_local_type, is_defined_type_param_eq);
+                self.set_trait_names_for_local_types(*local_type1, *local_type2, eq_root_local_type, &type_param_entry2_r.trait_names, local_types)?;
                 let shared_flag = self.shared_flag_for_type_value2(&Rc::new(TypeValue::Param(uniq_flag, root_local_type)), None, tree, local_types)?;
                 Ok(Some(shared_flag))
             },
