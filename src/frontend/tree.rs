@@ -1281,8 +1281,8 @@ impl LocalTypes
         let root_idx = self.type_entries.root_of(local_type1.index());
         let eq_root_idx = self.eq_type_param_entries.root_of(local_type1.index());
         let mut eq_local_types: BTreeSet<LocalType> = self.eq_type_param_entries[eq_root_idx1].local_types.union(&self.eq_type_param_entries[eq_root_idx2].local_types).map(|e| e.clone()).collect();
-        eq_local_types.insert(LocalType::new(eq_root_idx1));
-        eq_local_types.insert(LocalType::new(eq_root_idx2));
+        eq_local_types.insert(LocalType::new(root_idx1));
+        eq_local_types.insert(LocalType::new(root_idx2));
         if root_idx1 == eq_root_idx {
             eq_local_types.remove(&LocalType::new(root_idx2));
         } else if root_idx2 == eq_root_idx {
