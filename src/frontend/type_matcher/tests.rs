@@ -7009,3 +7009,876 @@ fn test_type_matcher_match_for_second_pattern_type_matches_type_parameters()
         _ => assert!(false),
     }
 }
+
+#[test]
+fn test_type_matcher_match_for_casting_matches_primitive_types()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut local_types = LocalTypes::new();
+    assert_eq!(LocalType::new(0), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    assert_eq!(LocalType::new(1), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    let s3 = "Int";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(0), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let s5 = "Float";
+    let mut cursor4 = Cursor::new(s5.as_bytes());
+    let mut parser4 = Parser::new(Lexer::new(String::from("test4.vscfl"), &mut cursor4));
+    match parser4.parse_type() {
+        Ok(type_expr) => {
+            let s6 = "";
+            let mut cursor5 = Cursor::new(s6.as_bytes());
+            let mut parser5 = Parser::new(Lexer::new(String::from("test5.vscfl"), &mut cursor5));
+            match parser5.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test4.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(1), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let type_matcher = typer.type_matcher();
+    match type_matcher.match_for_casting(LocalType::new(0), LocalType::new(1), &tree, &local_types, typer.builtins()) {
+        Ok(true) => assert!(true),
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_type_matcher_match_for_casting_matches_unique_primitive_types()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut local_types = LocalTypes::new();
+    assert_eq!(LocalType::new(0), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    assert_eq!(LocalType::new(1), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    let s3 = "uniq Int";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(0), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let s5 = "uniq Float";
+    let mut cursor4 = Cursor::new(s5.as_bytes());
+    let mut parser4 = Parser::new(Lexer::new(String::from("test4.vscfl"), &mut cursor4));
+    match parser4.parse_type() {
+        Ok(type_expr) => {
+            let s6 = "";
+            let mut cursor5 = Cursor::new(s6.as_bytes());
+            let mut parser5 = Parser::new(Lexer::new(String::from("test5.vscfl"), &mut cursor5));
+            match parser5.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test4.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(1), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let type_matcher = typer.type_matcher();
+    match type_matcher.match_for_casting(LocalType::new(0), LocalType::new(1), &tree, &local_types, typer.builtins()) {
+        Ok(true) => assert!(true),
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_type_matcher_match_for_casting_matches_tuple_types()
+{
+    let s = "
+builtin type Char;
+builtin type Int;
+builtin type Float;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut local_types = LocalTypes::new();
+    assert_eq!(LocalType::new(0), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    assert_eq!(LocalType::new(1), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    let s3 = "(Int, Float, Char)";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(0), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let s5 = "(Float, Char, Int)";
+    let mut cursor4 = Cursor::new(s5.as_bytes());
+    let mut parser4 = Parser::new(Lexer::new(String::from("test4.vscfl"), &mut cursor4));
+    match parser4.parse_type() {
+        Ok(type_expr) => {
+            let s6 = "";
+            let mut cursor5 = Cursor::new(s6.as_bytes());
+            let mut parser5 = Parser::new(Lexer::new(String::from("test5.vscfl"), &mut cursor5));
+            match parser5.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test4.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(1), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let type_matcher = typer.type_matcher();
+    match type_matcher.match_for_casting(LocalType::new(0), LocalType::new(1), &tree, &local_types, typer.builtins()) {
+        Ok(true) => assert!(true),
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_type_matcher_match_for_casting_matches_array_types()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut local_types = LocalTypes::new();
+    assert_eq!(LocalType::new(0), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    assert_eq!(LocalType::new(1), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    let s3 = "[Int; 10]";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(0), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let s5 = "[Float; 10]";
+    let mut cursor4 = Cursor::new(s5.as_bytes());
+    let mut parser4 = Parser::new(Lexer::new(String::from("test4.vscfl"), &mut cursor4));
+    match parser4.parse_type() {
+        Ok(type_expr) => {
+            let s6 = "";
+            let mut cursor5 = Cursor::new(s6.as_bytes());
+            let mut parser5 = Parser::new(Lexer::new(String::from("test5.vscfl"), &mut cursor5));
+            match parser5.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test4.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(1), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let type_matcher = typer.type_matcher();
+    match type_matcher.match_for_casting(LocalType::new(0), LocalType::new(1), &tree, &local_types, typer.builtins()) {
+        Ok(true) => assert!(true),
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_type_matcher_match_for_casting_matches_tuple_types_with_nested_array_types()
+{
+    let s = "
+builtin type Char;
+builtin type Int;
+builtin type Float;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut local_types = LocalTypes::new();
+    assert_eq!(LocalType::new(0), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    assert_eq!(LocalType::new(1), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    let s3 = "(Int, [Float; 10], Char)";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(0), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let s5 = "(Float, [Char; 10], Int)";
+    let mut cursor4 = Cursor::new(s5.as_bytes());
+    let mut parser4 = Parser::new(Lexer::new(String::from("test4.vscfl"), &mut cursor4));
+    match parser4.parse_type() {
+        Ok(type_expr) => {
+            let s6 = "";
+            let mut cursor5 = Cursor::new(s6.as_bytes());
+            let mut parser5 = Parser::new(Lexer::new(String::from("test5.vscfl"), &mut cursor5));
+            match parser5.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test4.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(1), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let type_matcher = typer.type_matcher();
+    match type_matcher.match_for_casting(LocalType::new(0), LocalType::new(1), &tree, &local_types, typer.builtins()) {
+        Ok(true) => assert!(true),
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_type_matcher_match_for_casting_does_not_match_primitive_type_and_bool_type()
+{
+    let s = "
+builtin type Bool;
+builtin type Int;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut local_types = LocalTypes::new();
+    assert_eq!(LocalType::new(0), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    assert_eq!(LocalType::new(1), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    let s3 = "Int";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(0), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let s5 = "Bool";
+    let mut cursor4 = Cursor::new(s5.as_bytes());
+    let mut parser4 = Parser::new(Lexer::new(String::from("test4.vscfl"), &mut cursor4));
+    match parser4.parse_type() {
+        Ok(type_expr) => {
+            let s6 = "";
+            let mut cursor5 = Cursor::new(s6.as_bytes());
+            let mut parser5 = Parser::new(Lexer::new(String::from("test5.vscfl"), &mut cursor5));
+            match parser5.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test4.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(1), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let type_matcher = typer.type_matcher();
+    match type_matcher.match_for_casting(LocalType::new(0), LocalType::new(1), &tree, &local_types, typer.builtins()) {
+        Ok(false) => assert!(true),
+        _ => assert!(false),
+    }
+    match type_matcher.match_for_casting(LocalType::new(1), LocalType::new(0), &tree, &local_types, typer.builtins()) {
+        Ok(false) => assert!(true),
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_type_matcher_match_for_casting_does_not_match_primitive_type_and_data_type()
+{
+    let s = "
+builtin type Int;
+data T = C(Int);
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut local_types = LocalTypes::new();
+    assert_eq!(LocalType::new(0), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    assert_eq!(LocalType::new(1), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    let s3 = "Int";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(0), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let s5 = "T";
+    let mut cursor4 = Cursor::new(s5.as_bytes());
+    let mut parser4 = Parser::new(Lexer::new(String::from("test4.vscfl"), &mut cursor4));
+    match parser4.parse_type() {
+        Ok(type_expr) => {
+            let s6 = "";
+            let mut cursor5 = Cursor::new(s6.as_bytes());
+            let mut parser5 = Parser::new(Lexer::new(String::from("test5.vscfl"), &mut cursor5));
+            match parser5.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test4.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(1), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let type_matcher = typer.type_matcher();
+    match type_matcher.match_for_casting(LocalType::new(0), LocalType::new(1), &tree, &local_types, typer.builtins()) {
+        Ok(false) => assert!(true),
+        _ => assert!(false),
+    }
+    match type_matcher.match_for_casting(LocalType::new(1), LocalType::new(0), &tree, &local_types, typer.builtins()) {
+        Ok(false) => assert!(true),
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_type_matcher_match_for_casting_does_not_match_array_types_with_different_lengths()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut local_types = LocalTypes::new();
+    assert_eq!(LocalType::new(0), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    assert_eq!(LocalType::new(1), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    let s3 = "[Int; 10]";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(0), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let s5 = "[Float; 5]";
+    let mut cursor4 = Cursor::new(s5.as_bytes());
+    let mut parser4 = Parser::new(Lexer::new(String::from("test4.vscfl"), &mut cursor4));
+    match parser4.parse_type() {
+        Ok(type_expr) => {
+            let s6 = "";
+            let mut cursor5 = Cursor::new(s6.as_bytes());
+            let mut parser5 = Parser::new(Lexer::new(String::from("test5.vscfl"), &mut cursor5));
+            match parser5.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test4.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(1), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let type_matcher = typer.type_matcher();
+    match type_matcher.match_for_casting(LocalType::new(0), LocalType::new(1), &tree, &local_types, typer.builtins()) {
+        Ok(false) => assert!(true),
+        _ => assert!(false),
+    }
+    match type_matcher.match_for_casting(LocalType::new(1), LocalType::new(0), &tree, &local_types, typer.builtins()) {
+        Ok(false) => assert!(true),
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_type_matcher_match_for_casting_does_not_match_array_types_without_lengths()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut local_types = LocalTypes::new();
+    assert_eq!(LocalType::new(0), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    assert_eq!(LocalType::new(1), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    let s3 = "[Int; _]";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(0), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let s5 = "[Float; _]";
+    let mut cursor4 = Cursor::new(s5.as_bytes());
+    let mut parser4 = Parser::new(Lexer::new(String::from("test4.vscfl"), &mut cursor4));
+    match parser4.parse_type() {
+        Ok(type_expr) => {
+            let s6 = "";
+            let mut cursor5 = Cursor::new(s6.as_bytes());
+            let mut parser5 = Parser::new(Lexer::new(String::from("test5.vscfl"), &mut cursor5));
+            match parser5.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test4.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(1), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let type_matcher = typer.type_matcher();
+    match type_matcher.match_for_casting(LocalType::new(0), LocalType::new(1), &tree, &local_types, typer.builtins()) {
+        Ok(false) => assert!(true),
+        _ => assert!(false),
+    }
+    match type_matcher.match_for_casting(LocalType::new(1), LocalType::new(0), &tree, &local_types, typer.builtins()) {
+        Ok(false) => assert!(true),
+        _ => assert!(false),
+    }
+}
