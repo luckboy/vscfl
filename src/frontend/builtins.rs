@@ -15,6 +15,7 @@ pub enum RefTypeFlag
     None,
     Ref,
     Slice,
+    Other,
 }
 
 #[derive(Clone, Debug)]
@@ -146,18 +147,18 @@ impl Builtins
         type_vars.insert(String::from("ClMemFenceFlags"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
         type_vars.insert(String::from("EventT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::None, false, false));
         type_vars.insert(String::from("SamplerT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
-        type_vars.insert(String::from("Image1dT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
-        type_vars.insert(String::from("Image2dT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
-        type_vars.insert(String::from("Image3dT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
-        type_vars.insert(String::from("Image1dBufferT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
-        type_vars.insert(String::from("Image1dArrayT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
-        type_vars.insert(String::from("Image2dArrayT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
-        type_vars.insert(String::from("UniqImage1dT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::None, false, false));
-        type_vars.insert(String::from("UniqImage2dT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::None, false, false));
-        type_vars.insert(String::from("UniqImage3dT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::None, false, false));
-        type_vars.insert(String::from("UniqImage1dBufferT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::None, false, false));
-        type_vars.insert(String::from("UniqImage1dArrayT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::None, false, false));
-        type_vars.insert(String::from("UniqImage2dArrayT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::None, false, false));
+        type_vars.insert(String::from("Image1dT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::Other, false, false));
+        type_vars.insert(String::from("Image2dT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::Other, false, false));
+        type_vars.insert(String::from("Image3dT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::Other, false, false));
+        type_vars.insert(String::from("Image1dBufferT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::Other, false, false));
+        type_vars.insert(String::from("Image1dArrayT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::Other, false, false));
+        type_vars.insert(String::from("Image2dArrayT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::Other, false, false));
+        type_vars.insert(String::from("UniqImage1dT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::Other, false, false));
+        type_vars.insert(String::from("UniqImage2dT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::Other, false, false));
+        type_vars.insert(String::from("UniqImage3dT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::Other, false, false));
+        type_vars.insert(String::from("UniqImage1dBufferT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::Other, false, false));
+        type_vars.insert(String::from("UniqImage1dArrayT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::Other, false, false));
+        type_vars.insert(String::from("UniqImage2dArrayT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::Other, false, false));
         //
         // Variables.
         //
