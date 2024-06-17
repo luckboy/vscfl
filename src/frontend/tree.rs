@@ -1299,8 +1299,18 @@ impl LocalTypes
         let mut eq_local_types: BTreeSet<LocalType> = self.eq_type_param_entries[eq_root_idx1].local_types.union(&self.eq_type_param_entries[eq_root_idx2].local_types).map(|e| e.clone()).collect();
         self.eq_type_param_entries[eq_root_idx1].local_types.clear();
         self.eq_type_param_entries[eq_root_idx2].local_types.clear();
-        eq_local_types.insert(LocalType::new(self.type_entries.root_of(eq_root_idx1)));
-        eq_local_types.insert(LocalType::new(self.type_entries.root_of(eq_root_idx2)));
+        match &self.type_entries[self.type_entries.root_of(eq_root_idx1)] {
+            LocalTypeEntry::Param(_, _, _, _) => {
+                eq_local_types.insert(LocalType::new(self.type_entries.root_of(eq_root_idx1)));
+            },
+            _ => (),
+        }
+        match &self.type_entries[self.type_entries.root_of(eq_root_idx2)] {
+            LocalTypeEntry::Param(_, _, _, _) => {
+                eq_local_types.insert(LocalType::new(self.type_entries.root_of(eq_root_idx2)));
+            },
+            _ => (),
+        }
         eq_local_types.remove(&LocalType::new(root_idx1));
         eq_local_types.remove(&LocalType::new(root_idx2));
         eq_local_types.insert(LocalType::new(root_idx));
