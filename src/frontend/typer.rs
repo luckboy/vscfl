@@ -3199,7 +3199,7 @@ impl Typer
                                                         let is_success = type_for_fun_ident_in(con_ident, tree, |typ| {
                                                                 match &**typ.type_value() {
                                                                     TypeValue::Type(_, TypeValueName::Fun, type_values2) => {
-                                                                        if type_values.len() >= 1 {
+                                                                        if type_values2.len() >= 1 {
                                                                             if field_idx < type_values2.len() - 1 {
                                                                                 let new_type_value = match type_values2[field_idx].substitute(type_values) {
                                                                                     Ok(Some(tmp_type_value)) => tmp_type_value,
@@ -3637,7 +3637,8 @@ impl Typer
                                                 }
                                                 self.match_type_values(&Rc::new(TypeValue::Param(UniqFlag::None, field_local_type)), type_value, pattern_pos(&**pattern2), tree, local_types, errs)?;
                                             }
-                                            local_types.set_type_value(*local_type, type_value.clone());
+                                            local_types.set_type_value(*con_local_type, type_value.clone());
+                                            local_types.set_type_value(*local_type, type_values[type_values.len() - 1].clone());
                                         } else {
                                             return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_patterns: no return type value"))]))
                                         }
