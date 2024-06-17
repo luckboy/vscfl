@@ -231,7 +231,7 @@ impl TypeMatcher
             Some((eq_root_local_type, eq_local_types)) => {
                 let eq_local_type = LocalType::new(local_types.type_entries().root_of(eq_root_local_type.index()));
                 if eq_local_type != root_local_type1 && eq_local_type != root_local_type2 {
-                    match local_types.type_entry(eq_local_type) {
+                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, eq_local_type))) {
                         Some(LocalTypeEntry::Param(_, _, type_param_entry, _)) => {
                             let mut type_param_entry_r = type_param_entry.borrow_mut();
                             type_param_entry_r.trait_names = trait_names.clone();

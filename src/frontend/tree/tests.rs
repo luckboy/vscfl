@@ -1930,7 +1930,7 @@ fn test_local_types_set_uniq_sets_unique_flag_after_type_parameter_additions()
     assert_eq!(false, local_types.has_eq_type_params(LocalType::new(0), LocalType::new(1)));
     assert_eq!(false, local_types.has_eq_type_params(LocalType::new(0), LocalType::new(2)));
     //    t2 t3
-    assert_eq!(false, local_types.has_eq_type_params(LocalType::new(1), LocalType::new(2)));
+    assert_eq!(true, local_types.has_eq_type_params(LocalType::new(1), LocalType::new(2)));
     assert_eq!(true, local_types.orig_eq_type_param_set().is_empty());
 }
 

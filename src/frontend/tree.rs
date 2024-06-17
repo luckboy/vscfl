@@ -1178,7 +1178,23 @@ impl LocalTypes
                     let eq_root_idx = self.eq_type_param_entries.root_of(local_type.index());
                     let new_local_type = LocalType::new(self.type_entries.len());
                     self.type_entries.push(LocalTypeEntry::Param(*defined_flag, *uniq_flag, type_param_entry.clone(), new_local_type));
-                    self.eq_type_param_entries.push(self.eq_type_param_entries[eq_root_idx].clone());
+                    self.eq_type_param_entries.push(EqTypeParamEntry::new());
+                    let eq_local_types = self.eq_type_param_entries[eq_root_idx].local_types.clone();
+                    self.eq_type_param_entries.join(new_local_type.index(), eq_root_idx);
+                    for eq_local_type in &eq_local_types {
+                        self.eq_type_param_entries.join(new_local_type.index(), eq_local_type.index());
+                    }
+                    let new_eq_root_idx = self.eq_type_param_entries.root_of(new_local_type.index());
+                    if new_eq_root_idx != eq_root_idx {
+                        self.eq_type_param_entries[eq_root_idx].local_types.remove(&LocalType::new(root_idx));
+                        self.eq_type_param_entries[new_eq_root_idx] = self.eq_type_param_entries[eq_root_idx].clone();
+                        self.eq_type_param_entries[eq_root_idx].local_types.clear();
+                    } else {
+                        if self.type_entries.root_of(eq_root_idx) != root_idx {
+                            self.eq_type_param_entries[eq_root_idx].local_types.remove(&LocalType::new(root_idx));
+                            self.eq_type_param_entries[eq_root_idx].local_types.insert(new_local_type);
+                        }
+                    }
                     self.type_entries[root_idx] = LocalTypeEntry::Type(Rc::new(TypeValue::Param(UniqFlag::Uniq, new_local_type)));
                     self.eq_type_param_entries[eq_root_idx] = EqTypeParamEntry::new();
                 },
