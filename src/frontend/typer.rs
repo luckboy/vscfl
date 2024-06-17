@@ -2934,10 +2934,27 @@ impl Typer
                                                 self.match_type_values(&Rc::new(TypeValue::Param(UniqFlag::None, field_local_type)), &type_values[field_idx], field_pos, tree, local_types, errs)?;
                                             } else {
                                                 let uniq_flag = self.real_uniq_flag_for_type_value(&type_values[field_idx], local_types)?;
+                                                let mut is_success = true; 
                                                 if uniq_flag == UniqFlag::Uniq {
-                                                    local_types.set_uniq(field_local_type);
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, field_local_type))) {
+                                                        Some(LocalTypeEntry::Param(_, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            if type_param_entry_r.trait_names.len() == 1 && type_param_entry_r.trait_names.contains(&TraitName::Shared) {
+                                                                errs.push(FrontendError::Message(field_pos.clone(), format!("can't match type {} with type {}", LocalTypeWithLocalTypes(field_local_type, local_types), TypeValueWithLocalTypes(type_values[field_idx].clone(), local_types))));
+                                                                errs.push(FrontendError::Message(field_pos.clone(), format!("{}", MismatchedTypeInfoWidthLocalTypes(&MismatchedTypeInfo::UniqParam(field_local_type), local_types))));
+                                                                is_success = false;
+                                                            }
+                                                        },
+                                                        Some(_) => (),
+                                                        None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_named_field_pairs: no local type entry"))])),
+                                                    }
+                                                    if is_success {
+                                                        local_types.set_uniq(field_local_type);
+                                                    }
                                                 }
-                                                self.match_type_values(&Rc::new(TypeValue::Param(UniqFlag::None, field_local_type)), &type_values[field_idx], field_pos, tree, local_types, errs)?;
+                                                if is_success {
+                                                    self.match_type_values(&Rc::new(TypeValue::Param(UniqFlag::None, field_local_type)), &type_values[field_idx], field_pos, tree, local_types, errs)?;
+                                                }
                                             }
                                         },
                                         None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_named_field_pairs: no field index"))])),
@@ -3632,10 +3649,27 @@ impl Typer
                                             for (pattern2, type_value) in patterns.iter_mut().zip(type_values.iter()) {
                                                 let field_local_type = self.infer_types_for_pattern(&mut **pattern2, tree, var_env, var_local_types, local_types, can_add_var_local_type, errs)?;
                                                 let uniq_flag = self.real_uniq_flag_for_type_value(type_value, local_types)?;
+                                                let mut is_success = true;
                                                 if uniq_flag == UniqFlag::Uniq {
-                                                    local_types.set_uniq(field_local_type);
+                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, field_local_type))) {
+                                                        Some(LocalTypeEntry::Param(_, UniqFlag::None, type_param_entry, _)) => {
+                                                            let type_param_entry_r = type_param_entry.borrow();
+                                                            if type_param_entry_r.trait_names.len() == 1 && type_param_entry_r.trait_names.contains(&TraitName::Shared) {
+                                                                errs.push(FrontendError::Message(pattern_pos(&**pattern2).clone(), format!("can't match type {} with type {}", LocalTypeWithLocalTypes(field_local_type, local_types), TypeValueWithLocalTypes(type_value.clone(), local_types))));
+                                                                errs.push(FrontendError::Message(pattern_pos(&**pattern2).clone(), format!("{}", MismatchedTypeInfoWidthLocalTypes(&MismatchedTypeInfo::UniqParam(field_local_type), local_types))));
+                                                                is_success = false;
+                                                            }
+                                                        },
+                                                        Some(_) => (),
+                                                        None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_patterns: no local type entry"))])),
+                                                    }
+                                                    if is_success {
+                                                        local_types.set_uniq(field_local_type);
+                                                    }
                                                 }
-                                                self.match_type_values(&Rc::new(TypeValue::Param(UniqFlag::None, field_local_type)), type_value, pattern_pos(&**pattern2), tree, local_types, errs)?;
+                                                if is_success {
+                                                    self.match_type_values(&Rc::new(TypeValue::Param(UniqFlag::None, field_local_type)), type_value, pattern_pos(&**pattern2), tree, local_types, errs)?;
+                                                }
                                             }
                                             local_types.set_type_value(*con_local_type, type_value.clone());
                                             local_types.set_type_value(*local_type, type_values[type_values.len() - 1].clone());

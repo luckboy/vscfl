@@ -23,6 +23,7 @@ pub enum MismatchedTypeInfo
     SharedParam(LocalType),
     SharedClosure(LocalType),
     NoClosure(LocalType, LocalType),
+    UniqParam(LocalType),
     InNonUniqLambda,
     DefinedTypeParamEq,
 }
@@ -52,6 +53,9 @@ impl<'a, 'b> fmt::Display for MismatchedTypeInfoWidthLocalTypes<'a, 'b>
             },
             MismatchedTypeInfo::NoClosure(local_type1, local_type2) => {
                 write!(f, "closure variable of type {} isn't in function of type parameter {}", LocalTypeWithLocalTypes(*local_type1, self.1), LocalTypeWithLocalTypes(*local_type2, self.1))
+            },
+            MismatchedTypeInfo::UniqParam(local_type) => {
+                write!(f, "type parameter {} mustn't unique", LocalTypeWithLocalTypes(*local_type, self.1))
             },
             MismatchedTypeInfo::InNonUniqLambda => {
                 write!(f, "closure variable type parameter mustn't be unique type in non-unique lambda")
@@ -637,6 +641,16 @@ impl TypeMatcher
         let type_value2 = Rc::new(TypeValue::Param(UniqFlag::None, local_type2));
         let uniq_flag = self.real_uniq_flag_for_type_value(&type_value2, local_types)?;
         if uniq_flag == UniqFlag::Uniq {
+            match local_types.type_entry_for_type_value(&type_value1) {
+                Some(LocalTypeEntry::Param(_, UniqFlag::None, type_param_entry, _)) => {
+                    let type_param_entry_r = type_param_entry.borrow();
+                    if type_param_entry_r.trait_names.len() == 1 && type_param_entry_r.trait_names.contains(&TraitName::Shared) {
+                        return Ok(TypeMatcherResult::Mismatched(vec![MismatchedTypeInfo::UniqParam(local_type1)]));
+                    }
+                },
+                Some(_) => (),
+                None => return Err(FrontendError::Internal(String::from("match_for_first_pattern_type: no local type entry"))),
+            }
             local_types.set_uniq(local_type1);
         }
         self.match_type_values(&type_value1, &type_value2, tree, local_types)
@@ -648,6 +662,16 @@ impl TypeMatcher
         let type_value2 = Rc::new(TypeValue::Param(UniqFlag::None, local_type2));
         let uniq_flag = self.real_uniq_flag_for_type_value(&type_value1, local_types)?;
         if uniq_flag == UniqFlag::Uniq {
+            match local_types.type_entry_for_type_value(&type_value2) {
+                Some(LocalTypeEntry::Param(_, UniqFlag::None, type_param_entry, _)) => {
+                    let type_param_entry_r = type_param_entry.borrow();
+                    if type_param_entry_r.trait_names.len() == 1 && type_param_entry_r.trait_names.contains(&TraitName::Shared) {
+                        return Ok(TypeMatcherResult::Mismatched(vec![MismatchedTypeInfo::UniqParam(local_type2)]));
+                    }
+                },
+                Some(_) => (),
+                None => return Err(FrontendError::Internal(String::from("match_for_second_pattern_type: no local type entry"))),
+            }
             local_types.set_uniq(local_type2);
         }
         self.match_type_values(&type_value1, &type_value2, tree, local_types)
