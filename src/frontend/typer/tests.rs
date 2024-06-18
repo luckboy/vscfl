@@ -8778,7 +8778,7 @@ g(x: t, y: u) -> (t, u) = (x, y);
 }
 
 #[test]
-fn test_typer_evaluate_types_evaluates_types_for_implemented_variabale_and_implemented_function()
+fn test_typer_evaluate_types_evaluates_types_for_implemented_variable_and_implemented_function()
 {
     let s = "
 trait OpAdd
@@ -15192,7 +15192,7 @@ g(x: t, y: u) -> (t, u) = (x, y);
 }
 
 #[test]
-fn test_typer_check_types_infers_types_for_implemented_variabale_and_implemented_function()
+fn test_typer_check_types_infers_types_for_implemented_variable_and_implemented_function()
 {
     let s = "
 trait OpAdd
