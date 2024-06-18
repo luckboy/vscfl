@@ -3347,7 +3347,15 @@ impl Typer
                 };
                 if is_in_non_uniq_lambda {
                     closure_stack.foreach_with_result(|_, closure_local_type| {
-                            local_types.set_in_non_uniq_lambda(closure_local_type, true);
+                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, closure_local_type))) {
+                                Some(LocalTypeEntry::Param(_, _, _, closure_local_type2)) => {
+                                    local_types.set_in_non_uniq_lambda(closure_local_type2, true);
+                                },
+                                Some(_) => {
+                                    local_types.set_in_non_uniq_lambda(closure_local_type, true);
+                                },
+                                None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_expr: no local type entry"))])),
+                            }
                             Ok(())
                     })?;
                 }

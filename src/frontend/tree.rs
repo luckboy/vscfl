@@ -1186,6 +1186,7 @@ impl LocalTypes
                     }
                     let new_eq_root_idx = self.eq_type_param_entries.root_of(new_local_type.index());
                     if new_eq_root_idx != eq_root_idx {
+                        self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(self.type_entries.root_of(eq_root_idx)));
                         self.eq_type_param_entries[eq_root_idx].local_types.remove(&LocalType::new(root_idx));
                         self.eq_type_param_entries[new_eq_root_idx] = self.eq_type_param_entries[eq_root_idx].clone();
                         self.eq_type_param_entries[eq_root_idx].local_types.clear();
