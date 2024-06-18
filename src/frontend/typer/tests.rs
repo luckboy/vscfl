@@ -3169,8 +3169,7 @@ builtin impl OpAdd for Int;
 builtin impl OpSub for Int;
 builtin impl OpSub for Float;
 data T = C { x: Int, y: Float, z: Int, }; 
-data U = D(Int, Float);
-data V = E(T);
+data U = D(T);
 a: (Int, Int) -> Int = |x: Int, y| x + y;
 b: (Float, Float) -> Float = |x, y: Float| -> Float x - y;
 c: Int = x;
@@ -3180,8 +3179,8 @@ f: Int = printf(\"%d\\n\", x);
 g: Int = a(x, y);
 h: Int = abc.0.z;
 i: Int = let (z, _) = abc.0.z -> in z;
-j: V = let abc2 = abc.0.z <- 1 in abc2;
-k: V = let abc2 = abc.0.z <-> fu in abc2;
+j: U = let abc2 = abc.0.z <- 1 in abc2;
+k: U = let abc2 = abc.0.z <-> fu in abc2;
 l: Float = let (z, _) = abc.0.z <-> fug2 -> in z;
 m() -> uniq Int = uniq x;
 n() -> Int = shared m();
@@ -3197,7 +3196,7 @@ s: Int = C { x: 1, y: 2.5, z: 3, } match {
     };
 x: Int = 1;
 y: Int = 2;
-abc: V = E(C { x: 2, y: 2.5, z: 3, });
+abc: U = D(C { x: 2, y: 2.5, z: 3, });
 fu(x: Int) -> Int = x;
 fug2(x: Int) -> (Float, Int) = (1.5, x); 
 ";
@@ -3219,7 +3218,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         Ok(()) => assert!(true),
         Err(_) => assert!(false),
     }
-    assert_eq!(37, tree.defs().len());
+    assert_eq!(36, tree.defs().len());
     match &*tree.defs()[0] {
         Def::Trait(_, trait1, _) => {
             let trait_r = trait1.borrow();
@@ -3358,7 +3357,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[13] {
+    match &*tree.defs()[12] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -3463,7 +3462,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[14] {
+    match &*tree.defs()[13] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -3561,7 +3560,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[15] {
+    match &*tree.defs()[14] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -3594,7 +3593,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[16] {
+    match &*tree.defs()[15] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -3666,7 +3665,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[17] {
+    match &*tree.defs()[16] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -3763,7 +3762,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[18] {
+    match &*tree.defs()[17] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -3825,7 +3824,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[19] {
+    match &*tree.defs()[18] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -3901,7 +3900,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[20] {
+    match &*tree.defs()[19] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -3948,7 +3947,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[21] {
+    match &*tree.defs()[20] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -4068,14 +4067,14 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[22] {
+    match &*tree.defs()[21] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
                 Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), Some(typ), None) => {
-                    assert_eq!(String::from("V"), typ.to_string());
+                    assert_eq!(String::from("U"), typ.to_string());
                     assert_eq!(LocalType::new(0), *local_type);
-                    assert_eq!(String::from("V"), local_types.local_type_to_string(*local_type));
+                    assert_eq!(String::from("U"), local_types.local_type_to_string(*local_type));
                     match expr {
                         Some(expr) => {
                             match &**expr {
@@ -4168,14 +4167,14 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[23] {
+    match &*tree.defs()[22] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
                 Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), Some(typ), None) => {
-                    assert_eq!(String::from("V"), typ.to_string());
+                    assert_eq!(String::from("U"), typ.to_string());
                     assert_eq!(LocalType::new(0), *local_type);
-                    assert_eq!(String::from("V"), local_types.local_type_to_string(*local_type));
+                    assert_eq!(String::from("U"), local_types.local_type_to_string(*local_type));
                     match expr {
                         Some(expr) => {
                             match &**expr {
@@ -4268,7 +4267,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[24] {
+    match &*tree.defs()[23] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -4402,7 +4401,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[25] {
+    match &*tree.defs()[24] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -4455,7 +4454,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[26] {
+    match &*tree.defs()[25] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -4523,7 +4522,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[27] {
+    match &*tree.defs()[26] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -4613,7 +4612,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[28] {
+    match &*tree.defs()[27] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -4653,7 +4652,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[29] {
+    match &*tree.defs()[28] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -4728,7 +4727,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[30] {
+    match &*tree.defs()[29] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -4867,7 +4866,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[31] {
+    match &*tree.defs()[30] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -5102,6 +5101,39 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
+    match &*tree.defs()[31] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), Some(typ), None) => {
+                    assert_eq!(String::from("Int"), typ.to_string());
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(_, Some(local_type), _) => {
+                                    assert_eq!(LocalType::new(1), *local_type);
+                                    assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
+                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
+                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
+                                            let type_param_entry_r = type_param_entry.borrow();
+                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
     match &*tree.defs()[32] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
@@ -5140,42 +5172,9 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
             let var_r = var.borrow();
             match &*var_r {
                 Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), Some(typ), None) => {
-                    assert_eq!(String::from("Int"), typ.to_string());
+                    assert_eq!(String::from("U"), typ.to_string());
                     assert_eq!(LocalType::new(0), *local_type);
-                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
-                    match expr {
-                        Some(expr) => {
-                            match &**expr {
-                                Expr::Literal(_, Some(local_type), _) => {
-                                    assert_eq!(LocalType::new(1), *local_type);
-                                    assert_eq!(String::from("t1"), local_types.local_type_to_string(*local_type));
-                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type))) {
-                                        Some(LocalTypeEntry::Param(DefinedFlag::Undefined, UniqFlag::None, type_param_entry, _)) => {
-                                            let type_param_entry_r = type_param_entry.borrow();
-                                            assert_eq!(false, type_param_entry_r.trait_names.contains(&TraitName::Shared));
-                                        },
-                                        _ => assert!(false),
-                                    }
-                                },
-                                _ => assert!(false),
-                            }
-                        },
-                        None => assert!(false),
-                    }
-                },
-                _ => assert!(false),
-            }
-        },
-        _ => assert!(false),
-    }
-    match &*tree.defs()[34] {
-        Def::Var(_, var, _) => {
-            let var_r = var.borrow();
-            match &*var_r {
-                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), Some(typ), None) => {
-                    assert_eq!(String::from("V"), typ.to_string());
-                    assert_eq!(LocalType::new(0), *local_type);
-                    assert_eq!(String::from("V"), local_types.local_type_to_string(*local_type));
+                    assert_eq!(String::from("U"), local_types.local_type_to_string(*local_type));
                     match expr {
                         Some(expr) => {
                             match &**expr {
@@ -5294,7 +5293,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[35] {
+    match &*tree.defs()[34] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -5332,7 +5331,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[36] {
+    match &*tree.defs()[35] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -10710,8 +10709,7 @@ builtin impl OpAdd for Int;
 builtin impl OpSub for Int;
 builtin impl OpSub for Float;
 data T = C { x: Int, y: Float, z: Int, }; 
-data U = D(Int, Float);
-data V = E(T);
+data U = D(T);
 a: (Int, Int) -> Int = |x: Int, y| x + y;
 b: (Float, Float) -> Float = |x, y: Float| -> Float x - y;
 c: Int = x;
@@ -10721,8 +10719,8 @@ f: Int = printf(\"%d\\n\", x);
 g: Int = a(x, y);
 h: Int = abc.0.z;
 i: Int = let (z, _) = abc.0.z -> in z;
-j: V = let abc2 = abc.0.z <- 1 in abc2;
-k: V = let abc2 = abc.0.z <-> fu in abc2;
+j: U = let abc2 = abc.0.z <- 1 in abc2;
+k: U = let abc2 = abc.0.z <-> fu in abc2;
 l: Float = let (z, _) = abc.0.z <-> fug2 -> in z;
 m() -> uniq Int = uniq x;
 n() -> Int = shared m();
@@ -10738,7 +10736,7 @@ s: Int = C { x: 1, y: 2.5, z: 3, } match {
     };
 x: Int = 1;
 y: Int = 2;
-abc: V = E(C { x: 2, y: 2.5, z: 3, });
+abc: U = D(C { x: 2, y: 2.5, z: 3, });
 fu(x: Int) -> Int = x;
 fug2(x: Int) -> (Float, Int) = (1.5, x); 
 ";
@@ -10760,8 +10758,8 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         Ok(()) => assert!(true),
         Err(_) => assert!(false),
     }
-    assert_eq!(37, tree.defs().len());
-    match &*tree.defs()[13] {
+    assert_eq!(36, tree.defs().len());
+    match &*tree.defs()[12] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -10830,7 +10828,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[14] {
+    match &*tree.defs()[13] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -10899,7 +10897,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[15] {
+    match &*tree.defs()[14] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -10924,7 +10922,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[16] {
+    match &*tree.defs()[15] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -10974,7 +10972,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[17] {
+    match &*tree.defs()[16] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -11035,7 +11033,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[18] {
+    match &*tree.defs()[17] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -11075,7 +11073,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[19] {
+    match &*tree.defs()[18] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -11122,7 +11120,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[20] {
+    match &*tree.defs()[19] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -11136,7 +11134,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
                                     match &**expr {
                                         Expr::Var(_, Some(local_type), _) => {
                                             assert_eq!(LocalType::new(1), *local_type);
-                                            assert_eq!(String::from("V"), local_types.local_type_to_string(*local_type));
+                                            assert_eq!(String::from("U"), local_types.local_type_to_string(*local_type));
                                         },
                                         _ => assert!(false),
                                     }
@@ -11169,7 +11167,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[21] {
+    match &*tree.defs()[20] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -11198,7 +11196,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
                                                             match &*patterns[1] {
                                                                 Pattern::Wildcard(Some(local_type), _) => {
                                                                     assert_eq!(LocalType::new(4), *local_type);
-                                                                    assert_eq!(String::from("V"), local_types.local_type_to_string(*local_type));
+                                                                    assert_eq!(String::from("U"), local_types.local_type_to_string(*local_type));
                                                                 },
                                                                 _ => assert!(false),
                                                             }
@@ -11206,7 +11204,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
                                                         _ => assert!(false),
                                                     }
                                                     assert_eq!(LocalType::new(5), *local_type);
-                                                    assert_eq!(String::from("(Int, V)"), local_types.local_type_to_string(*local_type));
+                                                    assert_eq!(String::from("(Int, U)"), local_types.local_type_to_string(*local_type));
                                                 },
                                                 _ => assert!(false),
                                             }
@@ -11215,7 +11213,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
                                                     match &**expr {
                                                         Expr::Var(_, Some(local_type), _) => {
                                                             assert_eq!(LocalType::new(1), *local_type);
-                                                            assert_eq!(String::from("V"), local_types.local_type_to_string(*local_type));
+                                                            assert_eq!(String::from("U"), local_types.local_type_to_string(*local_type));
                                                         },
                                                         _ => assert!(false),
                                                     }
@@ -11235,7 +11233,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
                                                         _ => assert!(false),
                                                     }
                                                     assert_eq!(LocalType::new(2), *local_type);
-                                                    assert_eq!(String::from("(Int, V)"), local_types.local_type_to_string(*local_type));
+                                                    assert_eq!(String::from("(Int, U)"), local_types.local_type_to_string(*local_type));
                                                 },
                                                 _ => assert!(false),
                                             }
@@ -11261,13 +11259,13 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }    
-    match &*tree.defs()[22] {
+    match &*tree.defs()[21] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
                 Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), _, None) => {
                     assert_eq!(LocalType::new(0), *local_type);
-                    assert_eq!(String::from("V"), local_types.local_type_to_string(*local_type));
+                    assert_eq!(String::from("U"), local_types.local_type_to_string(*local_type));
                     match expr {
                         Some(expr) => {
                             match &**expr {
@@ -11278,7 +11276,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
                                             match &**pattern {
                                                 Pattern::Var(_, _, Some(local_type), _) => {
                                                     assert_eq!(LocalType::new(4), *local_type);
-                                                    assert_eq!(String::from("V"), local_types.local_type_to_string(*local_type));
+                                                    assert_eq!(String::from("U"), local_types.local_type_to_string(*local_type));
                                                 },
                                                 _ => assert!(false),
                                             }
@@ -11287,7 +11285,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
                                                     match &**expr1 {
                                                         Expr::Var(_, Some(local_type), _) => {
                                                             assert_eq!(LocalType::new(1), *local_type);
-                                                            assert_eq!(String::from("V"), local_types.local_type_to_string(*local_type));
+                                                            assert_eq!(String::from("U"), local_types.local_type_to_string(*local_type));
                                                         },
                                                         _ => assert!(false),
                                                     }
@@ -11314,7 +11312,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
                                                         _ => assert!(false),
                                                     }
                                                     assert_eq!(LocalType::new(3), *local_type);
-                                                    assert_eq!(String::from("V"), local_types.local_type_to_string(*local_type));
+                                                    assert_eq!(String::from("U"), local_types.local_type_to_string(*local_type));
                                                 },
                                                 _ => assert!(false),
                                             }
@@ -11327,7 +11325,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
                                         _ => assert!(false),
                                     }
                                     assert_eq!(LocalType::new(5), *local_type);
-                                    assert_eq!(String::from("V"), local_types.local_type_to_string(*local_type));
+                                    assert_eq!(String::from("U"), local_types.local_type_to_string(*local_type));
                                 },
                                 _ => assert!(false),
                             }
@@ -11340,13 +11338,13 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[23] {
+    match &*tree.defs()[22] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
                 Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), _, None) => {
                     assert_eq!(LocalType::new(0), *local_type);
-                    assert_eq!(String::from("V"), local_types.local_type_to_string(*local_type));
+                    assert_eq!(String::from("U"), local_types.local_type_to_string(*local_type));
                     match expr {
                         Some(expr) => {
                             match &**expr {
@@ -11357,7 +11355,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
                                             match &**pattern {
                                                 Pattern::Var(_, _, Some(local_type), _) => {
                                                     assert_eq!(LocalType::new(4), *local_type);
-                                                    assert_eq!(String::from("V"), local_types.local_type_to_string(*local_type));
+                                                    assert_eq!(String::from("U"), local_types.local_type_to_string(*local_type));
                                                 },
                                                 _ => assert!(false),
                                             }
@@ -11366,7 +11364,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
                                                     match &**expr1 {
                                                         Expr::Var(_, Some(local_type), _) => {
                                                             assert_eq!(LocalType::new(1), *local_type);
-                                                            assert_eq!(String::from("V"), local_types.local_type_to_string(*local_type));
+                                                            assert_eq!(String::from("U"), local_types.local_type_to_string(*local_type));
                                                         },
                                                         _ => assert!(false),
                                                     }
@@ -11393,7 +11391,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
                                                         _ => assert!(false),
                                                     }
                                                     assert_eq!(LocalType::new(3), *local_type);
-                                                    assert_eq!(String::from("V"), local_types.local_type_to_string(*local_type));
+                                                    assert_eq!(String::from("U"), local_types.local_type_to_string(*local_type));
                                                 },
                                                 _ => assert!(false),
                                             }
@@ -11406,7 +11404,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
                                         _ => assert!(false),
                                     }
                                     assert_eq!(LocalType::new(5), *local_type);
-                                    assert_eq!(String::from("V"), local_types.local_type_to_string(*local_type));
+                                    assert_eq!(String::from("U"), local_types.local_type_to_string(*local_type));
                                 },
                                 _ => assert!(false),
                             }
@@ -11419,7 +11417,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[24] {
+    match &*tree.defs()[23] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -11448,7 +11446,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
                                                             match &*patterns[1] {
                                                                 Pattern::Wildcard(Some(local_type), _) => {
                                                                     assert_eq!(LocalType::new(5), *local_type);
-                                                                    assert_eq!(String::from("V"), local_types.local_type_to_string(*local_type));
+                                                                    assert_eq!(String::from("U"), local_types.local_type_to_string(*local_type));
                                                                 },
                                                                 _ => assert!(false),
                                                             }
@@ -11456,7 +11454,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
                                                         _ => assert!(false),
                                                     }
                                                     assert_eq!(LocalType::new(6), *local_type);
-                                                    assert_eq!(String::from("(Float, V)"), local_types.local_type_to_string(*local_type));
+                                                    assert_eq!(String::from("(Float, U)"), local_types.local_type_to_string(*local_type));
                                                 },
                                                 _ => assert!(false),
                                             }
@@ -11465,7 +11463,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
                                                     match &**expr1 {
                                                         Expr::Var(_, Some(local_type), _) => {
                                                             assert_eq!(LocalType::new(1), *local_type);
-                                                            assert_eq!(String::from("V"), local_types.local_type_to_string(*local_type));
+                                                            assert_eq!(String::from("U"), local_types.local_type_to_string(*local_type));
                                                         },
                                                         _ => assert!(false),
                                                     }
@@ -11492,7 +11490,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
                                                         _ => assert!(false),
                                                     }
                                                     assert_eq!(LocalType::new(3), *local_type);
-                                                    assert_eq!(String::from("(Float, V)"), local_types.local_type_to_string(*local_type));
+                                                    assert_eq!(String::from("(Float, U)"), local_types.local_type_to_string(*local_type));
                                                 },
                                                 _ => assert!(false),
                                             }
@@ -11518,7 +11516,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }    
-    match &*tree.defs()[25] {
+    match &*tree.defs()[24] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -11556,7 +11554,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[26] {
+    match &*tree.defs()[25] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -11602,7 +11600,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }    
-    match &*tree.defs()[27] {
+    match &*tree.defs()[26] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -11667,7 +11665,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[28] {
+    match &*tree.defs()[27] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -11699,7 +11697,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[29] {
+    match &*tree.defs()[28] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -11745,7 +11743,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[30] {
+    match &*tree.defs()[29] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -11835,7 +11833,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[31] {
+    match &*tree.defs()[30] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -11978,6 +11976,31 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
+    match &*tree.defs()[31] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), _, None) => {
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Literal(_, Some(local_type), _) => {
+                                    assert_eq!(LocalType::new(1), *local_type);
+                                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
     match &*tree.defs()[32] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
@@ -12009,32 +12032,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
             match &*var_r {
                 Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), _, None) => {
                     assert_eq!(LocalType::new(0), *local_type);
-                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
-                    match expr {
-                        Some(expr) => {
-                            match &**expr {
-                                Expr::Literal(_, Some(local_type), _) => {
-                                    assert_eq!(LocalType::new(1), *local_type);
-                                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
-                                },
-                                _ => assert!(false),
-                            }
-                        },
-                        None => assert!(false),
-                    }
-                },
-                _ => assert!(false),
-            }
-        },
-        _ => assert!(false),
-    }
-    match &*tree.defs()[34] {
-        Def::Var(_, var, _) => {
-            let var_r = var.borrow();
-            match &*var_r {
-                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), _, None) => {
-                    assert_eq!(LocalType::new(0), *local_type);
-                    assert_eq!(String::from("V"), local_types.local_type_to_string(*local_type));
+                    assert_eq!(String::from("U"), local_types.local_type_to_string(*local_type));
                     match expr {
                         Some(expr) => {
                             match &**expr {
@@ -12042,7 +12040,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
                                     match &**expr {
                                         Expr::Var(_, Some(local_type), _) => {
                                             assert_eq!(LocalType::new(1), *local_type);
-                                            assert_eq!(String::from("(T) -> V"), local_types.local_type_to_string(*local_type));
+                                            assert_eq!(String::from("(T) -> U"), local_types.local_type_to_string(*local_type));
                                         },
                                         _ => assert!(false),
                                     }
@@ -12091,7 +12089,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
                                         _ => assert!(false),
                                     }
                                     assert_eq!(LocalType::new(7), *local_type);
-                                    assert_eq!(String::from("V"), local_types.local_type_to_string(*local_type));
+                                    assert_eq!(String::from("U"), local_types.local_type_to_string(*local_type));
                                 },
                                 _ => assert!(false),
                             }
@@ -12104,7 +12102,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[35] {
+    match &*tree.defs()[34] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
@@ -12141,7 +12139,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
         },
         _ => assert!(false),
     }
-    match &*tree.defs()[36] {
+    match &*tree.defs()[35] {
         Def::Var(_, var, _) => {
             let var_r = var.borrow();
             match &*var_r {
