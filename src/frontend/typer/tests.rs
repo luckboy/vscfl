@@ -15385,6 +15385,7 @@ i(x: Int, y: t, z: u) -> Int =
                                 Arg(_, _, Some(local_type), _) => {
                                     assert_eq!(LocalType::new(0), *local_type);
                                     assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                    assert_eq!(true, local_types.has_in_non_uniq_lambda(*local_type));
                                 },
                                 _ => assert!(false),
                             }
@@ -15392,6 +15393,7 @@ i(x: Int, y: t, z: u) -> Int =
                                 Arg(_, _, Some(local_type), _) => {
                                     assert_eq!(LocalType::new(1), *local_type);
                                     assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                    assert_eq!(true, local_types.has_in_non_uniq_lambda(*local_type));
                                 },
                                 _ => assert!(false),
                             }
@@ -15559,11 +15561,13 @@ i(x: Int, y: t, z: u) -> Int =
                     match &**fun {
                         Fun::Fun(_, args, _, _, expr, Some(ret_local_type), Some(local_types)) => {
                             assert_eq!(String::from("t"), local_types.local_type_to_string(LocalType::new(0)));
+                            assert_eq!(true, local_types.has_in_non_uniq_lambda(LocalType::new(0)));
                             assert_eq!(2, args.len());
                             match &args[0] {
                                 Arg(_, _, Some(local_type), _) => {
                                     assert_eq!(LocalType::new(1), *local_type);
                                     assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                    assert_eq!(true, local_types.has_in_non_uniq_lambda(*local_type));
                                 },
                                 _ => assert!(false),
                             }
@@ -15762,6 +15766,7 @@ i(x: Int, y: t, z: u) -> Int =
                                 Arg(_, _, Some(local_type), _) => {
                                     assert_eq!(LocalType::new(0), *local_type);
                                     assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                    assert_eq!(false, local_types.has_in_non_uniq_lambda(*local_type));
                                 },
                                 _ => assert!(false),
                             }
@@ -15769,6 +15774,7 @@ i(x: Int, y: t, z: u) -> Int =
                                 Arg(_, _, Some(local_type), _) => {
                                     assert_eq!(LocalType::new(1), *local_type);
                                     assert_eq!(String::from("uniq Int"), local_types.local_type_to_string(*local_type));
+                                    assert_eq!(false, local_types.has_in_non_uniq_lambda(*local_type));
                                 },
                                 _ => assert!(false),
                             }
@@ -15936,12 +15942,15 @@ i(x: Int, y: t, z: u) -> Int =
                     match &**fun {
                         Fun::Fun(_, args, _, _, expr, Some(ret_local_type), Some(local_types)) => {
                             assert_eq!(String::from("t"), local_types.local_type_to_string(LocalType::new(0)));
+                            assert_eq!(true, local_types.has_in_non_uniq_lambda(LocalType::new(0)));
                             assert_eq!(String::from("u"), local_types.local_type_to_string(LocalType::new(1)));
+                            assert_eq!(true, local_types.has_in_non_uniq_lambda(LocalType::new(1)));
                             assert_eq!(3, args.len());
                             match &args[0] {
                                 Arg(_, _, Some(local_type), _) => {
                                     assert_eq!(LocalType::new(2), *local_type);
                                     assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                    assert_eq!(true, local_types.has_in_non_uniq_lambda(*local_type));
                                 },
                                 _ => assert!(false),
                             }
