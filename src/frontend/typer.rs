@@ -3793,14 +3793,14 @@ impl Typer
                     let elem_local_type2 = f(self, &mut **elem_other, tree, var_env, local_types, errs)?;
                     self.match_local_types(elem_local_type2, elem_local_type, g(&**elem_other), tree, local_types, errs)?;
                 }
-                local_types.set_type_value(local_type, Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Array(Some(elem_others.len())), vec![Rc::new(TypeValue::Param(UniqFlag::Uniq, elem_local_type))])));
+                local_types.set_type_value(local_type, Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Array(Some(elem_others.len())), vec![Rc::new(TypeValue::Param(UniqFlag::None, elem_local_type))])));
             },
             Literal::FilledArray(elem_other, len) => {
                 let elem_local_type = f(self, &mut **elem_other, tree, var_env, local_types, errs)?;
                 if is_expr && *len > 1 {
                     self.set_shared_for_local_type_and_value(elem_local_type, g(&**elem_other), tree, local_types, errs)?;
                 }
-                local_types.set_type_value(local_type, Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Array(Some(*len)), vec![Rc::new(TypeValue::Param(UniqFlag::Uniq, elem_local_type))])));
+                local_types.set_type_value(local_type, Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Array(Some(*len)), vec![Rc::new(TypeValue::Param(UniqFlag::None, elem_local_type))])));
             },
         }
         Ok(())
