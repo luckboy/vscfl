@@ -6741,7 +6741,7 @@ builtin type Int;
 }
 
 #[test]
-fn test_type_matcher_match_for_first_pattern_type_matches_type_parameters()
+fn test_type_matcher_match_for_first_pattern_type_matches_type_parameters_for_non_variable()
 {
     let s = "
 ";
@@ -6827,7 +6827,7 @@ fn test_type_matcher_match_for_first_pattern_type_matches_type_parameters()
         Err(_) => assert!(false),
     }
     let type_matcher = typer.type_matcher();
-    match type_matcher.match_for_first_pattern_type(LocalType::new(2), LocalType::new(1), &tree, &mut local_types) {
+    match type_matcher.match_for_first_pattern_type(LocalType::new(2), false, LocalType::new(1), &tree, &mut local_types) {
         Ok(TypeMatcherResult::Matched) => {
             let local_type1 = LocalType::new(2);
             let local_type2 = LocalType::new(1);
@@ -6876,7 +6876,7 @@ fn test_type_matcher_match_for_first_pattern_type_matches_type_parameters()
 }
 
 #[test]
-fn test_type_matcher_match_for_first_pattern_type_does_not_match_type_parameter_with_shared_and_unique_type_parameter()
+fn test_type_matcher_match_for_first_pattern_type_does_not_match_type_parameter_with_shared_and_unique_type_parameter_for_variable()
 {
     let s = "
 ";
@@ -6962,7 +6962,7 @@ fn test_type_matcher_match_for_first_pattern_type_does_not_match_type_parameter_
         Err(_) => assert!(false),
     }
     let type_matcher = typer.type_matcher();
-    match type_matcher.match_for_first_pattern_type(LocalType::new(2), LocalType::new(1), &tree, &mut local_types) {
+    match type_matcher.match_for_first_pattern_type(LocalType::new(2), true, LocalType::new(1), &tree, &mut local_types) {
         Ok(TypeMatcherResult::Mismatched(infos)) => {
             assert_eq!(1, infos.len());
             match &infos[0] {
@@ -6977,7 +6977,7 @@ fn test_type_matcher_match_for_first_pattern_type_does_not_match_type_parameter_
 }
 
 #[test]
-fn test_type_matcher_match_for_second_pattern_type_matches_type_parameters()
+fn test_type_matcher_match_for_second_pattern_type_matches_type_parameters_for_non_variable()
 {
     let s = "
 ";
@@ -7063,7 +7063,7 @@ fn test_type_matcher_match_for_second_pattern_type_matches_type_parameters()
         Err(_) => assert!(false),
     }
     let type_matcher = typer.type_matcher();
-    match type_matcher.match_for_second_pattern_type(LocalType::new(0), LocalType::new(3), &tree, &mut local_types) {
+    match type_matcher.match_for_second_pattern_type(LocalType::new(0), LocalType::new(3), false, &tree, &mut local_types) {
         Ok(TypeMatcherResult::Matched) => {
             let local_type1 = LocalType::new(3);
             let local_type2 = LocalType::new(0);
@@ -7112,7 +7112,7 @@ fn test_type_matcher_match_for_second_pattern_type_matches_type_parameters()
 }
 
 #[test]
-fn test_type_matcher_match_for_second_pattern_type_does_not_match_unique_type_parameter_and_type_parameter_with_shared()
+fn test_type_matcher_match_for_second_pattern_type_does_not_match_unique_type_parameter_and_type_parameter_with_shared_for_variable()
 {
     let s = "
 ";
@@ -7198,7 +7198,7 @@ fn test_type_matcher_match_for_second_pattern_type_does_not_match_unique_type_pa
         Err(_) => assert!(false),
     }
     let type_matcher = typer.type_matcher();
-    match type_matcher.match_for_second_pattern_type(LocalType::new(0), LocalType::new(3), &tree, &mut local_types) {
+    match type_matcher.match_for_second_pattern_type(LocalType::new(0), LocalType::new(3), true, &tree, &mut local_types) {
         Ok(TypeMatcherResult::Mismatched(infos)) => {
             assert_eq!(1, infos.len());
             match &infos[0] {

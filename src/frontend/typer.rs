@@ -691,9 +691,9 @@ impl Typer
         }
     }
 
-    fn match_local_types_for_first_pattern_type(&self, local_type1: LocalType, local_type2: LocalType, pos: &Pos, tree: &Tree, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn match_local_types_for_first_pattern_type(&self, local_type1: LocalType, is_var1: bool, local_type2: LocalType, pos: &Pos, tree: &Tree, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
-        match self.type_matcher.match_for_first_pattern_type(local_type1, local_type2, tree, local_types) {
+        match self.type_matcher.match_for_first_pattern_type(local_type1, is_var1, local_type2, tree, local_types) {
             Ok(TypeMatcherResult::Matched) => Ok(()),
             Ok(TypeMatcherResult::Mismatched(infos)) => {
                 errs.push(FrontendError::Message(pos.clone(), format!("can't match type {} with type {}", LocalTypeWithLocalTypes(local_type1, local_types), LocalTypeWithLocalTypes(local_type2, local_types))));
@@ -706,9 +706,9 @@ impl Typer
         }
     }    
 
-    fn match_local_types_for_second_pattern_type(&self, local_type1: LocalType, local_type2: LocalType, pos: &Pos, tree: &Tree, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn match_local_types_for_second_pattern_type(&self, local_type1: LocalType, local_type2: LocalType, is_var2: bool, pos: &Pos, tree: &Tree, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
-        match self.type_matcher.match_for_second_pattern_type(local_type1, local_type2, tree, local_types) {
+        match self.type_matcher.match_for_second_pattern_type(local_type1, local_type2, is_var2, tree, local_types) {
             Ok(TypeMatcherResult::Matched) => Ok(()),
             Ok(TypeMatcherResult::Mismatched(infos)) => {
                 errs.push(FrontendError::Message(pos.clone(), format!("can't match type {} with type {}", LocalTypeWithLocalTypes(local_type1, local_types), LocalTypeWithLocalTypes(local_type2, local_types))));
@@ -2918,7 +2918,7 @@ impl Typer
     }
     
     fn infer_types_for_named_field_pairs<T, F>(&self, named_field_pairs: &mut [NamedFieldPair<T>], con_local_type: LocalType, local_type: LocalType, named_fields: &NamedFields, tree: &Tree, var_env: &mut Environment<()>, local_types: &mut LocalTypes, is_pattern: bool, errs: &mut Vec<FrontendError>, mut f: F) -> FrontendResultWithErrors<()>
-        where F: FnMut(&Self, &mut T, &Tree, &mut Environment<()>, &mut LocalTypes, &mut Vec<FrontendError>) -> FrontendResultWithErrors<LocalType>
+        where F: FnMut(&Self, &mut T, &Tree, &mut Environment<()>, &mut bool, &mut LocalTypes, &mut Vec<FrontendError>) -> FrontendResultWithErrors<LocalType>
     {
         match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, con_local_type))) {
             Some(LocalTypeEntry::Type(type_value)) => {
@@ -2929,24 +2929,18 @@ impl Typer
                                 NamedFieldPair(field_ident, other, field_pos) => {
                                     match named_fields.field_index(field_ident) {
                                         Some(field_idx) => {
-                                            let field_local_type = f(self, other, tree, var_env, local_types, errs)?;
+                                            let mut is_var = false;
+                                            let field_local_type = f(self, other, tree, var_env, &mut is_var, local_types, errs)?;
                                             if !is_pattern {
                                                 self.match_type_values(&Rc::new(TypeValue::Param(UniqFlag::None, field_local_type)), &type_values[field_idx], field_pos, tree, local_types, errs)?;
                                             } else {
                                                 let uniq_flag = self.real_uniq_flag_for_type_value(&type_values[field_idx], local_types)?;
-                                                let mut is_success = true; 
+                                                let mut is_success = true;
                                                 if uniq_flag == UniqFlag::Uniq {
-                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, field_local_type))) {
-                                                        Some(LocalTypeEntry::Param(_, UniqFlag::None, type_param_entry, _)) => {
-                                                            let type_param_entry_r = type_param_entry.borrow();
-                                                            if type_param_entry_r.trait_names.len() == 1 && type_param_entry_r.trait_names.contains(&TraitName::Shared) {
-                                                                errs.push(FrontendError::Message(field_pos.clone(), format!("can't match type {} with type {}", LocalTypeWithLocalTypes(field_local_type, local_types), TypeValueWithLocalTypes(type_values[field_idx].clone(), local_types))));
-                                                                errs.push(FrontendError::Message(field_pos.clone(), format!("{}", MismatchedTypeInfoWidthLocalTypes(&MismatchedTypeInfo::UniqParam(field_local_type), local_types))));
-                                                                is_success = false;
-                                                            }
-                                                        },
-                                                        Some(_) => (),
-                                                        None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_named_field_pairs: no local type entry"))])),
+                                                    if is_var && self.shared_flag_for_local_type(field_local_type, tree, local_types)? == SharedFlag::Shared {
+                                                        errs.push(FrontendError::Message(field_pos.clone(), format!("can't match type {} with type {}", LocalTypeWithLocalTypes(field_local_type, local_types), TypeValueWithLocalTypes(type_values[field_idx].clone(), local_types))));
+                                                        errs.push(FrontendError::Message(field_pos.clone(), format!("{}", MismatchedTypeInfoWidthLocalTypes(&MismatchedTypeInfo::UniqParam(field_local_type), local_types))));
+                                                        is_success = false;
                                                     }
                                                     if is_success {
                                                         local_types.set_uniq(field_local_type);
@@ -3375,7 +3369,7 @@ impl Typer
             Expr::NamedFieldConApp(ident, expr_named_field_pairs, Some(con_local_type), Some(local_type), _) => {
                 type_and_named_fields_for_con_ident_in(ident, tree, |typ, named_fields| {
                         set_type_for_local_types(*con_local_type, typ, local_types)?;
-                        self.infer_types_for_named_field_pairs(expr_named_field_pairs.as_mut_slice(), *con_local_type, *local_type, named_fields, tree, var_env, local_types, false, errs, |typer, expr, tree, var_env, local_types, errs| {
+                        self.infer_types_for_named_field_pairs(expr_named_field_pairs.as_mut_slice(), *con_local_type, *local_type, named_fields, tree, var_env, local_types, false, errs, |typer, expr, tree, var_env, _, local_types, errs| {
                                 typer.infer_types_for_expr(expr, tree, var_env, closure_stack, local_types, errs)
                         })?;
                         Ok(())
@@ -3595,8 +3589,9 @@ impl Typer
                         Bind(pattern, expr3) => {
                             let expr3_local_type = self.infer_types_for_expr(&mut **expr3, tree, var_env, closure_stack, local_types, errs)?;
                             let mut var_local_types: Vec<(String, LocalType, Pos)> = Vec::new();
-                            let pattern_local_type = self.infer_types_for_pattern(&mut **pattern, tree, var_env, &mut var_local_types, local_types, false, errs)?;
-                            self.match_local_types_for_first_pattern_type(pattern_local_type, expr3_local_type, pattern_pos(pattern), tree, local_types, errs)?;
+                            let mut is_var = false;
+                            let pattern_local_type = self.infer_types_for_pattern(&mut **pattern, tree, var_env, &mut var_local_types, &mut is_var, local_types, false, errs)?;
+                            self.match_local_types_for_first_pattern_type(pattern_local_type, is_var, expr3_local_type, pattern_pos(pattern), tree, local_types, errs)?;
                         },
                     }
                 }
@@ -3612,8 +3607,9 @@ impl Typer
                         Case(pattern, expr3) => {
                             var_env.push_new_vars();
                             let mut var_local_types: Vec<(String, LocalType, Pos)> = Vec::new();
-                            let pattern_local_type = self.infer_types_for_pattern(&mut **pattern, tree, var_env, &mut var_local_types, local_types, false, errs)?;
-                            self.match_local_types_for_second_pattern_type(local_type2, pattern_local_type, pattern_pos(pattern), tree, local_types, errs)?;
+                            let mut is_var = false;
+                            let pattern_local_type = self.infer_types_for_pattern(&mut **pattern, tree, var_env, &mut var_local_types, &mut is_var, local_types, false, errs)?;
+                            self.match_local_types_for_second_pattern_type(local_type2, pattern_local_type, is_var, pattern_pos(pattern), tree, local_types, errs)?;
                             let expr3_local_type = self.infer_types_for_expr(&mut **expr3, tree, var_env, closure_stack, local_types, errs)?;
                             self.match_local_types(expr3_local_type, *local_type, expr_pos(&**expr3), tree, local_types, errs)?;
                             var_env.pop_vars();
@@ -3626,18 +3622,18 @@ impl Typer
         }
     }
 
-    fn infer_types_for_pattern(&self, pattern: &mut Pattern, tree: &Tree, var_env: &mut Environment<()>, var_local_types: &mut Vec<(String, LocalType, Pos)>, local_types: &mut LocalTypes, can_add_var_local_type: bool, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<LocalType>
+    fn infer_types_for_pattern(&self, pattern: &mut Pattern, tree: &Tree, var_env: &mut Environment<()>, var_local_types: &mut Vec<(String, LocalType, Pos)>, is_var: &mut bool, local_types: &mut LocalTypes, can_add_var_local_type: bool, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<LocalType>
     {
         match pattern {
             Pattern::Literal(literal, Some(local_type), pos) => {
                 self.infer_types_for_literal(&mut **literal, *local_type, pos, tree, var_env, local_types, false, errs, |typer, pattern, tree, var_env, local_types, errs| {
-                        typer.infer_types_for_pattern(pattern, tree, var_env, var_local_types, local_types, can_add_var_local_type, errs)
+                        typer.infer_types_for_pattern(pattern, tree, var_env, var_local_types, &mut false, local_types, can_add_var_local_type, errs)
                 }, pattern_pos)?;
                 Ok(*local_type)
             },
             Pattern::As(literal, _, Some(literal_local_type), Some(local_type), pos) => {
                 self.infer_types_for_literal(&mut **literal, *literal_local_type, pos, tree, var_env, local_types, false, errs, |typer, pattern, tree, var_env, local_types, errs| {
-                        typer.infer_types_for_pattern(pattern, tree, var_env, var_local_types, local_types, can_add_var_local_type, errs)
+                        typer.infer_types_for_pattern(pattern, tree, var_env, var_local_types, &mut false, local_types, can_add_var_local_type, errs)
                 }, pattern_pos)?;
                 self.cast_local_type(*literal_local_type, *local_type, pos, tree, local_types, errs)?;
                 Ok(*local_type)
@@ -3655,21 +3651,15 @@ impl Typer
                                     TypeValue::Type(_, TypeValueName::Fun, type_values) => {
                                         if type_values.len() >= 1 {
                                             for (pattern2, type_value) in patterns.iter_mut().zip(type_values.iter()) {
-                                                let field_local_type = self.infer_types_for_pattern(&mut **pattern2, tree, var_env, var_local_types, local_types, can_add_var_local_type, errs)?;
-                                                let uniq_flag = self.real_uniq_flag_for_type_value(type_value, local_types)?;
+                                                let mut is_var2 = false;
+                                                let field_local_type = self.infer_types_for_pattern(&mut **pattern2, tree, var_env, var_local_types, &mut is_var2, local_types, can_add_var_local_type, errs)?;
+                                                let uniq_flag = self.real_uniq_flag_for_type_value(&type_value, local_types)?;
                                                 let mut is_success = true;
                                                 if uniq_flag == UniqFlag::Uniq {
-                                                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, field_local_type))) {
-                                                        Some(LocalTypeEntry::Param(_, UniqFlag::None, type_param_entry, _)) => {
-                                                            let type_param_entry_r = type_param_entry.borrow();
-                                                            if type_param_entry_r.trait_names.len() == 1 && type_param_entry_r.trait_names.contains(&TraitName::Shared) {
-                                                                errs.push(FrontendError::Message(pattern_pos(&**pattern2).clone(), format!("can't match type {} with type {}", LocalTypeWithLocalTypes(field_local_type, local_types), TypeValueWithLocalTypes(type_value.clone(), local_types))));
-                                                                errs.push(FrontendError::Message(pattern_pos(&**pattern2).clone(), format!("{}", MismatchedTypeInfoWidthLocalTypes(&MismatchedTypeInfo::UniqParam(field_local_type), local_types))));
-                                                                is_success = false;
-                                                            }
-                                                        },
-                                                        Some(_) => (),
-                                                        None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_patterns: no local type entry"))])),
+                                                    if is_var2 && self.shared_flag_for_local_type(field_local_type, tree, local_types)? == SharedFlag::Shared {
+                                                        errs.push(FrontendError::Message(pattern_pos(&**pattern2).clone(), format!("can't match type {} with type {}", LocalTypeWithLocalTypes(field_local_type, local_types), TypeValueWithLocalTypes(type_value.clone(), local_types))));
+                                                        errs.push(FrontendError::Message(pattern_pos(&**pattern2).clone(), format!("{}", MismatchedTypeInfoWidthLocalTypes(&MismatchedTypeInfo::UniqParam(field_local_type), local_types))));
+                                                        is_success = false;
                                                     }
                                                     if is_success {
                                                         local_types.set_uniq(field_local_type);
@@ -3697,8 +3687,8 @@ impl Typer
             Pattern::NamedFieldCon(ident, pattern_named_field_pairs, Some(con_local_type), Some(local_type), _) => {
                 type_and_named_fields_for_con_ident_in(ident, tree, |typ, named_fields| {
                         set_type_for_local_types(*con_local_type, typ, local_types)?;
-                        self.infer_types_for_named_field_pairs(pattern_named_field_pairs.as_mut_slice(), *con_local_type, *local_type, named_fields, tree, var_env, local_types, true, errs, |typer, pattern, tree, var_env, local_types, errs| {
-                                typer.infer_types_for_pattern(pattern, tree, var_env, var_local_types, local_types, can_add_var_local_type, errs)
+                        self.infer_types_for_named_field_pairs(pattern_named_field_pairs.as_mut_slice(), *con_local_type, *local_type, named_fields, tree, var_env, local_types, true, errs, |typer, pattern, tree, var_env, is_var2, local_types, errs| {
+                                typer.infer_types_for_pattern(pattern, tree, var_env, var_local_types, is_var2, local_types, can_add_var_local_type, errs)
                         })?;
                         Ok(())
                 })?;
@@ -3709,6 +3699,7 @@ impl Typer
                 if can_add_var_local_type {
                     var_local_types.push((ident.clone(), *local_type, pos.clone()));
                 }
+                *is_var = true;
                 Ok(*local_type)
             },
             Pattern::At(_, ident, pattern2, Some(local_type), pos) => {
@@ -3716,8 +3707,9 @@ impl Typer
                 if can_add_var_local_type {
                     var_local_types.push((ident.clone(), *local_type, pos.clone()));
                 }
+                *is_var = true;
                 let mut var_local_types2: Vec<(String, LocalType, Pos)> = Vec::new();
-                let local_type2 = self.infer_types_for_pattern(&mut **pattern2, tree, var_env, &mut var_local_types2, local_types, true, errs)?;
+                let local_type2 = self.infer_types_for_pattern(&mut **pattern2, tree, var_env, &mut var_local_types2, is_var, local_types, true, errs)?;
                 self.match_local_types(*local_type, local_type2, pos, tree, local_types, errs)?;
                 for (ident2, var_local_type2, pos2) in &var_local_types2 {
                     self.set_shared_for_local_type_and_var(ident2.as_str(), *var_local_type2, pos2, tree, local_types, errs)?;
@@ -3727,7 +3719,7 @@ impl Typer
             Pattern::Wildcard(Some(local_type), _) => Ok(*local_type),
             Pattern::Alt(patterns, Some(local_type), _) => {
                 for pattern2 in patterns {
-                    let local_type2 = self.infer_types_for_pattern(&mut **pattern2, tree, var_env, var_local_types, local_types, can_add_var_local_type, errs)?;
+                    let local_type2 = self.infer_types_for_pattern(&mut **pattern2, tree, var_env, var_local_types, is_var, local_types, can_add_var_local_type, errs)?;
                     self.match_local_types(local_type2, *local_type, pattern_pos(&**pattern2), tree, local_types, errs)?;
                 }
                 Ok(*local_type)

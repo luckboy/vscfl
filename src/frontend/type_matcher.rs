@@ -635,42 +635,28 @@ impl TypeMatcher
         self.match_type_values(&type_value1, &type_value2, tree, local_types)
     }
 
-    pub fn match_for_first_pattern_type(&self, local_type1: LocalType, local_type2: LocalType, tree: &Tree, local_types: &mut LocalTypes) -> FrontendResult<TypeMatcherResult>
+    pub fn match_for_first_pattern_type(&self, local_type1: LocalType, is_var1: bool, local_type2: LocalType, tree: &Tree, local_types: &mut LocalTypes) -> FrontendResult<TypeMatcherResult>
     {
         let type_value1 = Rc::new(TypeValue::Param(UniqFlag::None, local_type1));
         let type_value2 = Rc::new(TypeValue::Param(UniqFlag::None, local_type2));
         let uniq_flag = self.real_uniq_flag_for_type_value(&type_value2, local_types)?;
         if uniq_flag == UniqFlag::Uniq {
-            match local_types.type_entry_for_type_value(&type_value1) {
-                Some(LocalTypeEntry::Param(_, UniqFlag::None, type_param_entry, _)) => {
-                    let type_param_entry_r = type_param_entry.borrow();
-                    if type_param_entry_r.trait_names.len() == 1 && type_param_entry_r.trait_names.contains(&TraitName::Shared) {
-                        return Ok(TypeMatcherResult::Mismatched(vec![MismatchedTypeInfo::UniqParam(local_type1)]));
-                    }
-                },
-                Some(_) => (),
-                None => return Err(FrontendError::Internal(String::from("match_for_first_pattern_type: no local type entry"))),
+            if is_var1 && self.shared_flag(local_type1, tree, local_types)? == SharedFlag::Shared {
+                return Ok(TypeMatcherResult::Mismatched(vec![MismatchedTypeInfo::UniqParam(local_type1)]));
             }
             local_types.set_uniq(local_type1);
         }
         self.match_type_values(&type_value1, &type_value2, tree, local_types)
     }
 
-    pub fn match_for_second_pattern_type(&self, local_type1: LocalType, local_type2: LocalType, tree: &Tree, local_types: &mut LocalTypes) -> FrontendResult<TypeMatcherResult>
+    pub fn match_for_second_pattern_type(&self, local_type1: LocalType, local_type2: LocalType, is_var2: bool, tree: &Tree, local_types: &mut LocalTypes) -> FrontendResult<TypeMatcherResult>
     {
         let type_value1 = Rc::new(TypeValue::Param(UniqFlag::None, local_type1));
         let type_value2 = Rc::new(TypeValue::Param(UniqFlag::None, local_type2));
         let uniq_flag = self.real_uniq_flag_for_type_value(&type_value1, local_types)?;
         if uniq_flag == UniqFlag::Uniq {
-            match local_types.type_entry_for_type_value(&type_value2) {
-                Some(LocalTypeEntry::Param(_, UniqFlag::None, type_param_entry, _)) => {
-                    let type_param_entry_r = type_param_entry.borrow();
-                    if type_param_entry_r.trait_names.len() == 1 && type_param_entry_r.trait_names.contains(&TraitName::Shared) {
-                        return Ok(TypeMatcherResult::Mismatched(vec![MismatchedTypeInfo::UniqParam(local_type2)]));
-                    }
-                },
-                Some(_) => (),
-                None => return Err(FrontendError::Internal(String::from("match_for_second_pattern_type: no local type entry"))),
+            if is_var2 && self.shared_flag(local_type2, tree, local_types)? == SharedFlag::Shared {
+                return Ok(TypeMatcherResult::Mismatched(vec![MismatchedTypeInfo::UniqParam(local_type2)]));
             }
             local_types.set_uniq(local_type2);
         }
