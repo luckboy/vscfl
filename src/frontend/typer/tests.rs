@@ -16192,3 +16192,523 @@ i(x: Int, y: t, z: u) -> Int =
         _ => assert!(false),
     }
 }
+
+#[test]
+fn test_typer_check_types_infers_types_for_fields()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+builtin type Float4;
+builtin type Ref;
+builtin float4;
+data T = C(Int, Float);
+a: Int = (1, 2.5).0;
+b: Float = float4(1.0, 1.5, 2.0, 2.5).x;
+c: Int = C(1, 2.5).0;
+d(x: Ref<T>) -> Ref<Int> = x.0;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(10, tree.defs().len());
+    match &*tree.defs()[6] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), _, None) => {
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::GetField(expr, fields, Some(local_type), _) => {
+                                    match &**expr {
+                                        Expr::Literal(literal, Some(local_type), _) => {
+                                            match &**literal {
+                                                Literal::Tuple(exprs) => {
+                                                    assert_eq!(2, exprs.len());
+                                                    match &*exprs[0] {
+                                                        Expr::Literal(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(1), *local_type);
+                                                            assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    match &*exprs[1] {
+                                                        Expr::Literal(_, Some(local_type), _) => {
+                                                            assert_eq!(LocalType::new(2), *local_type);
+                                                            assert_eq!(String::from("Float"), local_types.local_type_to_string(*local_type));
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(LocalType::new(3), *local_type);
+                                            assert_eq!(String::from("(Int, Float)"), local_types.local_type_to_string(*local_type));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(1, fields.len());
+                                    match &fields[0] {
+                                        Field::Unnamed(_, Some(local_type)) => {
+                                            assert_eq!(LocalType::new(5), *local_type);
+                                            assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(LocalType::new(4), *local_type);
+                                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[7] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), _, None) => {
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("Float"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::GetField(expr, fields, Some(local_type), _) => {
+                                    match &**expr {
+                                        Expr::App(expr, exprs, Some(local_type), _) => {
+                                            match &**expr {
+                                                Expr::Var(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(1), *local_type);
+                                                    assert_eq!(String::from("(Float, Float, Float, Float) -> Float4"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(4, exprs.len());
+                                            match &*exprs[0] {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(2), *local_type);
+                                                    assert_eq!(String::from("Float"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &*exprs[1] {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(3), *local_type);
+                                                    assert_eq!(String::from("Float"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &*exprs[2] {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(4), *local_type);
+                                                    assert_eq!(String::from("Float"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &*exprs[3] {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(5), *local_type);
+                                                    assert_eq!(String::from("Float"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(LocalType::new(6), *local_type);
+                                            assert_eq!(String::from("Float4"), local_types.local_type_to_string(*local_type));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(1, fields.len());
+                                    match &fields[0] {
+                                        Field::Named(_, Some(local_type)) => {
+                                            assert_eq!(LocalType::new(9), *local_type);
+                                            assert_eq!(String::from("Float"), local_types.local_type_to_string(*local_type));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(LocalType::new(7), *local_type);
+                                    assert_eq!(String::from("Float"), local_types.local_type_to_string(*local_type));
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[8] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), _, None) => {
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::GetField(expr, fields, Some(local_type), _) => {
+                                    match &**expr {
+                                        Expr::App(expr, exprs, Some(local_type), _) => {
+                                            match &**expr {
+                                                Expr::Var(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(1), *local_type);
+                                                    assert_eq!(String::from("(Int, Float) -> T"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(2, exprs.len());
+                                            match &*exprs[0] {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(2), *local_type);
+                                                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &*exprs[1] {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(3), *local_type);
+                                                    assert_eq!(String::from("Float"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(LocalType::new(4), *local_type);
+                                            assert_eq!(String::from("T"), local_types.local_type_to_string(*local_type));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(1, fields.len());
+                                    match &fields[0] {
+                                        Field::Unnamed(_, Some(local_type)) => {
+                                            assert_eq!(LocalType::new(7), *local_type);
+                                            assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(LocalType::new(5), *local_type);
+                                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[9] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Fun(fun, _, _) => {
+                    match &**fun {
+                        Fun::Fun(_, args, _, _, expr, Some(ret_local_type), Some(local_types)) => {
+                            assert_eq!(1, args.len());
+                            match &args[0] {
+                                Arg(_, _, Some(local_type), _) => {
+                                    assert_eq!(LocalType::new(0), *local_type);
+                                    assert_eq!(String::from("Ref<T>"), local_types.local_type_to_string(*local_type));
+                                },
+                                _ => assert!(false),
+                            }
+                            assert_eq!(LocalType::new(1), *ret_local_type);
+                            assert_eq!(String::from("Ref<Int>"), local_types.local_type_to_string(*ret_local_type));
+                            match expr {
+                                Some(expr) => {
+                                    match &**expr {
+                                        Expr::GetField(expr, fields, Some(local_type), _) => {
+                                            match &**expr {
+                                                Expr::Var(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(0), *local_type);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(1, fields.len());
+                                            match &fields[0] {
+                                                Field::Unnamed(_, Some(local_type)) => {
+                                                    assert_eq!(LocalType::new(4), *local_type);
+                                                    assert_eq!(String::from("Ref<Int>"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(LocalType::new(2), *local_type);
+                                            assert_eq!(String::from("Ref<Int>"), local_types.local_type_to_string(*local_type));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                None => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_check_types_infers_types_for_printf()
+{
+    let s = "
+builtin type PrivateSlice;
+builtin type GlobalSlice;
+trait PrivateSliceFrom<t1>
+{
+    private_slice(a: t) -> PrivateSlice<u> where t: PrivateSliceFrom <u>;
+};
+trait GlobalSliceFrom<t1>
+{
+    global_slice(a: t) -> GlobalSlice<u> where t: GlobalSliceFrom <u>;
+};
+builtin impl PrivateSliceFrom for [_; _];
+builtin impl GlobalSliceFrom for [_; _];
+builtin type Char;
+builtin type Int;
+builtin type ConstantSlice;
+a: Int = printf(\"%d\\n\", 1);
+b: Int = printf(\"%s\\n\", private_slice(['a', '\\0']));
+c: Int = printf(\"%s\\n\", global_slice(['a', '\\0']));
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(12, tree.defs().len());
+    match &*tree.defs()[9] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), _, None) => {
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::PrintfApp(exprs, Some(local_type), _) => {
+                                    assert_eq!(2, exprs.len());
+                                    match &*exprs[0] {
+                                        Expr::Literal(_, Some(local_type), _) => {
+                                            assert_eq!(LocalType::new(1), *local_type);
+                                            assert_eq!(String::from("ConstantSlice<Char>"), local_types.local_type_to_string(*local_type));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    match &*exprs[1] {
+                                        Expr::Literal(_, Some(local_type), _) => {
+                                            assert_eq!(LocalType::new(2), *local_type);
+                                            assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(LocalType::new(3), *local_type);
+                                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[10] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), _, None) => {
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::PrintfApp(exprs, Some(local_type), _) => {
+                                    assert_eq!(2, exprs.len());
+                                    match &*exprs[0] {
+                                        Expr::Literal(_, Some(local_type), _) => {
+                                            assert_eq!(LocalType::new(1), *local_type);
+                                            assert_eq!(String::from("ConstantSlice<Char>"), local_types.local_type_to_string(*local_type));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    match &*exprs[1] {
+                                        Expr::App(expr, exprs, Some(local_type), _) => {
+                                            match &**expr {
+                                                Expr::Var(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(2), *local_type);
+                                                    assert_eq!(String::from("([Char; 2]) -> PrivateSlice<Char>"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(1, exprs.len());
+                                            match &*exprs[0] {
+                                                Expr::Literal(literal, Some(local_type), _) => {
+                                                    match &**literal {
+                                                        Literal::Array(exprs) => {
+                                                            assert_eq!(2, exprs.len());
+                                                            match &*exprs[0] {
+                                                                Expr::Literal(_, Some(local_type), _) => {
+                                                                    assert_eq!(LocalType::new(3), *local_type);
+                                                                    assert_eq!(String::from("Char"), local_types.local_type_to_string(*local_type));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                            match &*exprs[1] {
+                                                                Expr::Literal(_, Some(local_type), _) => {
+                                                                    assert_eq!(LocalType::new(4), *local_type);
+                                                                    assert_eq!(String::from("Char"), local_types.local_type_to_string(*local_type));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(LocalType::new(5), *local_type);
+                                                    assert_eq!(String::from("[Char; 2]"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(LocalType::new(6), *local_type);
+                                            assert_eq!(String::from("PrivateSlice<Char>"), local_types.local_type_to_string(*local_type));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(LocalType::new(7), *local_type);
+                                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[11] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), _, None) => {
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::PrintfApp(exprs, Some(local_type), _) => {
+                                    assert_eq!(2, exprs.len());
+                                    match &*exprs[0] {
+                                        Expr::Literal(_, Some(local_type), _) => {
+                                            assert_eq!(LocalType::new(1), *local_type);
+                                            assert_eq!(String::from("ConstantSlice<Char>"), local_types.local_type_to_string(*local_type));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    match &*exprs[1] {
+                                        Expr::App(expr, exprs, Some(local_type), _) => {
+                                            match &**expr {
+                                                Expr::Var(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(2), *local_type);
+                                                    assert_eq!(String::from("([Char; 2]) -> GlobalSlice<Char>"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(1, exprs.len());
+                                            match &*exprs[0] {
+                                                Expr::Literal(literal, Some(local_type), _) => {
+                                                    match &**literal {
+                                                        Literal::Array(exprs) => {
+                                                            assert_eq!(2, exprs.len());
+                                                            match &*exprs[0] {
+                                                                Expr::Literal(_, Some(local_type), _) => {
+                                                                    assert_eq!(LocalType::new(3), *local_type);
+                                                                    assert_eq!(String::from("Char"), local_types.local_type_to_string(*local_type));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                            match &*exprs[1] {
+                                                                Expr::Literal(_, Some(local_type), _) => {
+                                                                    assert_eq!(LocalType::new(4), *local_type);
+                                                                    assert_eq!(String::from("Char"), local_types.local_type_to_string(*local_type));
+                                                                },
+                                                                _ => assert!(false),
+                                                            }
+                                                        },
+                                                        _ => assert!(false),
+                                                    }
+                                                    assert_eq!(LocalType::new(5), *local_type);
+                                                    assert_eq!(String::from("[Char; 2]"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(LocalType::new(6), *local_type);
+                                            assert_eq!(String::from("GlobalSlice<Char>"), local_types.local_type_to_string(*local_type));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(LocalType::new(7), *local_type);
+                                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}

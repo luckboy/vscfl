@@ -3050,7 +3050,7 @@ impl Typer
                 match &mut *type_var_r {
                     TypeVar::Builtin(_, _, _) => {
                         match self.builtins.type_var(ident) {
-                            Some(builtin_type_var) => Ok(builtin_type_var.is_primitive),
+                            Some(builtin_type_var) => Ok(builtin_type_var.is_printable),
                             None => Ok(false),
                         }
                     },

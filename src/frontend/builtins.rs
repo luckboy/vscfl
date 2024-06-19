@@ -170,7 +170,7 @@ impl Builtins
                 type_src.push('(');
                 let mut is_first = true;
                 for _ in 0..n {
-                    if is_first {
+                    if !is_first {
                         type_src.push_str(", ");
                     }
                     type_src.push_str(s);
