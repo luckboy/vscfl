@@ -3391,7 +3391,7 @@ impl Typer
                                     match &*type_value {
                                         TypeValue::Type(_, TypeValueName::Name(expr3_type_ident), expr3_type_values) => {
                                             if !self.has_printable_for_type_ident(expr3_type_ident, tree)? {
-                                                errs.push(FrontendError::Message(expr_pos(&**expr3).clone(), format!("printf must't take values with type {}", LocalTypeWithLocalTypes(expr3_local_type, local_types))));
+                                                errs.push(FrontendError::Message(expr_pos(&**expr3).clone(), format!("printf mustn't take values with type {}", LocalTypeWithLocalTypes(expr3_local_type, local_types))));
                                             }
                                             match expr3_type_values.first() {
                                                 Some(expr3_type_value) => {
@@ -3406,7 +3406,7 @@ impl Typer
                                                                 _ => errs.push(FrontendError::Message(expr_pos(&**expr3).clone(), format!("printf mustn't take values with type {}", LocalTypeWithLocalTypes(expr3_local_type, local_types)))),
                                                             }
                                                         },
-                                                        Some(LocalTypeEntry::Param(_, _, _, _)) => errs.push(FrontendError::Message(expr_pos(expr3).clone(), format!("printf must't take values with type {}", LocalTypeWithLocalTypes(expr3_local_type, local_types)))),
+                                                        Some(LocalTypeEntry::Param(_, _, _, _)) => errs.push(FrontendError::Message(expr_pos(expr3).clone(), format!("printf mustn't take values with type {}", LocalTypeWithLocalTypes(expr3_local_type, local_types)))),
                                                         None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_expr: no local type entry"))])), 
                                                     }
                                                 },
