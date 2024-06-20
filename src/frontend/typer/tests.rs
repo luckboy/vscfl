@@ -18518,3 +18518,269 @@ a: Int = printf(\"%d\\n\", true);
         _ => assert!(false),
     }
 }
+
+#[test]
+fn test_typer_check_types_complains_on_type_has_not_field_for_unnamed_field()
+{
+    let s = "
+builtin type Int;
+f(x: Int) -> Int = x.0;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(2, pos.line);
+                    assert_eq!(20, pos.column);
+                    assert_eq!(String::from("type Int hasn't field 0"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_check_types_complains_on_type_has_not_field_for_named_field()
+{
+    let s = "
+builtin type Int;
+f(x: Int) -> Int = x.y;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(2, pos.line);
+                    assert_eq!(20, pos.column);
+                    assert_eq!(String::from("type Int hasn't field y"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_check_types_complains_on_type_has_not_field_for_tuple()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+a: Int = (1, 2.5).2;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(3, pos.line);
+                    assert_eq!(10, pos.column);
+                    assert_eq!(String::from("type (Int, Float) hasn't field 2"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_check_types_complains_on_type_has_not_field_for_builtin_type_and_named_field()
+{
+    let s = "
+builtin type Float;
+builtin type Float4;
+f(x: Float4) -> Float = x.a;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(3, pos.line);
+                    assert_eq!(25, pos.column);
+                    assert_eq!(String::from("type Float4 hasn't field a"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_check_types_complains_on_type_has_not_field_for_builtin_type_and_unnamed_field()
+{
+    let s = "
+builtin type Float;
+builtin type Float4;
+f(x: Float4) -> Float = x.4;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(3, pos.line);
+                    assert_eq!(25, pos.column);
+                    assert_eq!(String::from("type Float4 hasn't field 4"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_check_types_complains_on_type_has_not_field_for_type_and_unnamed_field()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+data T = C(Int, Float);
+f(x: T) -> Int = x.3;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(4, pos.line);
+                    assert_eq!(18, pos.column);
+                    assert_eq!(String::from("type T hasn't field 3"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_check_types_complains_on_type_has_not_field_for_type_and_named_field()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+data T = C { x: Int, y: Float, };
+f(x: T) -> Int = x.z;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(4, pos.line);
+                    assert_eq!(18, pos.column);
+                    assert_eq!(String::from("type T hasn't field z"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
