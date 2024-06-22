@@ -7,3 +7,4 @@
 //
 pub mod dfs;
 pub mod env;
+pub mod pattern;
