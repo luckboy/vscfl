@@ -136,21 +136,21 @@ impl<T: Clone + Eq> PatternForest<T>
                             let mut new_pairs3: Vec<(PatternKind, Rc<RefCell<PatternNode<T>>>)> = Vec::new();
                             let mut is_last_node2 = true;
                             for (kind1, node1) in &pairs1 {
-                                let mut is_node2 = true;
+                                let mut is_node2 = false;
                                 match (*kind1, kind2, union_pattern_nodes(node1, &node2)?) {
                                     (tmp_kind1, _, Some((PatternKind::Left, new_node))) => new_pairs1.push((tmp_kind1, new_node)),
-                                    (_, _, Some((PatternKind::Right, _))) => is_node2 = false,
+                                    (_, _, Some((PatternKind::Right, _))) => is_node2 = true,
                                     (PatternKind::New, PatternKind::New, Some((PatternKind::Both, new_node))) => new_pairs3.push((PatternKind::New, new_node)),
                                     (tmp_kind1, PatternKind::New, Some((PatternKind::Both, new_node))) => new_pairs1.push((tmp_kind1, new_node)),
-                                    (PatternKind::New, tmp_kind2, Some((PatternKind::Both, new_node))) => new_pairs1.push((tmp_kind2, new_node)),
+                                    (PatternKind::New, _, Some((PatternKind::Both, _))) => is_node2 = false,
                                     (_, _, Some((PatternKind::Both, new_node))) => new_pairs1.push((PatternKind::Both, new_node)),
                                     (_, _, Some((PatternKind::New, new_node))) => new_pairs3.push((PatternKind::New, new_node)),
                                     (_, _, None) => {
                                         new_pairs1.push((*kind1, node1.clone()));
-                                        is_node2 = false;
+                                        is_node2 = true;
                                     },
                                 }
-                                if is_node2 {
+                                if !is_node2 {
                                     is_last_node2 = false;
                                 }
                             }
