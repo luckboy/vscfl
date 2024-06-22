@@ -118,6 +118,9 @@ impl<T: Clone + Eq> PatternForest<T>
         }
     }
     
+    pub fn set_all(&mut self)
+    { *self = PatternForest::All; }
+    
     fn union_without_normalization(&self, forest: &PatternForest<T>) -> Result<(PatternKind, PatternForest<T>), PatternError>
     {
         match (self, forest) {
