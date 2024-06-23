@@ -6,11 +6,12 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 //
 use std::cell::*;
+use std::collections::BTreeMap;
 use std::error;
 use std::fmt;
 use std::rc::*;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum PatternKind
 {
     Left,
@@ -27,7 +28,7 @@ pub struct PatternNode<T>
     is_normalized: bool,
 }
 
-impl<T: Clone + Eq> PatternNode<T>
+impl<T: Clone + Eq + Ord> PatternNode<T>
 {
     pub fn new(id: T, forests: Vec<PatternForest<T>>) -> Self
     { PatternNode { id, forests, is_normalized: false, } }
@@ -53,7 +54,7 @@ impl<T: Clone + Eq> PatternNode<T>
     }
 }
 
-pub fn union_pattern_nodes<T: Clone + Eq>(node1: &Rc<RefCell<PatternNode<T>>>, node2: &Rc<RefCell<PatternNode<T>>>) -> Result<Option<(PatternKind, Rc<RefCell<PatternNode<T>>>)>, PatternError>
+pub fn union_pattern_nodes<T: Clone + Eq + Ord>(node1: &Rc<RefCell<PatternNode<T>>>, node2: &Rc<RefCell<PatternNode<T>>>) -> Result<Option<(PatternKind, Rc<RefCell<PatternNode<T>>>)>, PatternError>
 {
     let mut node1_r = node1.borrow_mut();
     let mut node2_r = node2.borrow_mut();
@@ -105,7 +106,7 @@ pub enum PatternForest<T>
     All,
 }
 
-impl<T: Clone + Eq> PatternForest<T>
+impl<T: Clone + Eq + Ord> PatternForest<T>
 {
     pub fn add_node(&mut self, node: PatternNode<T>) -> bool
     {
@@ -129,40 +130,57 @@ impl<T: Clone + Eq> PatternForest<T>
                     return Err(PatternError::Max);
                 }
                 let max = max1;
-                let mut pairs1: Vec<(PatternKind, Rc<RefCell<PatternNode<T>>>)> = nodes1.iter().map(|n| (PatternKind::Left, n.clone())).collect();
+                let mut pair_vec_map1: BTreeMap<T, Vec<(PatternKind, Rc<RefCell<PatternNode<T>>>)>> = BTreeMap::new();
+                for node1 in nodes1 {
+                    let node1_r = node1.borrow();
+                    match pair_vec_map1.get_mut(&node1_r.id) {
+                        Some(pairs1) => pairs1.push((PatternKind::Left, node1.clone())),
+                        None => {
+                            pair_vec_map1.insert(node1_r.id.clone(), vec![(PatternKind::Left, node1.clone())]);
+                        },
+                    }
+                }
                 let mut pairs2: Vec<(PatternKind, Rc<RefCell<PatternNode<T>>>)> = nodes2.iter().map(|n| (PatternKind::Right, n.clone())).collect();
                 pairs2.reverse();
                 loop {
                     match pairs2.pop() {
                         Some((kind2, node2)) => {
-                            let mut new_pairs1: Vec<(PatternKind, Rc<RefCell<PatternNode<T>>>)> = Vec::new();
-                            let mut new_pairs3: Vec<(PatternKind, Rc<RefCell<PatternNode<T>>>)> = Vec::new();
-                            let mut is_last_node2 = true;
-                            for (kind1, node1) in &pairs1 {
-                                let mut is_node2 = false;
-                                match (*kind1, kind2, union_pattern_nodes(node1, &node2)?) {
-                                    (tmp_kind1, _, Some((PatternKind::Left, new_node))) => new_pairs1.push((tmp_kind1, new_node)),
-                                    (_, _, Some((PatternKind::Right, _))) => is_node2 = true,
-                                    (PatternKind::New, PatternKind::New, Some((PatternKind::Both, new_node))) => new_pairs3.push((PatternKind::New, new_node)),
-                                    (tmp_kind1, PatternKind::New, Some((PatternKind::Both, new_node))) => new_pairs1.push((tmp_kind1, new_node)),
-                                    (PatternKind::New, _, Some((PatternKind::Both, _))) => is_node2 = false,
-                                    (_, _, Some((PatternKind::Both, new_node))) => new_pairs1.push((PatternKind::Both, new_node)),
-                                    (_, _, Some((PatternKind::New, new_node))) => new_pairs3.push((PatternKind::New, new_node)),
-                                    (_, _, None) => {
-                                        new_pairs1.push((*kind1, node1.clone()));
-                                        is_node2 = true;
-                                    },
-                                }
-                                if !is_node2 {
-                                    is_last_node2 = false;
-                                }
+                            let node2_r = node2.borrow();
+                            match pair_vec_map1.get_mut(&node2_r.id) {
+                                Some(pairs1) => {
+                                    let mut new_pairs1: Vec<(PatternKind, Rc<RefCell<PatternNode<T>>>)> = Vec::new();
+                                    let mut new_pairs3: Vec<(PatternKind, Rc<RefCell<PatternNode<T>>>)> = Vec::new();
+                                    let mut is_last_node2 = true;
+                                    for (kind1, node1) in &*pairs1 {
+                                        let mut is_node2 = false;
+                                        match (*kind1, kind2, union_pattern_nodes(node1, &node2)?) {
+                                            (tmp_kind1, _, Some((PatternKind::Left, new_node))) => new_pairs1.push((tmp_kind1, new_node)),
+                                            (_, _, Some((PatternKind::Right, _))) => is_node2 = true,
+                                            (PatternKind::New, PatternKind::New, Some((PatternKind::Both, new_node))) => new_pairs3.push((PatternKind::New, new_node)),
+                                            (tmp_kind1, PatternKind::New, Some((PatternKind::Both, new_node))) => new_pairs1.push((tmp_kind1, new_node)),
+                                            (PatternKind::New, _, Some((PatternKind::Both, _))) => is_node2 = false,
+                                            (_, _, Some((PatternKind::Both, new_node))) => new_pairs1.push((PatternKind::Both, new_node)),
+                                            (_, _, Some((PatternKind::New, new_node))) => new_pairs3.push((PatternKind::New, new_node)),
+                                            (_, _, None) => {
+                                                new_pairs1.push((*kind1, node1.clone()));
+                                                is_node2 = true;
+                                            },
+                                        }
+                                        if !is_node2 {
+                                            is_last_node2 = false;
+                                        }
+                                    }
+                                    if is_last_node2 {
+                                        new_pairs1.push((kind2, node2.clone()));
+                                    }
+                                    *pairs1 = new_pairs1;
+                                    new_pairs3.reverse();
+                                    pairs2.append(&mut new_pairs3);
+                                },
+                                None => {
+                                    pair_vec_map1.insert(node2_r.id.clone(), vec![(PatternKind::Left, node2.clone())]);
+                                },
                             }
-                            if is_last_node2 {
-                                new_pairs1.push((kind2, node2.clone()));
-                            }
-                            pairs1 = new_pairs1;
-                            new_pairs3.reverse();
-                            pairs2.append(&mut new_pairs3);
                         },
                         None => break,
                     }
@@ -170,12 +188,14 @@ impl<T: Clone + Eq> PatternForest<T>
                 let mut left_count = 0usize;
                 let mut right_count = 0usize;
                 let mut new_count = 0usize;
-                for (kind1, _) in &pairs1 {
-                    match kind1 {
-                        PatternKind::Left => left_count += 1,
-                        PatternKind::Right => right_count += 1,
-                        PatternKind::Both => (),
-                        PatternKind::New => new_count += 1,
+                for pairs1 in pair_vec_map1.values() {
+                    for (kind1, _) in pairs1 {
+                        match kind1 {
+                            PatternKind::Left => left_count += 1,
+                            PatternKind::Right => right_count += 1,
+                            PatternKind::Both => (),
+                            PatternKind::New => new_count += 1,
+                        }
                     }
                 }
                 let new_kind = if left_count > 0 && right_count == 0 && new_count == 0 {
@@ -187,19 +207,23 @@ impl<T: Clone + Eq> PatternForest<T>
                 } else {
                     PatternKind::New
                 };
-                let are_all = max.map(|m| m == pairs1.len()).unwrap_or(false) && pairs1.iter().all(|p| {
-                        let r = p.1.borrow();
-                        r.forests.iter().all(|f| {
-                                match f {
-                                    PatternForest::All => true,
-                                    _ => false,
-                                }
-                        })
+                let are_all = max.map(|m| m == pair_vec_map1.len()).unwrap_or(false) && pair_vec_map1.values().all(|ps| {
+                        if ps.len() == 1 {
+                            let r = ps[0].1.borrow();
+                            r.forests.iter().all(|f| {
+                                    match f {
+                                        PatternForest::All => true,
+                                        _ => false,
+                                    }
+                            })
+                        } else {
+                            false
+                        }
                 });
                 if are_all {
                     Ok((new_kind, PatternForest::All))
                 } else {
-                    Ok((new_kind, PatternForest::Alt(pairs1.iter().map(|p| p.1.clone()).collect(), *max)))
+                    Ok((new_kind, PatternForest::Alt(pair_vec_map1.values().flatten().map(|p| p.1.clone()).collect(), *max)))
                 }
             },
             (PatternForest::Alt(_, _), PatternForest::All) => Ok((PatternKind::Right, PatternForest::All)),
