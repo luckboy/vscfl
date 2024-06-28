@@ -3617,7 +3617,7 @@ impl Typer
                     }
                 }
                 Ok(*local_type)
-            }
+            },
             _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_expr: no local type"))])),
         }
     }
