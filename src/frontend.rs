@@ -7,6 +7,7 @@
 //
 pub mod builtins;
 pub mod error;
+pub mod instancer;
 pub mod lexer;
 pub mod namer;
 pub mod parser;
