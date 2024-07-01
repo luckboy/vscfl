@@ -171,14 +171,23 @@ impl Builtins
         vars.insert(String::from("private_ref"), BuiltinVar::new(String::from("(t) -> PrivateRef<t>"), String::new()));
         vars.insert(String::from("local_ref"), BuiltinVar::new(String::from("(t) -> LocalRef<t>"), String::new()));
         vars.insert(String::from("global_ref"), BuiltinVar::new(String::from("(t) -> GlobalRef<t>"), String::new()));
-        vars.insert(String::from("constant_ref"), BuiltinVar::new(String::from("(t) -> ConstantRef<t>"), String::new()));
         vars.insert(String::from("uniq_ref"), BuiltinVar::new(String::from("(t) -> UniqRef<t>"), String::new()));
         vars.insert(String::from("uniq_private_ref"), BuiltinVar::new(String::from("(t) -> UniqPrivateRef<t>"), String::new()));
         vars.insert(String::from("uniq_local_ref"), BuiltinVar::new(String::from("(t) -> UniqLocalRef<t>"), String::new()));
         vars.insert(String::from("uniq_global_ref"), BuiltinVar::new(String::from("(t) -> UniqGlobalRef<t>"), String::new()));
+        vars.insert(String::from("ref_from_uniq"), BuiltinVar::new(String::from("(UniqRef<t>) -> Ref<t>"), String::new()));
+        vars.insert(String::from("private_ref_from_uniq"), BuiltinVar::new(String::from("(UniqPrivateRef<t>) -> PrivateRef<t>"), String::new()));
+        vars.insert(String::from("local_ref_from_uniq"), BuiltinVar::new(String::from("(UniqLocalRef<t>) -> LocalRef<t>"), String::new()));
+        vars.insert(String::from("global_ref_from_uniq"), BuiltinVar::new(String::from("(UniqGlobalRef<t>) -> GlobalRef<t>"), String::new()));
+        vars.insert(String::from("slice_from_uniq"), BuiltinVar::new(String::from("(UniqSlice<t>) -> Slice<t>"), String::new()));
+        vars.insert(String::from("private_slice_from_uniq"), BuiltinVar::new(String::from("(UniqPrivateSlice<t>) -> PrivateSlice<t>"), String::new()));
+        vars.insert(String::from("local_slice_from_uniq"), BuiltinVar::new(String::from("(UniqLocalSlice<t>) -> LocalSlice<t>"), String::new()));
+        vars.insert(String::from("global_slice_from_uniq"), BuiltinVar::new(String::from("(UniqGlobalSlice<t>) -> GlobalSlice<t>"), String::new()));
         vars.insert(String::from("uninit"), BuiltinVar::new(String::from("() -> t"), String::new()));
         // Variables for standard library.
         vars.insert(String::from("zero"), BuiltinVar::new(String::from("() -> t"), String::from("t: Zero")));
+        vars.insert(String::from("copy_str_to_uniq_private_slice"), BuiltinVar::new(String::from("(ConstantSlice<Char>, UniqPrivateSlice<Char>) -> UniqPrivateSlice<Char>"), String::new()));
+        vars.insert(String::from("copy_str_to_uniq_global_slice"), BuiltinVar::new(String::from("(ConstantSlice<Char>, UniqGlobalSlice<Char>) -> UniqGlobalSlice<Char>"), String::new()));
         vars.insert(String::from("FLOAT_DIG"), BuiltinVar::new(String::from("Uint"), String::new()));
         vars.insert(String::from("FLOAT_MANT_DIG"), BuiltinVar::new(String::from("Uint"), String::new()));
         vars.insert(String::from("FLOAT_MAX_10_EXP"), BuiltinVar::new(String::from("Int"), String::new()));
@@ -373,6 +382,22 @@ impl Builtins
         for s in ["UniqSlice", "UniqPrivateSlice", "UniqLocalSlice", "UniqGlobalSlice"] {
             impl_pairs.insert((String::from("OpUpdateNth"), TypeName::Name(String::from(s))));
         }
+        // SliceFrom
+        impl_pairs.insert((String::from("SliceFrom"), TypeName::Array(None)));
+        // PrivateSliceFrom
+        impl_pairs.insert((String::from("PrivateSliceFrom"), TypeName::Array(None)));
+        // LocalSliceFrom
+        impl_pairs.insert((String::from("LocalSliceFrom"), TypeName::Array(None)));
+        // GlobalSliceFrom
+        impl_pairs.insert((String::from("GlobalSliceFrom"), TypeName::Array(None)));
+        // UniqSliceFrom
+        impl_pairs.insert((String::from("UniqSliceFrom"), TypeName::Array(None)));
+        // UniqPrivateSliceFrom
+        impl_pairs.insert((String::from("UniqPrivateSliceFrom"), TypeName::Array(None)));
+        // UniqLocalSliceFrom
+        impl_pairs.insert((String::from("UniqLocalSliceFrom"), TypeName::Array(None)));
+        // UniqGlobalSliceFrom
+        impl_pairs.insert((String::from("UniqGlobalSliceFrom"), TypeName::Array(None)));
         // Implementations for standard library.
         // Zero
         for s in ["Bool", "Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Half", "Float", "Double", "SizeT", "PtrdiffT", "IntptrT", "UintptrT", "ClMemFenceFlags", "EventT"] {
@@ -395,24 +420,6 @@ impl Builtins
         for s in ["Slice", "PrivateSlice", "LocalSlice", "GlobalSlice", "ConstantSlice", "UniqSlice", "UniqPrivateSlice", "UniqLocalSlice", "UniqGlobalSlice"] {
             impl_pairs.insert((String::from("Len"), TypeName::Name(String::from(s))));
         }
-        // SliceFrom
-        impl_pairs.insert((String::from("SliceFrom"), TypeName::Array(None)));
-        // PrivateSliceFrom
-        impl_pairs.insert((String::from("PrivateSliceFrom"), TypeName::Array(None)));
-        // LocalSliceFrom
-        impl_pairs.insert((String::from("LocalSliceFrom"), TypeName::Array(None)));
-        // GlobalSliceFrom
-        impl_pairs.insert((String::from("GlobalSliceFrom"), TypeName::Array(None)));
-        // ConstantSliceFrom
-        impl_pairs.insert((String::from("ConstantSliceFrom"), TypeName::Array(None)));
-        // UniqSliceFrom
-        impl_pairs.insert((String::from("UniqSliceFrom"), TypeName::Array(None)));
-        // UniqPrivateSliceFrom
-        impl_pairs.insert((String::from("UniqPrivateSliceFrom"), TypeName::Array(None)));
-        // UniqLocalSliceFrom
-        impl_pairs.insert((String::from("UniqLocalSliceFrom"), TypeName::Array(None)));
-        // UniqGlobalSliceFrom
-        impl_pairs.insert((String::from("UniqGlobalSliceFrom"), TypeName::Array(None)));
         // GetRef
         impl_pairs.insert((String::from("GetRef"), TypeName::Name(String::from("Slice"))));
         // GetPrivateRef
