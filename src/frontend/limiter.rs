@@ -166,7 +166,7 @@ impl Limiter
                             _ => errs.push(FrontendError::Message(pos.clone(), String::from("printf takes first argument that must be literal"))),
                         }
                     },
-                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_insts_for_var: no frist expression"))]))
+                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_limits_for_expr: no frist expression"))]))
                 }
                 for expr2 in exprs {
                     self.check_limits_for_expr(&**expr2, is_in_var, errs)?;
