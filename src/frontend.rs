@@ -9,6 +9,7 @@ pub mod builtins;
 pub mod error;
 pub mod instancer;
 pub mod lexer;
+pub mod limiter;
 pub mod namer;
 pub mod parser;
 pub mod tree;
