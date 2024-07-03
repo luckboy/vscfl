@@ -149,7 +149,7 @@ fn union_pattern_nodes_without_normalization<T: Clone + Eq + Ord>(node1: &Rc<Ref
                         if one_count >= forests1.len() - 1 {
                             let mut new_pairs = vec![(PatternKind::Right, node2.clone())];
                             let mut is_new_node = false;
-                            let mut is_right = false;
+                            let mut is_left = true;
                             if forests1[0].has_one() {
                                 match forests1[0].union_without_normalization(forest2)?.0 {
                                     PatternKind::Right | PatternKind::Both => {
@@ -171,7 +171,7 @@ fn union_pattern_nodes_without_normalization<T: Clone + Eq + Ord>(node1: &Rc<Ref
                                             new_pairs.push((PatternKind::New, Rc::new(RefCell::new(new_node))));
                                             is_new_node = true;
                                         } else if both_count_for_first == forests1.len() {
-                                            is_right = true;
+                                            is_left = false;
                                         }
                                     },
                                     _ => (),
@@ -202,13 +202,13 @@ fn union_pattern_nodes_without_normalization<T: Clone + Eq + Ord>(node1: &Rc<Ref
                                             new_pairs.push((PatternKind::New, Rc::new(RefCell::new(new_node))));
                                             is_new_node = true;
                                         } else if both_count_for_second == forests1.len() {
-                                            is_right = true;
+                                            is_left = false;
                                         }
                                     },
                                     _ => (),
                                 }
                             }
-                            if !is_new_node && !is_right {
+                            if !is_new_node && is_left {
                                 new_pairs.push((PatternKind::Left, node1.clone()));
                             }
                             return Ok(new_pairs);
