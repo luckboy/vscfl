@@ -147,7 +147,7 @@ fn union_pattern_nodes_without_normalization<T: Clone + Eq + Ord>(node1: &Rc<Ref
                     } else {
                         let one_count = forests1.iter().fold(0usize, |n, f| if f.has_one() { n + 1 } else { n });
                         if one_count >= forests1.len() - 1 {
-                            let mut new_pairs = vec![(PatternKind::Right, node2.clone())];
+                            let mut new_pairs: Vec<(PatternKind, Rc<RefCell<PatternNode<T>>>)> = Vec::new();
                             let mut is_new_node = false;
                             let mut is_left = true;
                             if forests1[0].has_one() {
@@ -211,6 +211,7 @@ fn union_pattern_nodes_without_normalization<T: Clone + Eq + Ord>(node1: &Rc<Ref
                             if !is_new_node && is_left {
                                 new_pairs.push((PatternKind::Left, node1.clone()));
                             }
+                            new_pairs.push((PatternKind::Right, node2.clone()));
                             return Ok(new_pairs);
                         } else {
                             let mut left_or_both_count = 0usize;
@@ -448,8 +449,12 @@ impl<T: Clone + Eq + Ord> PatternForest<T>
     {
         match self {
             PatternForest::Alt(nodes, _) => {
-                let node_r = nodes[0].borrow();
-                nodes.len() == 1 && node_r.is_one()
+                if nodes.len() == 1 {
+                    let node_r = nodes[0].borrow();
+                    node_r.is_one()
+                } else {
+                    false
+                }
             },
             PatternForest::All(is_one) => *is_one,
         }
