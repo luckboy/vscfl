@@ -49,12 +49,12 @@ fn check_inst_for_var_ident_and_local_type(ident: &String, local_type: LocalType
             Some(var) => {
                 let var_r = var.borrow();
                 match &*var_r {
-                    Var::Builtin(_, _) => errs.push(FrontendError::Message(pos, format!("no instance of built-in variable {} with type {}", ident, LocalTypeWithLocalTypes(local_type, local_types)))),
-                    Var::Var(_, _, _, _, _, _, _, _, _) => errs.push(FrontendError::Message(pos, format!("no instance of variable {} with type {}", ident, LocalTypeWithLocalTypes(local_type, local_types)))),
+                    Var::Builtin(_, _) => errs.push(FrontendError::Message(pos, format!("no instance of built-in variable {} with type {} with traits", ident, LocalTypeWithLocalTypes(local_type, local_types)))),
+                    Var::Var(_, _, _, _, _, _, _, _, _) => errs.push(FrontendError::Message(pos, format!("no instance of variable {} with type {} with traits", ident, LocalTypeWithLocalTypes(local_type, local_types)))),
                     Var::Fun(fun, _, _) => {
                         match &**fun {
-                            Fun::Fun(_, _, _, _, _, _, _) => errs.push(FrontendError::Message(pos, format!("no instance of function {} with type {}", ident, LocalTypeWithLocalTypes(local_type, local_types)))),
-                            Fun::Con(_) => errs.push(FrontendError::Message(pos, format!("no instance of constructor {} with type {}", ident, LocalTypeWithLocalTypes(local_type, local_types)))),
+                            Fun::Fun(_, _, _, _, _, _, _) => errs.push(FrontendError::Message(pos, format!("no instance of function {} with type {} with traits", ident, LocalTypeWithLocalTypes(local_type, local_types)))),
+                            Fun::Con(_) => errs.push(FrontendError::Message(pos, format!("no instance of constructor {} with type {} with traits", ident, LocalTypeWithLocalTypes(local_type, local_types)))),
                         }
                     },
                 }
