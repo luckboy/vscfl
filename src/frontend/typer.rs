@@ -119,7 +119,7 @@ fn add_type_synonym_ident(ident: &String, pos: Pos, tree: &Tree, idents: &mut Ve
     }
 }
 
-fn add_type_ident(ident: &String, tree: &Tree, idents: &mut Vec<String>, rec_idents: &mut BTreeSet<String>, is_rec: &mut bool, processed_idents: &BTreeSet<String>) -> FrontendResultWithErrors<()>
+fn add_type_ident(ident: &String, tree: &Tree, idents: &mut Vec<String>, rec_idents: &mut BTreeSet<String>, processed_idents: &BTreeSet<String>) -> FrontendResultWithErrors<()>
 {
     match tree.type_var(ident) {
         Some(type_var) => {
@@ -134,9 +134,6 @@ fn add_type_ident(ident: &String, tree: &Tree, idents: &mut Vec<String>, rec_ide
                             rec_idents.insert(ident.clone());
                         }
                     }
-                    if rec_idents.contains(ident) {
-                        *is_rec = true;
-                    }
                     Ok(())
                 },
                 TypeVar::Data(_, _, shared_flag) => {
@@ -147,9 +144,6 @@ fn add_type_ident(ident: &String, tree: &Tree, idents: &mut Vec<String>, rec_ide
                             *shared_flag = Some(SharedFlag::Shared);
                             rec_idents.insert(ident.clone());
                         }
-                    }
-                    if rec_idents.contains(ident) {
-                        *is_rec = true;
                     }
                     Ok(())
                 },
@@ -1201,10 +1195,10 @@ impl Typer
             }
         };
         if is_type {
-            dfs_with_result(ident, visited_idents, &mut (), |ident, processed_idents, _| {
+            dfs_with_result(ident, visited_idents, rec_idents, |ident, processed_idents, rec_idents| {
                     self.shared_type_idents_for_type_ident(ident, tree, rec_idents, processed_idents)
-            }, |ident, _| {
-                    self.evaluate_shared_flag_for_type_ident(ident, tree)
+            }, |ident, rec_idents| {
+                    self.evaluate_shared_flag_for_type_ident(ident, tree, rec_idents)
             })?;
         }
         Ok(())
@@ -1225,7 +1219,6 @@ impl Typer
             None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_type_idents_for_type_ident: no type variable"))])),
         }
         let mut idents: Vec<String> = Vec::new();
-        let mut is_rec = false;
         for con in &*cons {
             let con_r = con.borrow();
             let con_ident = match &*con_r {
@@ -1241,7 +1234,7 @@ impl Typer
                                 TypeValue::Type(UniqFlag::None, TypeValueName::Fun, type_values) => {
                                     if type_values.len() >= 1 {
                                         for type_value2 in &type_values[0..(type_values.len() - 1)]  {
-                                            self.add_shared_type_idents_for_type_value(&**type_value2, tree, &mut idents, rec_idents, &mut is_rec, processed_idents)?
+                                            self.add_shared_type_idents_for_type_value(&**type_value2, tree, &mut idents, rec_idents, processed_idents)?
                                         }
                                     } else {
                                         return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_type_idents_for_type_ident: too few type values"))]))
@@ -1257,22 +1250,19 @@ impl Typer
                 None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("shared_type_idents_for_type_ident: no variable"))])),
             }
         }
-        if is_rec {
-            rec_idents.insert(ident.clone());
-        }
         Ok(idents)
     }
     
-    fn add_shared_type_idents_for_type_value(&self, type_value: &TypeValue, tree: &Tree, idents: &mut Vec<String>, rec_idents: &mut BTreeSet<String>, is_rec: &mut bool, processed_idents: &BTreeSet<String>) -> FrontendResultWithErrors<()>
+    fn add_shared_type_idents_for_type_value(&self, type_value: &TypeValue, tree: &Tree, idents: &mut Vec<String>, rec_idents: &mut BTreeSet<String>, processed_idents: &BTreeSet<String>) -> FrontendResultWithErrors<()>
     {
         match type_value {
             TypeValue::Type(UniqFlag::None, type_value_name, type_values) => {
                 match type_value_name {
-                    TypeValueName::Name(ident) => add_type_ident(ident, tree, idents, rec_idents, is_rec, processed_idents)?,
+                    TypeValueName::Name(ident) => add_type_ident(ident, tree, idents, rec_idents, processed_idents)?,
                     _ => (),
                 }
                 for type_value2 in type_values {
-                    self.add_shared_type_idents_for_type_value(&**type_value2, tree, idents, rec_idents, is_rec, processed_idents)?;
+                    self.add_shared_type_idents_for_type_value(&**type_value2, tree, idents, rec_idents, processed_idents)?;
                 }
             },
             _ => (),
@@ -1280,7 +1270,7 @@ impl Typer
         Ok(())
     }
 
-    fn evaluate_shared_flag_for_type_ident(&self, ident: &String, tree: &Tree) -> FrontendResultWithErrors<()>
+    fn evaluate_shared_flag_for_type_ident(&self, ident: &String, tree: &Tree, rec_idents: &mut BTreeSet<String>) -> FrontendResultWithErrors<()>
     {
         match tree.type_var(ident) {
             Some(type_var) => {
@@ -1297,6 +1287,7 @@ impl Typer
                         TypeVar::Data(_, cons, _) => {
                             let mut new_shared_flag = SharedFlag::Shared;
                             let mut is_success = true;
+                            let mut is_rec = false;
                             for con in &*cons {
                                 let con_r = con.borrow();
                                 let con_ident = match &*con_r {
@@ -1312,7 +1303,7 @@ impl Typer
                                                     TypeValue::Type(UniqFlag::None, TypeValueName::Fun, type_values) => {
                                                         if type_values.len() >= 1 {
                                                             for type_value2 in &type_values[0..(type_values.len() - 1)]  {
-                                                                match self.evaluate_shared_flag_for_type_value(&**type_value2, tree)? {
+                                                                match self.evaluate_shared_flag_for_type_value(&**type_value2, tree, rec_idents, &mut is_rec)? {
                                                                     Some(shared_flag2) => {
                                                                         if shared_flag2 == SharedFlag::None {
                                                                             new_shared_flag = SharedFlag::None;
@@ -1340,6 +1331,9 @@ impl Typer
                             } else {
                                 new_opt_shared_flag = None;
                             }
+                            if is_rec {
+                                rec_idents.insert(ident.clone());
+                            }
                         },
                         _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_shared_flag_for_type_ident: type variable is type synonym"))])),
                     }
@@ -1363,14 +1357,19 @@ impl Typer
         }
     }
     
-    fn evaluate_shared_flag_for_type_value(&self, type_value: &TypeValue, tree: &Tree) -> FrontendResultWithErrors<Option<SharedFlag>>
+    fn evaluate_shared_flag_for_type_value(&self, type_value: &TypeValue, tree: &Tree, rec_idents: &mut BTreeSet<String>, is_rec: &mut bool) -> FrontendResultWithErrors<Option<SharedFlag>>
     {
         match type_value {
             TypeValue::Param(UniqFlag::None, _) => Ok(Some(SharedFlag::Shared)),
             TypeValue::Type(UniqFlag::None, TypeValueName::Fun, _) => Ok(Some(SharedFlag::Shared)),
             TypeValue::Type(UniqFlag::None, type_value_name, type_values) => {
                 let shared_flag = match type_value_name {
-                    TypeValueName::Name(ident) => shared_flag_for_type_ident_and_evaluation(ident, tree)?,
+                    TypeValueName::Name(ident) => {
+                        if rec_idents.contains(ident) {
+                            *is_rec = true;
+                        }
+                        shared_flag_for_type_ident_and_evaluation(ident, tree)?
+                    },
                     _ => Some(SharedFlag::Shared),
                 };
                 match shared_flag {
@@ -1378,7 +1377,7 @@ impl Typer
                         let mut is_success = true;
                         if shared_flag == SharedFlag::Shared {
                             for type_value2 in type_values {
-                                match self.evaluate_shared_flag_for_type_value(&**type_value2, tree)? {
+                                match self.evaluate_shared_flag_for_type_value(&**type_value2, tree, rec_idents, is_rec)? {
                                     Some(shared_flag2) => {
                                         if shared_flag2 == SharedFlag::None {
                                             shared_flag = SharedFlag::None;

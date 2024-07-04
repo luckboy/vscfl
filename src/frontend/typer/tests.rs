@@ -751,7 +751,8 @@ data V = F() | G(Int, UniqRef<W>);
 data W = H(V);
 data X = I { x: uniq Int, y: Int };
 data Y = J((uniq Int) -> uniq Int);
-data Z = K(W);
+data Z = K(A);
+data A = L(W);
 ";
     let s2 = &s[1..];
     let mut cursor = Cursor::new(s2.as_bytes());
@@ -771,7 +772,7 @@ data Z = K(W);
         Ok(()) => assert!(true),
         Err(_) => assert!(false),
     }
-    assert_eq!(11, tree.defs().len());
+    assert_eq!(12, tree.defs().len());
     match &*tree.defs()[0] {
         Def::Type(_, type_var, _) => {
             let type_var_r = type_var.borrow();
@@ -1002,7 +1003,30 @@ data Z = K(W);
                         Some(var) => {
                             let var_r = var.borrow();
                             match &*var_r {
-                                Var::Fun(_, _, Some(typ)) => assert_eq!(String::from("(W) -> Z"), typ.to_string()),
+                                Var::Fun(_, _, Some(typ)) => assert_eq!(String::from("(A) -> Z"), typ.to_string()),
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                    assert_eq!(SharedFlag::None, *shared_flag);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[11] {
+        Def::Type(_, type_var, _) => {
+            let type_var_r = type_var.borrow();
+            match &*type_var_r {
+                TypeVar::Data(_, cons, Some(shared_flag)) => {
+                    assert_eq!(1, cons.len());
+                    match tree.var(&String::from("L")) {
+                        Some(var) => {
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Fun(_, _, Some(typ)) => assert_eq!(String::from("(W) -> A"), typ.to_string()),
                                 _ => assert!(false),
                             }
                         },
