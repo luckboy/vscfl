@@ -362,7 +362,7 @@ impl T for Int
 }
 
 #[test]
-fn test_instancer_check_insts_checks_instances_complains_on_no_instance_of_built_in_variable_with_type_with_traits()
+fn test_instancer_check_insts_complains_on_no_instance_of_built_in_variable_with_type_with_traits()
 {
     let s = "
 builtin type Int;
@@ -410,7 +410,7 @@ a: Int =
 }
 
 #[test]
-fn test_instancer_check_insts_checks_instances_complains_on_no_instance_of_variable_with_type_with_traits()
+fn test_instancer_check_insts_complains_on_no_instance_of_variable_with_type_with_traits()
 {
     let s = "
 builtin type Int;
@@ -458,7 +458,7 @@ b: Int =
 }
 
 #[test]
-fn test_instancer_check_insts_checks_instances_complains_on_no_instance_of_function_with_type_with_traits()
+fn test_instancer_check_insts_complains_on_no_instance_of_function_with_type_with_traits()
 {
     let s = "
 builtin type Int;
@@ -506,7 +506,7 @@ a: Int =
 }
 
 #[test]
-fn test_instancer_check_insts_checks_instances_complains_on_no_instance_of_constructor_with_type_with_traits_for_unnamed_fields()
+fn test_instancer_check_insts_complains_on_no_instance_of_constructor_with_type_with_traits_for_unnamed_fields()
 {
     let s = "
 builtin type Int;
@@ -564,7 +564,7 @@ a: Int =
 }
 
 #[test]
-fn test_instancer_check_insts_checks_instances_complains_on_no_instance_of_constructor_with_type_with_traits_for_named_fields()
+fn test_instancer_check_insts_complains_on_no_instance_of_constructor_with_type_with_traits_for_named_fields()
 {
     let s = "
 builtin type Int;
@@ -622,7 +622,7 @@ a: Int =
 }
 
 #[test]
-fn test_instancer_check_insts_checks_instances_complains_on_no_instance_of_variable_with_type_with_traits_for_pattern()
+fn test_instancer_check_insts_complains_on_no_instance_of_variable_with_type_with_traits_for_pattern()
 {
     let s = "
 builtin type Int;
@@ -679,7 +679,7 @@ a: Int =
 }
 
 #[test]
-fn test_instancer_check_insts_checks_instances_complains_on_no_instance_of_constructor_with_type_with_traits_for_pattern_and_unnamed_fields()
+fn test_instancer_check_insts_complains_on_no_instance_of_constructor_with_type_with_traits_for_pattern_and_unnamed_fields()
 {
     let s = "
 builtin type Int;
@@ -745,7 +745,7 @@ a: Int =
 }
 
 #[test]
-fn test_instancer_check_insts_checks_instances_complains_on_no_instance_of_constructor_with_type_with_traits_for_pattern_and_named_fields()
+fn test_instancer_check_insts_complains_on_no_instance_of_constructor_with_type_with_traits_for_pattern_and_named_fields()
 {
     let s = "
 builtin type Int;
