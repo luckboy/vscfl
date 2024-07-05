@@ -15,7 +15,7 @@ fn check_local_var_modifier(var_modifier: VarModifier, ident: &String, pos: Pos,
             errs.push(FrontendError::Message(pos, format!("variable {} has variable modifier", ident)));
         }
     } else {
-        if var_modifier != VarModifier::Constant {
+        if var_modifier == VarModifier::Constant {
             errs.push(FrontendError::Message(pos, format!("variable {} mustn't be constant", ident)));
         }
     }
@@ -37,7 +37,7 @@ fn check_fun_modifier(fun_modifier: FunModifier, ident: &String, trait_ident: &O
             Some(trait_ident) => {
                 let are_only_type_params_with_trait = typ.type_param_entries().iter().all(|tpe| {
                         let type_param_entry_r = tpe.borrow();
-                        type_param_entry_r.trait_names.contains(&TraitName::Name(ident.clone()))
+                        type_param_entry_r.trait_names.contains(&TraitName::Name(trait_ident.clone()))
                 });
                 if !are_only_type_params_with_trait {
                     errs.push(FrontendError::Message(pos, format!("kernel {} mustn't have type parameters without trait {}", ident, trait_ident)));
@@ -135,14 +135,14 @@ impl Limiter
                 check_global_var_modifier(*var_modifier, ident, pos, errs);
                 self.check_limits_for_expr(&**expr, true, errs)?;
             }
-            Var::Var(_, _, _, None, _, _, _, _, _) => (),
+            Var::Var(var_modifier, _, _, None, _, _, _, _, _) => check_global_var_modifier(*var_modifier, ident, pos, errs),
             Var::Fun(fun, trait_name, Some(typ)) => {
                 match &**fun {
                     Fun::Fun(fun_modifier, _, _, _, Some(expr), _, _) => {
                         check_fun_modifier(*fun_modifier, ident, trait_name, &**typ, pos, errs);
                         self.check_limits_for_expr(&**expr, false, errs)?;
                     },
-                    Fun::Fun(_, _, _, _, None, _, _) => (),
+                    Fun::Fun(fun_modifier, _, _, _, None, _, _) => check_fun_modifier(*fun_modifier, ident, trait_name, &**typ, pos, errs),
                     Fun::Con(_) => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_limits_for_var: variable is contructor"))])),
                 }
             },
@@ -285,3 +285,6 @@ impl Limiter
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests;
