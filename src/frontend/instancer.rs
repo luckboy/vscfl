@@ -28,7 +28,7 @@ fn is_inst_for_type_value(type_value: &Rc<TypeValue>, local_types: &LocalTypes) 
         Some(LocalTypeEntry::Param(DefinedFlag::Defined, _, _, _)) => Ok(true),
         Some(LocalTypeEntry::Type(type_value)) => {
             match &*type_value {
-                TypeValue::Param(_, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("is_inst_for_local_type: type parameter in local type entry"))])),
+                TypeValue::Param(_, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("is_inst_for_type_value: type parameter in local type entry"))])),
                 TypeValue::Type(_, _, type_values) => {
                     let mut is_inst = true;
                     for type_value2 in type_values {
@@ -38,7 +38,7 @@ fn is_inst_for_type_value(type_value: &Rc<TypeValue>, local_types: &LocalTypes) 
                 },
             }
         },
-        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("is_inst_for_local_type: no local type entry"))])),
+        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("is_inst_for_type_value: no local type entry"))])),
     }
 }
 
