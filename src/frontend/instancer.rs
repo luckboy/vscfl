@@ -347,3 +347,6 @@ impl Instancer
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests;
