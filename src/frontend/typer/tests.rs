@@ -18504,6 +18504,42 @@ f() -> T = shared C(uniq 1, 2.5);
 }
 
 #[test]
+fn test_typer_check_types_complains_on_type_is_unique_function_type()
+{
+    let s = "
+f(g: uniq () -> ()) -> () -> () = shared g;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(1, pos.line);
+                    assert_eq!(35, pos.column);
+                    assert_eq!(String::from("type uniq () -> () is unique function type"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
 fn test_typer_check_types_complains_on_printf_must_not_take_values_with_type()
 {
     let s = "

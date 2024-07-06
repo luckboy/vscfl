@@ -3545,11 +3545,12 @@ impl Typer
                 match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type2))) {
                     Some(LocalTypeEntry::Type(type_value)) => {
                         match &*type_value {
+                            TypeValue::Type(_, TypeValueName::Fun, _) => errs.push(FrontendError::Message(pos.clone(), format!("type {} is unique function type", LocalTypeWithLocalTypes(local_type2, local_types)))),
                             TypeValue::Type(_, type_value_name, type_values) => {
                                 let new_type_value = Rc::new(TypeValue::Type(UniqFlag::None, type_value_name.clone(), type_values.clone()));
                                 self.match_type_values(&new_type_value, &Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), pos, tree, local_types, errs)?;
                                 if self.shared_flag_for_local_type(*local_type, tree, local_types)? == SharedFlag::None {
-                                    errs.push(FrontendError::Message(pos.clone(), format!("type {} is unique type", LocalTypeWithLocalTypes(local_type2, local_types))));
+                                    errs.push(FrontendError::Message(pos.clone(), format!("type {} is unique type", TypeValueWithLocalTypes(new_type_value, local_types))));
                                 }
                             },
                             _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_expr: type value isn't type"))])),
