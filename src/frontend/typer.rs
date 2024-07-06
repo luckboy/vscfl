@@ -1635,6 +1635,43 @@ impl Typer
                             None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_impls_for_impl_defs: no trait"))])),
                         }
                     }
+                    match type_name {
+                        TypeName::Fun(_) => {
+                            match tree.trait1(&trait_ident) {
+                                Some(trait1) => {
+                                    let trait_r = trait1.borrow();
+                                    let mut is_success = true;
+                                    match &*trait_r {
+                                        Trait(_, _, Some(trait_vars)) => {
+                                            for trait_var in trait_vars.vars().values() {
+                                                let trait_var_r = trait_var.borrow();
+                                                let typ = match &*trait_var_r {
+                                                    Var::Builtin(_, Some(tmp_type)) => tmp_type,
+                                                    Var::Var(_, _, _, _, _, _, _, Some(tmp_type), _) => tmp_type,
+                                                    Var::Fun(_, _, Some(tmp_type)) => tmp_type,
+                                                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_impls_for_impl_defs: no type"))])),
+                                                };
+                                                for type_param_entry in typ.type_param_entries() {
+                                                    let type_param_entry_r = type_param_entry.borrow();
+                                                    if type_param_entry_r.trait_names.contains(&TraitName::Name(trait_ident.clone())) {
+                                                        if !type_param_entry_r.trait_names.contains(&TraitName::Shared) {
+                                                            is_success = false;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_impls_for_impl_defs: no trait variables"))])),
+                                    }
+                                    if !is_success {
+                                        errs.push(FrontendError::Message(pos.clone(), format!("defined implementation of trait {} for type {} that is function type", trait_ident, type_name)));
+                                    }
+                                }
+                                None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_impls_for_impl_defs: no trait"))])),
+                            }
+                        },
+                        _ => (),
+                    }
                     match tree.trait1(&trait_ident) {
                         Some(trait1) => {
                             let trait_r = trait1.borrow();

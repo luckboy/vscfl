@@ -10470,6 +10470,50 @@ impl T for U
 }
 
 #[test]
+fn test_typer_evaluate_types_complains_on_defined_implementation_of_trait_for_type_that_is_function_type()
+{
+    let s = "
+builtin type Int;
+trait T<t1>
+{
+    f(g: t) -> Int where t: T <Int>;
+};
+impl T for () -> _
+{
+    f(g) = g();
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(6, pos.line);
+                    assert_eq!(1, pos.column);
+                    assert_eq!(String::from("defined implementation of trait T for type () -> _ that is function type"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
 fn test_typer_evaluate_types_complains_on_built_in_variable_has_not_evaluated_type_in_trait()
 {
     let s = "
