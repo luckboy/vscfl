@@ -3545,7 +3545,7 @@ impl Typer
                 match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type2))) {
                     Some(LocalTypeEntry::Type(type_value)) => {
                         match &*type_value {
-                            TypeValue::Type(_, TypeValueName::Fun, _) => errs.push(FrontendError::Message(pos.clone(), format!("type {} is unique function type", LocalTypeWithLocalTypes(local_type2, local_types)))),
+                            TypeValue::Type(UniqFlag::Uniq, TypeValueName::Fun, _) => errs.push(FrontendError::Message(pos.clone(), format!("type {} is unique function type", LocalTypeWithLocalTypes(local_type2, local_types)))),
                             TypeValue::Type(_, type_value_name, type_values) => {
                                 let new_type_value = Rc::new(TypeValue::Type(UniqFlag::None, type_value_name.clone(), type_values.clone()));
                                 self.match_type_values(&new_type_value, &Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), pos, tree, local_types, errs)?;
