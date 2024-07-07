@@ -749,12 +749,22 @@ impl Type
     { &self.eq_type_param_set }
     
     pub fn has_eq_type_params(&self, local_type1: LocalType, local_type2: LocalType) -> bool
-    { self.eq_type_param_set.is_joined(local_type1.index(), local_type2.index()) }
-
-    pub fn set_eq_type_params(&mut self, local_type1: LocalType, local_type2: LocalType) -> LocalType
     {
-        self.eq_type_param_set.join(local_type1.index(), local_type2.index());
-        LocalType::new(self.eq_type_param_set.root_of(local_type1.index()))
+        if local_type1.index() < self.eq_type_param_set.len() && local_type2.index() < self.eq_type_param_set.len() {
+            self.eq_type_param_set.is_joined(local_type1.index(), local_type2.index())
+        } else {
+            false
+        }
+    }
+
+    pub fn set_eq_type_params(&mut self, local_type1: LocalType, local_type2: LocalType) -> Option<LocalType>
+    {
+        if local_type1.index() < self.eq_type_param_set.len() && local_type2.index() < self.eq_type_param_set.len() {
+            self.eq_type_param_set.join(local_type1.index(), local_type2.index());
+            Some(LocalType::new(self.eq_type_param_set.root_of(local_type1.index())))
+        } else {
+            None
+        }
     }
     
     pub fn add_type_params(&mut self, type_param_idents: &[String])
@@ -908,13 +918,25 @@ impl LocalTypes
     }
     
     pub fn has_eq_type_params(&self, local_type1: LocalType, local_type2: LocalType) -> bool
-    { self.eq_type_param_entries.is_joined(local_type1.index(), local_type2.index()) }
+    {
+        if local_type1.index() < self.eq_type_param_entries.len() && local_type2.index() < self.eq_type_param_entries.len() {
+            self.eq_type_param_entries.is_joined(local_type1.index(), local_type2.index())
+        } else {
+            false
+        }
+    }
 
     pub fn orig_eq_type_param_set(&self) -> &DisjointSet
     { &self.orig_eq_type_param_set }
     
     pub fn has_orig_eq_type_params(&self, local_type1: LocalType, local_type2: LocalType) -> bool
-    { self.orig_eq_type_param_set.is_joined(local_type1.index(), local_type2.index()) }
+    {
+        if local_type1.index() < self.orig_eq_type_param_set.len() && local_type2.index() < self.orig_eq_type_param_set.len() {
+            self.orig_eq_type_param_set.is_joined(local_type1.index(), local_type2.index())
+        } else {
+            false
+        }
+    }
     
     pub fn type_entry_for_type_value(&self, type_value: &Rc<TypeValue>) -> Option<LocalTypeEntry>
     {
@@ -1287,37 +1309,41 @@ impl LocalTypes
         local_type
     }
     
-    pub fn join_local_types(&mut self, local_type1: LocalType, local_type2: LocalType) -> (LocalType, LocalType)
+    pub fn join_local_types(&mut self, local_type1: LocalType, local_type2: LocalType) -> Option<(LocalType, LocalType)>
     {
-        let root_idx1 = self.type_entries.root_of(local_type1.index());
-        let root_idx2 = self.type_entries.root_of(local_type2.index());
-        let eq_root_idx1 = self.eq_type_param_entries.root_of(local_type1.index());
-        let eq_root_idx2 = self.eq_type_param_entries.root_of(local_type2.index());
-        self.type_entries.join(local_type1.index(), local_type2.index());
-        self.eq_type_param_entries.join(local_type1.index(), local_type2.index());
-        let root_idx = self.type_entries.root_of(local_type1.index());
-        let eq_root_idx = self.eq_type_param_entries.root_of(local_type1.index());
-        let mut eq_local_types: BTreeSet<LocalType> = self.eq_type_param_entries[eq_root_idx1].local_types.union(&self.eq_type_param_entries[eq_root_idx2].local_types).map(|e| e.clone()).collect();
-        self.eq_type_param_entries[eq_root_idx1].local_types.clear();
-        self.eq_type_param_entries[eq_root_idx2].local_types.clear();
-        match &self.type_entries[self.type_entries.root_of(eq_root_idx1)] {
-            LocalTypeEntry::Param(_, _, _, _) => {
-                eq_local_types.insert(LocalType::new(self.type_entries.root_of(eq_root_idx1)));
-            },
-            _ => (),
+        if local_type1.index() < self.type_entries.len() && local_type1.index() < self.eq_type_param_entries.len() && local_type2.index() < self.type_entries.len() && local_type2.index() < self.eq_type_param_entries.len() {
+            let root_idx1 = self.type_entries.root_of(local_type1.index());
+            let root_idx2 = self.type_entries.root_of(local_type2.index());
+            let eq_root_idx1 = self.eq_type_param_entries.root_of(local_type1.index());
+            let eq_root_idx2 = self.eq_type_param_entries.root_of(local_type2.index());
+            self.type_entries.join(local_type1.index(), local_type2.index());
+            self.eq_type_param_entries.join(local_type1.index(), local_type2.index());
+            let root_idx = self.type_entries.root_of(local_type1.index());
+            let eq_root_idx = self.eq_type_param_entries.root_of(local_type1.index());
+            let mut eq_local_types: BTreeSet<LocalType> = self.eq_type_param_entries[eq_root_idx1].local_types.union(&self.eq_type_param_entries[eq_root_idx2].local_types).map(|e| e.clone()).collect();
+            self.eq_type_param_entries[eq_root_idx1].local_types.clear();
+            self.eq_type_param_entries[eq_root_idx2].local_types.clear();
+            match &self.type_entries[self.type_entries.root_of(eq_root_idx1)] {
+                LocalTypeEntry::Param(_, _, _, _) => {
+                    eq_local_types.insert(LocalType::new(self.type_entries.root_of(eq_root_idx1)));
+                },
+                _ => (),
+            }
+            match &self.type_entries[self.type_entries.root_of(eq_root_idx2)] {
+                LocalTypeEntry::Param(_, _, _, _) => {
+                    eq_local_types.insert(LocalType::new(self.type_entries.root_of(eq_root_idx2)));
+                },
+                _ => (),
+            }
+            eq_local_types.remove(&LocalType::new(root_idx1));
+            eq_local_types.remove(&LocalType::new(root_idx2));
+            eq_local_types.insert(LocalType::new(root_idx));
+            eq_local_types.remove(&LocalType::new(self.type_entries.root_of(eq_root_idx)));
+            self.eq_type_param_entries[eq_root_idx].local_types = eq_local_types;
+            Some((LocalType::new(root_idx), LocalType::new(eq_root_idx)))
+        } else {
+            None
         }
-        match &self.type_entries[self.type_entries.root_of(eq_root_idx2)] {
-            LocalTypeEntry::Param(_, _, _, _) => {
-                eq_local_types.insert(LocalType::new(self.type_entries.root_of(eq_root_idx2)));
-            },
-            _ => (),
-        }
-        eq_local_types.remove(&LocalType::new(root_idx1));
-        eq_local_types.remove(&LocalType::new(root_idx2));
-        eq_local_types.insert(LocalType::new(root_idx));
-        eq_local_types.remove(&LocalType::new(self.type_entries.root_of(eq_root_idx)));
-        self.eq_type_param_entries[eq_root_idx].local_types = eq_local_types;
-        (LocalType::new(root_idx), LocalType::new(eq_root_idx))
     }
     
     pub fn type_value_to_string(&self, type_value: &Rc<TypeValue>) -> String
