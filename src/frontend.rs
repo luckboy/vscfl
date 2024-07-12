@@ -14,4 +14,5 @@ pub mod namer;
 pub mod parser;
 pub mod tree;
 pub mod type_matcher;
+pub mod type_stack;
 pub mod typer;
