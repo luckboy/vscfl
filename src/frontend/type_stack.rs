@@ -356,5 +356,5 @@ impl error::Error for TypeStackInternalError
 impl fmt::Display for TypeStackInternalError
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
-    { write!(f, "{}",self.0) }
+    { write!(f, "{}", self.0) }
 }
