@@ -26,7 +26,7 @@ pub struct TypeStack
 {
     type_values: Vec<(Vec<Rc<TypeValue>>, usize)>,
     type_entries: Vec<TypeStackEntry>,
-    type_param_entry: Rc<RefCell<TypeParamEntry>>,
+    empty_type_param_entry: Rc<RefCell<TypeParamEntry>>,
 }
 
 impl TypeStack
@@ -36,7 +36,7 @@ impl TypeStack
         TypeStack {
             type_values: Vec::new(),
             type_entries: Vec::new(), 
-            type_param_entry: Rc::new(RefCell::new(TypeParamEntry::new())),
+            empty_type_param_entry: Rc::new(RefCell::new(TypeParamEntry::new())),
         }
     }
     
@@ -99,7 +99,7 @@ impl TypeStack
                 if processed_local_types.contains(&local_type) {
                     return Err(TypeStackInternalError(String::from("add_type_entry: cycle of local types")));
                 }
-                self.type_entries.push(TypeStackEntry::Param(self.type_param_entry.clone()));
+                self.type_entries.push(TypeStackEntry::Param(self.empty_type_param_entry.clone()));
                 new_local_types.insert(local_type, tmp_local_type);
                 added_local_types.push(local_type);
                 tmp_local_type
@@ -192,7 +192,7 @@ impl TypeStack
     {
         let mut new_local_types: BTreeMap<LocalType, LocalType> = BTreeMap::new();
         let new_local_type = LocalType::new(self.type_entries.len());
-        self.type_entries.push(TypeStackEntry::Param(self.type_param_entry.clone()));
+        self.type_entries.push(TypeStackEntry::Param(self.empty_type_param_entry.clone()));
         new_local_types.insert(local_type, new_local_type);
         let mut visited_local_types: BTreeSet<LocalType> = BTreeSet::new();
         dfs_with_result(&local_type, &mut visited_local_types, &mut (), |local_type, processed_local_types, _| {
