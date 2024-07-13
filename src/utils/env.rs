@@ -148,6 +148,7 @@ impl<T: Clone> Environment<T>
             None => None,
         }
     }
+
     pub fn var_mut(&mut self, ident: &String) -> Option<&mut T>
     { 
         match self.var_mut_and_stack_index(ident) {
