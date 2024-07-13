@@ -78,7 +78,7 @@ impl TypeStack
         }
     }
     
-    pub fn set_first_type_values(&mut self, typ: &Type)
+    pub fn set_first_type_values_for_type(&mut self, typ: &Type)
     {
         self.type_values.clear();
         self.type_entries.clear();
@@ -124,7 +124,7 @@ impl TypeStack
             },
             Some(LocalTypeEntry::Type(type_value2)) => {
                 match &*type_value2 {
-                    TypeValue::Param(_, _) => Err(TypeStackInternalError(String::from("real_type_value_from_type_value: no type values"))),
+                    TypeValue::Param(_, _) => Err(TypeStackInternalError(String::from("real_type_value_from_type_value: type parameter in local type entry"))),
                     TypeValue::Type(uniq_flag, type_value_name, type_values) => {
                         let mut type_values2: Vec<Rc<TypeValue>> = Vec::new(); 
                         for type_value3 in type_values {
@@ -265,7 +265,7 @@ impl TypeStack
         }
     }
 
-    pub fn type_name(&self, local_type: LocalType, typ: &Type, trait_ident: &str) -> Result<Option<TypeName>, TypeStackInternalError>
+    pub fn type_name_from_local_type_and_type(&self, local_type: LocalType, typ: &Type, trait_ident: &str) -> Result<Option<TypeName>, TypeStackInternalError>
     { self.type_name_from_type_values(&Rc::new(TypeValue::Param(UniqFlag::None, local_type)), typ.type_value(), trait_ident, typ) }
 
     fn set_type_values_for_type_value(&self, type_value1: &Rc<TypeValue>, type_value2: &Rc<TypeValue>, typ: &Type, type_values: &mut [Rc<TypeValue>]) -> Result<Rc<TypeValue>, TypeStackInternalError>
@@ -321,7 +321,7 @@ impl TypeStack
         }
     }
     
-    pub fn push_type_values(&mut self, local_type: LocalType, typ: &Type) -> Result<(), TypeStackInternalError>
+    pub fn push_type_values_for_local_type_and_type(&mut self, local_type: LocalType, typ: &Type) -> Result<(), TypeStackInternalError>
     {
         let mut type_values = vec![Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Tuple, Vec::new())); typ.type_param_entries().len()];
         let new_type_value = self.set_type_values_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type)), typ.type_value(), typ, type_values.as_mut_slice())?;
@@ -332,18 +332,196 @@ impl TypeStack
         self.type_values.push((type_values, self.type_entries.len()));
         Ok(())
     }
+
+    pub fn push_type_values(&mut self, type_values: Vec<Rc<TypeValue>>)
+    { self.type_values.push((type_values, self.type_entries.len())); }
     
-    pub fn pop_type_values(&mut self) -> bool
+    pub fn pop_type_values(&mut self) -> Option<Vec<Rc<TypeValue>>>
     {
         match self.type_values.pop() {
-            Some((_, new_len)) => {
+            Some((type_values, new_len)) => {
                 for _ in (new_len..self.type_entries.len()).rev() {
                     self.type_entries.pop();
                 }
-                true
+                Some(type_values)
             },
-            None => false,
+            None => None,
         }
+    }
+
+    fn shared_flag_for_type_value(&self, type_value: &Rc<TypeValue>, tree: &Tree) -> Result<SharedFlag, TypeStackInternalError>
+    {
+        match &**type_value {
+            TypeValue::Param(UniqFlag::None, local_type) => {
+                match self.type_entries.get(local_type.index()) {
+                    Some(TypeStackEntry::Param(type_param_entry)) => {
+                        let type_param_entry_r = type_param_entry.borrow();
+                        if type_param_entry_r.trait_names.contains(&TraitName::Shared) {
+                            Ok(SharedFlag::Shared)
+                        } else {
+                            Ok(SharedFlag::None)
+                        }
+                    },
+                    Some(TypeStackEntry::Type(type_value2)) => self.shared_flag_for_type_value(type_value2, tree),
+                    None => Err(TypeStackInternalError(String::from("shared_flag_for_type_value: no type stack entry"))),
+                }
+            },
+            TypeValue::Type(UniqFlag::None, TypeValueName::Fun, _) => Ok(SharedFlag::Shared),
+            TypeValue::Type(UniqFlag::None, type_value_name, type_values) => {
+                let mut shared_flag = match type_value_name {
+                    TypeValueName::Name(ident) => {
+                        match tree.type_var(ident) {
+                            Some(type_var) => {
+                                let type_var_r = type_var.borrow();
+                                match &*type_var_r {
+                                    TypeVar::Builtin(_, _, Some(tmp_shared_flag)) => *tmp_shared_flag,
+                                    TypeVar::Data(_, _, Some(tmp_shared_flag)) => *tmp_shared_flag,
+                                    _ => return Err(TypeStackInternalError(String::from("shared_flag_for_type_value: type variable isn't type or type hasn't shared flag"))),
+                                }
+                            },
+                            None => return Err(TypeStackInternalError(String::from("shared_flag_for_type_value: no type variable"))),
+                        }
+                    },
+                    _ => SharedFlag::Shared,
+                };
+                if shared_flag == SharedFlag::Shared {
+                    for type_value2 in type_values {
+                        if self.shared_flag_for_type_value(type_value2, tree)? == SharedFlag::None {
+                            shared_flag = SharedFlag::None;
+                        }
+                    }
+                }
+                Ok(shared_flag)
+            },
+            _ => Ok(SharedFlag::None),
+        }
+    }
+    
+    fn add_local_types_for_type_value(&self, type_value: &Rc<TypeValue>, local_types: &mut Vec<LocalType>, processed_local_types: &BTreeSet<LocalType>) -> Result<(), TypeStackInternalError>
+    {
+        match &**type_value {
+            TypeValue::Param(_, local_type) => {
+                if processed_local_types.contains(local_type) {
+                    return Err(TypeStackInternalError(String::from("add_local_types_for_type_value: cycle of local types")));
+                }
+                local_types.push(*local_type);
+                Ok(())
+            },
+            TypeValue::Type(_, _, type_values) => {
+                for type_value2 in type_values {
+                    self.add_local_types_for_type_value(type_value2, local_types, processed_local_types)?;
+                }
+                Ok(())
+            },
+        }
+    }
+
+    fn local_types_for_local_type_and_change(&self, local_type: LocalType, processed_local_types: &BTreeSet<LocalType>) -> Result<Vec<LocalType>, TypeStackInternalError>
+    {
+        match self.type_entries.get(local_type.index()) {
+            Some(TypeStackEntry::Param(type_param_entry)) => {
+                let mut local_types: Vec<LocalType> = Vec::new();
+                let type_param_entry_r = type_param_entry.borrow();
+                for type_value in &type_param_entry_r.type_values {
+                    self.add_local_types_for_type_value(type_value, &mut local_types, processed_local_types)?;
+                }
+                for closure_local_type in &type_param_entry_r.closure_local_types {
+                    if processed_local_types.contains(closure_local_type) {
+                        return Err(TypeStackInternalError(String::from("local_types_for_local_type_and_change: cycle of local types")));
+                    }
+                    local_types.push(*closure_local_type);
+                }
+                Ok(local_types)
+            },
+            Some(TypeStackEntry::Type(type_value)) => {
+                let mut local_types: Vec<LocalType> = Vec::new();
+                self.add_local_types_for_type_value(type_value, &mut local_types, processed_local_types)?;
+                Ok(local_types)
+            },
+            None => Err(TypeStackInternalError(String::from("local_types_for_local_type_and_change: no local type entry"))),
+        }
+    }
+    
+    fn set_type_value_for_local_type(&self, local_type: LocalType, tree: &Tree, type_values: &mut [Rc<TypeValue>]) -> Result<(), TypeStackInternalError>
+    {
+        match self.type_entries.get(local_type.index()) {
+            Some(TypeStackEntry::Param(type_param_entry)) => {
+                let type_param_entry_r = type_param_entry.borrow();
+                if type_param_entry_r.trait_names.contains(&TraitName::Fun) {
+                    let mut new_type_values: Vec<Rc<TypeValue>> = Vec::new();
+                    for type_value in &type_param_entry_r.type_values {
+                        match type_value.substitute(type_values) {
+                            Ok(Some(new_type_value)) => new_type_values.push(new_type_value),
+                            Ok(None) => new_type_values.push(type_value.clone()),
+                            Err(err) => return Err(TypeStackInternalError(format!("set_type_value_for_local_type: {}", err))),
+                        }
+                    }
+                    let mut shared_flag = SharedFlag::Shared;
+                    for closure_local_type in &type_param_entry_r.closure_local_types {
+                        if self.shared_flag_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *closure_local_type)), tree)? == SharedFlag::None {
+                            shared_flag = SharedFlag::None;
+                        }
+                    }
+                    let uniq_flag = if shared_flag == SharedFlag::None {
+                        UniqFlag::Uniq
+                    } else {
+                        UniqFlag::None
+                    };
+                    match type_values.get_mut(local_type.index()) {
+                        Some(type_value) => *type_value = Rc::new(TypeValue::Type(uniq_flag, TypeValueName::Fun, new_type_values)),
+                        None => return Err(TypeStackInternalError(String::from("set_type_value_for_local_type: no type value"))),
+                    }
+                } else {
+                    match type_values.get_mut(local_type.index()) {
+                        Some(type_value) => *type_value = Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Tuple, Vec::new())),
+                        None => return Err(TypeStackInternalError(String::from("set_type_value_for_local_type: no type value"))),
+                    }
+                }
+            },
+            Some(TypeStackEntry::Type(type_value)) => {
+                let new_type_value = match type_value.substitute(type_values) {
+                    Ok(Some(new_type_value)) => new_type_value,
+                    Ok(None) => type_value.clone(),
+                    Err(err) => return Err(TypeStackInternalError(format!("set_type_value_for_local_type: {}", err))),
+                };
+                match type_values.get_mut(local_type.index()) {
+                    Some(type_value2) => *type_value2 = new_type_value,
+                    None => return Err(TypeStackInternalError(String::from("set_type_value_for_local_type: no type value"))),
+                }
+            },
+            None => return Err(TypeStackInternalError(String::from("set_type_value_for_local_type: no local type entry"))),
+        }
+        Ok(())
+    }
+
+    pub fn change_type_params_to_types(&mut self, tree: &Tree) -> Result<(), TypeStackInternalError>
+    {
+        let mut visited_local_types: BTreeSet<LocalType> = BTreeSet::new();
+        let mut type_values = vec![Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Tuple, Vec::new())); self.type_entries.len()];
+        for i in 0..self.type_entries.len() {
+            let local_type = LocalType::new(i);
+            dfs_with_result(&local_type, &mut visited_local_types, &mut (), |local_type, processed_local_types, _| {
+                    self.local_types_for_local_type_and_change(*local_type, processed_local_types)
+            }, |local_type, _| {
+                    self.set_type_value_for_local_type(*local_type, tree, type_values.as_mut_slice())
+            })?;
+        }
+        for (type_values2, idx) in self.type_values.iter_mut().rev() {
+            if *idx == 0 {
+                break;
+            }
+            for type_value2 in type_values2 {
+                let new_type_value2 = match type_value2.substitute(type_values.as_slice()) {
+                    Ok(Some(new_type_value)) => new_type_value,
+                    Ok(None) => type_value2.clone(),
+                    Err(err) => return Err(TypeStackInternalError(format!("change_type_params_to_types: {}", err))),
+                };
+                *type_value2 = new_type_value2;
+            }
+            *idx = 0;
+        }
+        self.type_entries.clear();
+        Ok(())
     }
 }
 
