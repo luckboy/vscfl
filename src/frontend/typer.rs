@@ -1023,7 +1023,12 @@ impl Typer
             TypeExpr::Array(elem_type_expr, _, _) => self.add_type_synonym_idents_for_type_expr(&**elem_type_expr, tree, idents, processed_idents, errs)?,
             TypeExpr::Param(_, _) => (),
             TypeExpr::Var(ident, pos) => add_type_synonym_ident(ident, pos.clone(), tree, idents, processed_idents, errs)?,
-            TypeExpr::App(ident, _, pos) => add_type_synonym_ident(ident, pos.clone(), tree, idents, processed_idents, errs)?,
+            TypeExpr::App(ident, type_exprs, pos) => {
+                add_type_synonym_ident(ident, pos.clone(), tree, idents, processed_idents, errs)?;
+                for type_expr2 in type_exprs {
+                    self.add_type_synonym_idents_for_type_expr(&**type_expr2, tree, idents, processed_idents, errs)?;
+                }
+            },
             TypeExpr::Uniq(type_expr2, _) => self.add_type_synonym_idents_for_type_expr(&**type_expr2, tree, idents, processed_idents, errs)?,
         }
         Ok(())

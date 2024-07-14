@@ -370,6 +370,8 @@ type W<t1, t2> = (t2, X<t1, Char>, X<Char, Int>, Y<t1>, Z<Char>);
 type X<t1, t2> = T<t2, t1>;
 type Y<t1> = U<t1, t1>;
 type Z<t1> = t1;
+type A<t1> = Z<B<t1>>;
+type B<t1> = T<t1, t1>;
 ";
     let s2 = &s[1..];
     let mut cursor = Cursor::new(s2.as_bytes());
@@ -387,9 +389,12 @@ type Z<t1> = t1;
     let typer = Typer::new();
     match typer.evaluate_types_for_type_vars(&tree) {
         Ok(()) => assert!(true),
-        Err(_) => assert!(false),
+        Err(errs) => {
+            println!("{}", errs);
+            assert!(false)
+        },
     }
-    assert_eq!(9, tree.defs().len());
+    assert_eq!(11, tree.defs().len());
     match &*tree.defs()[0] {
         Def::Type(_, type_var, _) => {
             let type_var_r = type_var.borrow();
@@ -520,6 +525,30 @@ type Z<t1> = t1;
             match &*type_var_r {
                 TypeVar::Synonym(_, _, Some(type_value)) => {
                     assert_eq!(String::from("t1"), type_value.to_string_without_fun());
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[9] {
+        Def::Type(_, type_var, _) => {
+            let type_var_r = type_var.borrow();
+            match &*type_var_r {
+                TypeVar::Synonym(_, _, Some(type_value)) => {
+                    assert_eq!(String::from("T<t1, t1>"), type_value.to_string_without_fun());
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[10] {
+        Def::Type(_, type_var, _) => {
+            let type_var_r = type_var.borrow();
+            match &*type_var_r {
+                TypeVar::Synonym(_, _, Some(type_value)) => {
+                    assert_eq!(String::from("T<t1, t1>"), type_value.to_string_without_fun());
                 },
                 _ => assert!(false),
             }
