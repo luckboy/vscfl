@@ -389,10 +389,7 @@ type B<t1> = T<t1, t1>;
     let typer = Typer::new();
     match typer.evaluate_types_for_type_vars(&tree) {
         Ok(()) => assert!(true),
-        Err(errs) => {
-            println!("{}", errs);
-            assert!(false)
-        },
+        Err(_) => assert!(false),
     }
     assert_eq!(11, tree.defs().len());
     match &*tree.defs()[0] {
