@@ -85,6 +85,20 @@ impl fmt::Display for FrontendErrors
     }
 }
 
+#[derive(Debug)]
+pub struct FrontendInternalError(pub String);
+
+impl error::Error for FrontendInternalError
+{}
+
+impl fmt::Display for FrontendInternalError
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+    { write!(f, "{}", self.0) }
+}
+
 pub type FrontendResult<T> = result::Result<T, FrontendError>;
 
 pub type FrontendResultWithErrors<T> = result::Result<T, FrontendErrors>;
+
+pub type FrontendInternalResult<T> = result::Result<T, FrontendInternalError>;

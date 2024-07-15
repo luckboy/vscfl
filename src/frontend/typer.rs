@@ -611,7 +611,7 @@ impl Typer
     {
         match self.type_matcher.uniq_flag_and_shared_flag(local_type, tree, local_types) {
             Ok(pair) => Ok(pair),
-            Err(err) => Err(FrontendErrors::new(vec![err])),
+            Err(err) => Err(FrontendErrors::new(vec![FrontendError::Internal(format!("{}", err))])),
         }
     }
 
@@ -619,7 +619,7 @@ impl Typer
     {
         match self.type_matcher.real_uniq_flag_for_type_value(type_value, local_types) {
             Ok(uniq_flag) => Ok(uniq_flag),
-            Err(err) => Err(FrontendErrors::new(vec![err])),
+            Err(err) => Err(FrontendErrors::new(vec![FrontendError::Internal(format!("{}", err))])),
         }
     }
     
@@ -627,7 +627,7 @@ impl Typer
     {
         match self.type_matcher.shared_flag(local_type, tree, local_types) {
             Ok(shared_flag) => Ok(shared_flag),
-            Err(err) => Err(FrontendErrors::new(vec![err])),
+            Err(err) => Err(FrontendErrors::new(vec![FrontendError::Internal(format!("{}", err))])),
         }
     }
     
@@ -639,7 +639,7 @@ impl Typer
                 errs.push(FrontendError::Message(pos.clone(), format!("variable {} mustn't be shared with type {}", ident, LocalTypeWithLocalTypes(local_type, local_types))));
                 Ok(())
             },
-            Err(err) => Err(FrontendErrors::new(vec![err])),
+            Err(err) => Err(FrontendErrors::new(vec![FrontendError::Internal(format!("{}", err))])),
         }
     }
 
@@ -651,7 +651,7 @@ impl Typer
                 errs.push(FrontendError::Message(pos.clone(), format!("value mustn't be shared with type {}", LocalTypeWithLocalTypes(local_type, local_types))));
                 Ok(())
             },
-            Err(err) => Err(FrontendErrors::new(vec![err])),
+            Err(err) => Err(FrontendErrors::new(vec![FrontendError::Internal(format!("{}", err))])),
         }
     }
     
@@ -666,7 +666,7 @@ impl Typer
                 }
                 Ok(())
             },
-            Err(err) => Err(FrontendErrors::new(vec![err])),
+            Err(err) => Err(FrontendErrors::new(vec![FrontendError::Internal(format!("{}", err))])),
         }
     }
  
@@ -681,7 +681,7 @@ impl Typer
                 }
                 Ok(())
             },
-            Err(err) => Err(FrontendErrors::new(vec![err])),
+            Err(err) => Err(FrontendErrors::new(vec![FrontendError::Internal(format!("{}", err))])),
         }
     }
 
@@ -696,7 +696,7 @@ impl Typer
                 }
                 Ok(())
             },
-            Err(err) => Err(FrontendErrors::new(vec![err])),
+            Err(err) => Err(FrontendErrors::new(vec![FrontendError::Internal(format!("{}", err))])),
         }
     }    
 
@@ -711,7 +711,7 @@ impl Typer
                 }
                 Ok(())
             },
-            Err(err) => Err(FrontendErrors::new(vec![err])),
+            Err(err) => Err(FrontendErrors::new(vec![FrontendError::Internal(format!("{}", err))])),
         }
     }
 
@@ -723,7 +723,7 @@ impl Typer
                 errs.push(FrontendError::Message(pos.clone(), format!("can't cast type {} to type {}", LocalTypeWithLocalTypes(local_type1, local_types), LocalTypeWithLocalTypes(local_type2, local_types))));
                 Ok(())
             },
-            Err(err) => Err(FrontendErrors::new(vec![err])),
+            Err(err) => Err(FrontendErrors::new(vec![FrontendError::Internal(format!("{}", err))])),
         }
     }
     

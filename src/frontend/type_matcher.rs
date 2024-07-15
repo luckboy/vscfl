@@ -84,7 +84,7 @@ impl TypeMatcher
     pub fn new() -> Self
     { TypeMatcher { empty_type_param_entry: Rc::new(RefCell::new(TypeParamEntry::new())), } }
     
-    fn uniq_flag_and_shared_flag_for_type_value2(&self, type_value: &Rc<TypeValue>, type_arg_shared_flag: Option<SharedFlag>, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<(UniqFlag, SharedFlag)>
+    fn uniq_flag_and_shared_flag_for_type_value2(&self, type_value: &Rc<TypeValue>, type_arg_shared_flag: Option<SharedFlag>, tree: &Tree, local_types: &LocalTypes) -> FrontendInternalResult<(UniqFlag, SharedFlag)>
     {
         match local_types.type_entry_for_type_value(type_value) {
             Some(LocalTypeEntry::Param(_, UniqFlag::None, type_param_entry, _)) => {
@@ -98,7 +98,7 @@ impl TypeMatcher
             Some(LocalTypeEntry::Param(_, UniqFlag::Uniq, _, _)) => Ok((UniqFlag::Uniq, SharedFlag::None)),
             Some(LocalTypeEntry::Type(type_value)) => {
                 match &*type_value {
-                    TypeValue::Param(_, _) => Err(FrontendError::Internal(String::from("uniq_flag_and_shared_flag_for_type_value2: type parameter in local type entry"))),
+                    TypeValue::Param(_, _) => Err(FrontendInternalError(String::from("uniq_flag_and_shared_flag_for_type_value2: type parameter in local type entry"))),
                     TypeValue::Type(UniqFlag::None, TypeValueName::Fun, _) => Ok((UniqFlag::None, SharedFlag::Shared)),
                     TypeValue::Type(UniqFlag::None, type_value_name, type_values) => {
                         let mut shared_flag = match type_value_name {
@@ -109,10 +109,10 @@ impl TypeMatcher
                                         match &*type_var_r {
                                             TypeVar::Builtin(_, _, Some(tmp_shared_flag)) => *tmp_shared_flag,
                                             TypeVar::Data(_, _, Some(tmp_shared_flag)) => *tmp_shared_flag,
-                                            _ => return Err(FrontendError::Internal(String::from("uniq_flag_and_shared_flag_for_type_value2: type variable isn't type or type hasn't shared flag"))),
+                                            _ => return Err(FrontendInternalError(String::from("uniq_flag_and_shared_flag_for_type_value2: type variable isn't type or type hasn't shared flag"))),
                                         }
                                     },
-                                    None => return Err(FrontendError::Internal(String::from("uniq_flag_and_shared_flag_for_type_value2: no type variable"))),
+                                    None => return Err(FrontendInternalError(String::from("uniq_flag_and_shared_flag_for_type_value2: no type variable"))),
                                 }
                             },
                             _ => SharedFlag::Shared,
@@ -140,11 +140,11 @@ impl TypeMatcher
                     _ => Ok((UniqFlag::Uniq, SharedFlag::None)),
                 }
             },
-            None => Err(FrontendError::Internal(String::from("uniq_flag_and_shared_flag_for_type_value2: no local type entry"))),
+            None => Err(FrontendInternalError(String::from("uniq_flag_and_shared_flag_for_type_value2: no local type entry"))),
         }
     }
 
-    fn uniq_flag_for_type_value2(&self, type_value: &Rc<TypeValue>, type_arg_shared_flag: Option<SharedFlag>, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<UniqFlag>
+    fn uniq_flag_for_type_value2(&self, type_value: &Rc<TypeValue>, type_arg_shared_flag: Option<SharedFlag>, tree: &Tree, local_types: &LocalTypes) -> FrontendInternalResult<UniqFlag>
     {
         match self.uniq_flag_and_shared_flag_for_type_value2(type_value, type_arg_shared_flag, tree, local_types) {
             Ok((uniq_flag, _)) => Ok(uniq_flag),
@@ -152,7 +152,7 @@ impl TypeMatcher
         }
     }
     
-    fn shared_flag_for_type_value2(&self, type_value: &Rc<TypeValue>, type_arg_shared_flag: Option<SharedFlag>, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<SharedFlag>
+    fn shared_flag_for_type_value2(&self, type_value: &Rc<TypeValue>, type_arg_shared_flag: Option<SharedFlag>, tree: &Tree, local_types: &LocalTypes) -> FrontendInternalResult<SharedFlag>
     {
         match self.uniq_flag_and_shared_flag_for_type_value2(type_value, type_arg_shared_flag, tree, local_types) {
             Ok((_, shared_flag)) => Ok(shared_flag),
@@ -160,27 +160,27 @@ impl TypeMatcher
         }
     }
 
-    pub fn real_uniq_flag_for_type_value(&self, type_value: &Rc<TypeValue>, local_types: &LocalTypes) -> FrontendResult<UniqFlag>
+    pub fn real_uniq_flag_for_type_value(&self, type_value: &Rc<TypeValue>, local_types: &LocalTypes) -> FrontendInternalResult<UniqFlag>
     {
         match local_types.type_entry_for_type_value(type_value) {
             Some(LocalTypeEntry::Param(_, uniq_flag, _, _)) => Ok(uniq_flag),
             Some(LocalTypeEntry::Type(type_value)) => {
                 match &*type_value {
-                    TypeValue::Param(_, _) => Err(FrontendError::Internal(String::from("real_uniq_flag_for_type_value: type parameter in local type entry"))),
+                    TypeValue::Param(_, _) => Err(FrontendInternalError(String::from("real_uniq_flag_for_type_value: type parameter in local type entry"))),
                     TypeValue::Type(uniq_flag, _, _) => Ok(*uniq_flag),
                 }
             },
-            None => Err(FrontendError::Internal(String::from("real_uniq_flag_for_type_value: no local type entry"))),
+            None => Err(FrontendInternalError(String::from("real_uniq_flag_for_type_value: no local type entry"))),
         }
     }
     
-    pub fn real_uniq_flag(&self, local_type: LocalType, local_types: &LocalTypes) -> FrontendResult<UniqFlag>
+    pub fn real_uniq_flag(&self, local_type: LocalType, local_types: &LocalTypes) -> FrontendInternalResult<UniqFlag>
     {
         let type_value = Rc::new(TypeValue::Param(UniqFlag::None, local_type));
         self.real_uniq_flag_for_type_value(&type_value, local_types)
     }
     
-    pub fn set_shared_for_type_value(&self, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<bool>
+    pub fn set_shared_for_type_value(&self, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendInternalResult<bool>
     {
         match local_types.type_entry_for_type_value(&type_value) {
             Some(LocalTypeEntry::Param(defined_flag, UniqFlag::None, type_param_entry, _)) => {
@@ -215,17 +215,17 @@ impl TypeMatcher
                 }
                 Ok(true)
             },
-            None=> Err(FrontendError::Internal(String::from("set_shared_for_type_value: no local type entry"))),
+            None=> Err(FrontendInternalError(String::from("set_shared_for_type_value: no local type entry"))),
         }
     }
 
-    pub fn set_shared(&self, local_type: LocalType, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<bool>
+    pub fn set_shared(&self, local_type: LocalType, tree: &Tree, local_types: &LocalTypes) -> FrontendInternalResult<bool>
     {
         let type_value = Rc::new(TypeValue::Param(UniqFlag::None, local_type));
         self.set_shared_for_type_value(&type_value, tree, local_types)
     }
 
-    fn set_trait_names_for_local_types(&self, root_local_type1: LocalType, root_local_type2: LocalType, root_local_type: LocalType, trait_names: &BTreeSet<TraitName>, local_types: &mut LocalTypes) -> FrontendResult<()>
+    fn set_trait_names_for_local_types(&self, root_local_type1: LocalType, root_local_type2: LocalType, root_local_type: LocalType, trait_names: &BTreeSet<TraitName>, local_types: &mut LocalTypes) -> FrontendInternalResult<()>
     {
         match local_types.eq_root_local_type_and_eq_local_types(root_local_type) {
             Some((eq_root_local_type, eq_local_types)) => {
@@ -236,8 +236,8 @@ impl TypeMatcher
                             let mut type_param_entry_r = type_param_entry.borrow_mut();
                             type_param_entry_r.trait_names = trait_names.clone();
                         },
-                        Some(_) => return Err(FrontendError::Internal(String::from("set_trait_names_for_local_types: no type parameter entry"))),
-                        None => return Err(FrontendError::Internal(String::from("set_trait_names_for_local_types: no local type entry"))),
+                        Some(_) => return Err(FrontendInternalError(String::from("set_trait_names_for_local_types: no type parameter entry"))),
+                        None => return Err(FrontendInternalError(String::from("set_trait_names_for_local_types: no local type entry"))),
                     }
                 }
                 for eq_local_type2 in eq_local_types {
@@ -247,18 +247,18 @@ impl TypeMatcher
                                 let mut type_param_entry_r = type_param_entry.borrow_mut();
                                 type_param_entry_r.trait_names = trait_names.clone();
                             },
-                            Some(_) => return Err(FrontendError::Internal(String::from("set_trait_names_for_local_types: no type parameter entry"))),
-                            None => return Err(FrontendError::Internal(String::from("set_trait_names_for_local_types: no local type entry"))),
+                            Some(_) => return Err(FrontendInternalError(String::from("set_trait_names_for_local_types: no type parameter entry"))),
+                            None => return Err(FrontendInternalError(String::from("set_trait_names_for_local_types: no local type entry"))),
                         }
                     }
                 }
                 Ok(())
             },
-            None => Err(FrontendError::Internal(String::from("set_trait_names_for_local_types: no equation root local type and no equation local types"))),
+            None => Err(FrontendInternalError(String::from("set_trait_names_for_local_types: no equation root local type and no equation local types"))),
         }
     }
     
-    fn match_local_type_entries_with_infos(&self, local_type_entry1: &LocalTypeEntry, local_type_entry2: &LocalTypeEntry, tree: &Tree, local_types: &mut LocalTypes, infos: &mut Vec<MismatchedTypeInfo>) -> FrontendResult<Option<SharedFlag>>
+    fn match_local_type_entries_with_infos(&self, local_type_entry1: &LocalTypeEntry, local_type_entry2: &LocalTypeEntry, tree: &Tree, local_types: &mut LocalTypes, infos: &mut Vec<MismatchedTypeInfo>) -> FrontendInternalResult<Option<SharedFlag>>
     {
         match (local_type_entry1, local_type_entry2) {
             (LocalTypeEntry::Param(DefinedFlag::Undefined, uniq_flag1, type_param_entry1, local_type1), LocalTypeEntry::Param(DefinedFlag::Undefined, uniq_flag2, type_param_entry2, local_type2)) => {
@@ -366,7 +366,7 @@ impl TypeMatcher
                         let shared_flag = self.shared_flag_for_type_value2(&Rc::new(TypeValue::Param(uniq_flag, root_local_type)), None, tree, local_types)?;
                         Ok(Some(shared_flag))
                     },
-                    None => Err(FrontendError::Internal(String::from("match_local_type_entries_with_infos: can't join local types"))),
+                    None => Err(FrontendInternalError(String::from("match_local_type_entries_with_infos: can't join local types"))),
                 }
             },
             (LocalTypeEntry::Param(DefinedFlag::Undefined, uniq_flag1, type_param_entry1, local_type1), LocalTypeEntry::Param(DefinedFlag::Defined, uniq_flag2, type_param_entry2, local_type2)) => {
@@ -428,12 +428,12 @@ impl TypeMatcher
                         let shared_flag = self.shared_flag_for_type_value2(&Rc::new(TypeValue::Param(uniq_flag, root_local_type)), None, tree, local_types)?;
                         Ok(Some(shared_flag))
                     },
-                    None => Err(FrontendError::Internal(String::from("match_local_type_entries_with_infos: can't join local types"))),
+                    None => Err(FrontendInternalError(String::from("match_local_type_entries_with_infos: can't join local types"))),
                 }
             },
             (LocalTypeEntry::Param(DefinedFlag::Undefined, uniq_flag1, type_param_entry1, local_type1), LocalTypeEntry::Type(type_value2)) => {
                 match &**type_value2 {
-                    TypeValue::Param(_, _) => Err(FrontendError::Internal(String::from("match_local_type_entries_with_infos: type parameter in local type entry"))),
+                    TypeValue::Param(_, _) => Err(FrontendInternalError(String::from("match_local_type_entries_with_infos: type parameter in local type entry"))),
                     TypeValue::Type(uniq_flag2, type_value_name2, type_values2) => {
                         if *uniq_flag1 == UniqFlag::Uniq && *uniq_flag2 == UniqFlag::None {
                             return Ok(None);
@@ -466,7 +466,7 @@ impl TypeMatcher
                         for trait_name in &type_param_entry1_r.trait_names {
                             let type_name = match type_value2.type_name() {
                                 Some(tmp_type_name) => tmp_type_name,
-                                None => return Err(FrontendError::Internal(String::from("no type name"))),
+                                None => return Err(FrontendInternalError(String::from("no type name"))),
                             };
                             match trait_name {
                                 TraitName::Shared => {
@@ -505,10 +505,10 @@ impl TypeMatcher
                                                         }
                                                     }
                                                 },
-                                                _ => return Err(FrontendError::Internal(String::from("no trait variables")))
+                                                _ => return Err(FrontendInternalError(String::from("no trait variables")))
                                             }
                                         },
-                                        _ => return Err(FrontendError::Internal(String::from("no trait"))),
+                                        _ => return Err(FrontendInternalError(String::from("no trait"))),
                                     }
                                 },
                             }
@@ -582,51 +582,51 @@ impl TypeMatcher
                         let shared_flag = shared_flag1;
                         Ok(Some(shared_flag))
                     },
-                    _ => Err(FrontendError::Internal(String::from("match_local_type_entries_with_infos: type parameter in local type entry"))),
+                    _ => Err(FrontendInternalError(String::from("match_local_type_entries_with_infos: type parameter in local type entry"))),
                 }
             }
             _ => Ok(None),
         }
     }
 
-    fn match_type_values_with_infos(&self, type_value1: &Rc<TypeValue>, type_value2: &Rc<TypeValue>, tree: &Tree, local_types: &mut LocalTypes, infos: &mut Vec<MismatchedTypeInfo>) -> FrontendResult<Option<SharedFlag>>
+    fn match_type_values_with_infos(&self, type_value1: &Rc<TypeValue>, type_value2: &Rc<TypeValue>, tree: &Tree, local_types: &mut LocalTypes, infos: &mut Vec<MismatchedTypeInfo>) -> FrontendInternalResult<Option<SharedFlag>>
     {
         let local_type_entry1 = local_types.type_entry_for_type_value(type_value1);
         let local_type_entry2 = local_types.type_entry_for_type_value(type_value2);
         match (local_type_entry1, local_type_entry2) {
             (Some(local_type_entry1), Some(local_type_entry2)) => self.match_local_type_entries_with_infos(&local_type_entry1, &local_type_entry2, tree, local_types, infos),
-            (_, _) => Err(FrontendError::Internal(String::from("match_type_values_with_infos: no local type entry")))
+            (_, _) => Err(FrontendInternalError(String::from("match_type_values_with_infos: no local type entry")))
         }
     }
 
-    pub fn uniq_flag_and_shared_flag_for_type_value(&self, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<(UniqFlag, SharedFlag)>
+    pub fn uniq_flag_and_shared_flag_for_type_value(&self, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendInternalResult<(UniqFlag, SharedFlag)>
     { self.uniq_flag_and_shared_flag_for_type_value2(type_value, None, tree, local_types) }
 
-    pub fn uniq_flag_and_shared_flag(&self, local_type: LocalType, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<(UniqFlag, SharedFlag)>
+    pub fn uniq_flag_and_shared_flag(&self, local_type: LocalType, tree: &Tree, local_types: &LocalTypes) -> FrontendInternalResult<(UniqFlag, SharedFlag)>
     {
         let type_value = Rc::new(TypeValue::Param(UniqFlag::None, local_type));
         self.uniq_flag_and_shared_flag_for_type_value(&type_value, tree, local_types)
     }
 
-    pub fn uniq_flag_for_type_value(&self, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<UniqFlag>
+    pub fn uniq_flag_for_type_value(&self, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendInternalResult<UniqFlag>
     { self.uniq_flag_for_type_value2(type_value, None, tree, local_types) }
     
-    pub fn uniq_flag(&self, local_type: LocalType, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<UniqFlag>
+    pub fn uniq_flag(&self, local_type: LocalType, tree: &Tree, local_types: &LocalTypes) -> FrontendInternalResult<UniqFlag>
     {
         let type_value = Rc::new(TypeValue::Param(UniqFlag::None, local_type));
         self.uniq_flag_for_type_value(&type_value, tree, local_types)
     }
 
-    pub fn shared_flag_for_type_value(&self, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<SharedFlag>
+    pub fn shared_flag_for_type_value(&self, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendInternalResult<SharedFlag>
     { self.shared_flag_for_type_value2(type_value, None, tree, local_types) }
     
-    pub fn shared_flag(&self, local_type: LocalType, tree: &Tree, local_types: &LocalTypes) -> FrontendResult<SharedFlag>
+    pub fn shared_flag(&self, local_type: LocalType, tree: &Tree, local_types: &LocalTypes) -> FrontendInternalResult<SharedFlag>
     {
         let type_value = Rc::new(TypeValue::Param(UniqFlag::None, local_type));
         self.shared_flag_for_type_value(&type_value, tree, local_types)
     }
     
-    pub fn match_type_values(&self, type_value1: &Rc<TypeValue>, type_value2: &Rc<TypeValue>, tree: &Tree, local_types: &mut LocalTypes) -> FrontendResult<TypeMatcherResult>
+    pub fn match_type_values(&self, type_value1: &Rc<TypeValue>, type_value2: &Rc<TypeValue>, tree: &Tree, local_types: &mut LocalTypes) -> FrontendInternalResult<TypeMatcherResult>
     {
         let mut infos: Vec<MismatchedTypeInfo> = Vec::new();
         match self.match_type_values_with_infos(type_value1, type_value2, tree, local_types, &mut infos) {
@@ -636,14 +636,14 @@ impl TypeMatcher
         }
     }
     
-    pub fn matches(&self, local_type1: LocalType, local_type2: LocalType, tree: &Tree, local_types: &mut LocalTypes) -> FrontendResult<TypeMatcherResult>
+    pub fn matches(&self, local_type1: LocalType, local_type2: LocalType, tree: &Tree, local_types: &mut LocalTypes) -> FrontendInternalResult<TypeMatcherResult>
     {
         let type_value1 = Rc::new(TypeValue::Param(UniqFlag::None, local_type1));
         let type_value2 = Rc::new(TypeValue::Param(UniqFlag::None, local_type2));
         self.match_type_values(&type_value1, &type_value2, tree, local_types)
     }
 
-    pub fn match_for_first_pattern_type(&self, local_type1: LocalType, is_var1: bool, local_type2: LocalType, tree: &Tree, local_types: &mut LocalTypes) -> FrontendResult<TypeMatcherResult>
+    pub fn match_for_first_pattern_type(&self, local_type1: LocalType, is_var1: bool, local_type2: LocalType, tree: &Tree, local_types: &mut LocalTypes) -> FrontendInternalResult<TypeMatcherResult>
     {
         let type_value1 = Rc::new(TypeValue::Param(UniqFlag::None, local_type1));
         let type_value2 = Rc::new(TypeValue::Param(UniqFlag::None, local_type2));
@@ -657,7 +657,7 @@ impl TypeMatcher
         self.match_type_values(&type_value1, &type_value2, tree, local_types)
     }
 
-    pub fn match_for_second_pattern_type(&self, local_type1: LocalType, local_type2: LocalType, is_var2: bool, tree: &Tree, local_types: &mut LocalTypes) -> FrontendResult<TypeMatcherResult>
+    pub fn match_for_second_pattern_type(&self, local_type1: LocalType, local_type2: LocalType, is_var2: bool, tree: &Tree, local_types: &mut LocalTypes) -> FrontendInternalResult<TypeMatcherResult>
     {
         let type_value1 = Rc::new(TypeValue::Param(UniqFlag::None, local_type1));
         let type_value2 = Rc::new(TypeValue::Param(UniqFlag::None, local_type2));
@@ -671,7 +671,7 @@ impl TypeMatcher
         self.match_type_values(&type_value1, &type_value2, tree, local_types)
     }
 
-    fn has_primitive_for_type_ident(&self, ident: &String, tree: &Tree, builtins: &Builtins) -> FrontendResult<bool>
+    fn has_primitive_for_type_ident(&self, ident: &String, tree: &Tree, builtins: &Builtins) -> FrontendInternalResult<bool>
     {
         match tree.type_var(ident) {
             Some(type_var) => {
@@ -684,14 +684,14 @@ impl TypeMatcher
                         }
                     },
                     TypeVar::Data(_, _, _) => Ok(false),
-                    _ => Err(FrontendError::Internal(String::from("has_primitive_for_type_ident: type variable is type synonym"))),
+                    _ => Err(FrontendInternalError(String::from("has_primitive_for_type_ident: type variable is type synonym"))),
                 }
             },
-            None => Err(FrontendError::Internal(String::from("has_primitive_for_type_ident: no type variable"))),
+            None => Err(FrontendInternalError(String::from("has_primitive_for_type_ident: no type variable"))),
         }
     }
     
-    fn match_local_type_entries_for_casting(&self, local_type_entry1: &LocalTypeEntry, local_type_entry2: &LocalTypeEntry, tree: &Tree, local_types: &LocalTypes, builtins: &Builtins) -> FrontendResult<Option<SharedFlag>>
+    fn match_local_type_entries_for_casting(&self, local_type_entry1: &LocalTypeEntry, local_type_entry2: &LocalTypeEntry, tree: &Tree, local_types: &LocalTypes, builtins: &Builtins) -> FrontendInternalResult<Option<SharedFlag>>
     {
         match (local_type_entry1, local_type_entry2) {
             (LocalTypeEntry::Type(type_value1), LocalTypeEntry::Type(type_value2)) => {
@@ -736,24 +736,24 @@ impl TypeMatcher
                         let shared_flag = shared_flag1;
                         Ok(Some(shared_flag))
                     },
-                    _ => Err(FrontendError::Internal(String::from("match_local_type_entries_for_casting: no variable"))),
+                    _ => Err(FrontendInternalError(String::from("match_local_type_entries_for_casting: no variable"))),
                 }
             },
             _ => Ok(None),
         }
     }
 
-    fn match_type_values_for_casting2(&self, type_value1: &Rc<TypeValue>, type_value2: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes, builtins: &Builtins) -> FrontendResult<Option<SharedFlag>>
+    fn match_type_values_for_casting2(&self, type_value1: &Rc<TypeValue>, type_value2: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes, builtins: &Builtins) -> FrontendInternalResult<Option<SharedFlag>>
     {
         let local_type_entry1 = local_types.type_entry_for_type_value(type_value1);
         let local_type_entry2 = local_types.type_entry_for_type_value(type_value2);
         match (local_type_entry1, local_type_entry2) {
             (Some(local_type_entry1), Some(local_type_entry2)) => self.match_local_type_entries_for_casting(&local_type_entry1, &local_type_entry2, tree, local_types, builtins),
-            (_, _) => Err(FrontendError::Internal(String::from("match_type_values_for_casting2: no local type entry"))),
+            (_, _) => Err(FrontendInternalError(String::from("match_type_values_for_casting2: no local type entry"))),
         }
     }
 
-    pub fn match_type_values_for_casting(&self, type_value1: &Rc<TypeValue>, type_value2: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes, builtins: &Builtins) -> FrontendResult<bool>
+    pub fn match_type_values_for_casting(&self, type_value1: &Rc<TypeValue>, type_value2: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes, builtins: &Builtins) -> FrontendInternalResult<bool>
     {
         match self.match_type_values_for_casting2(type_value1, type_value2, tree, local_types, builtins) {
             Ok(Some(_)) => Ok(true),
@@ -762,7 +762,7 @@ impl TypeMatcher
         }
     }
 
-    pub fn match_for_casting(&self, local_type1: LocalType, local_type2: LocalType, tree: &Tree, local_types: &LocalTypes, builtins: &Builtins) -> FrontendResult<bool>
+    pub fn match_for_casting(&self, local_type1: LocalType, local_type2: LocalType, tree: &Tree, local_types: &LocalTypes, builtins: &Builtins) -> FrontendInternalResult<bool>
     {
         let type_value1 = Rc::new(TypeValue::Param(UniqFlag::None, local_type1));
         let type_value2 = Rc::new(TypeValue::Param(UniqFlag::None, local_type2));
