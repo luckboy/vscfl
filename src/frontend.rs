@@ -12,6 +12,7 @@ pub mod lexer;
 pub mod limiter;
 pub mod namer;
 pub mod parser;
+pub mod shared_flag;
 pub mod tree;
 pub mod type_matcher;
 pub mod type_stack;
