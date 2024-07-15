@@ -187,7 +187,7 @@ impl TypeStack
         }
     }
     
-    pub fn push_type_entries(&mut self, local_type: LocalType, local_types: &LocalTypes) -> FrontendInternalResult<LocalType>
+    pub fn push_type_entries_for_local_type(&mut self, local_type: LocalType, local_types: &LocalTypes) -> FrontendInternalResult<LocalType>
     {
         let mut new_local_types: BTreeMap<LocalType, LocalType> = BTreeMap::new();
         let new_local_type = LocalType::new(self.type_entries.len());
@@ -338,13 +338,22 @@ impl TypeStack
     pub fn pop_type_values(&mut self) -> Option<Vec<Rc<TypeValue>>>
     {
         match self.type_values.pop() {
-            Some((type_values, new_len)) => {
+            Some((type_values, _)) => {
+                let new_len = self.type_values.last().map(|p| p.1).unwrap_or(0);
                 for _ in (new_len..self.type_entries.len()).rev() {
                     self.type_entries.pop();
                 }
                 Some(type_values)
             },
             None => None,
+        }
+    }
+
+    pub fn pop_type_entries(&mut self)
+    {
+        let new_len = self.type_values.last().map(|p| p.1).unwrap_or(0);
+        for _ in (new_len..self.type_entries.len()).rev() {
+            self.type_entries.pop();
         }
     }
 
@@ -396,6 +405,9 @@ impl TypeStack
         }
     }
     
+    pub fn shared_flag_for_local_type(&self, local_type: LocalType, tree: &Tree) -> FrontendInternalResult<SharedFlag>
+    { self.shared_flag_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type)), tree) }
+
     fn add_local_types_for_type_value(&self, type_value: &Rc<TypeValue>, local_types: &mut Vec<LocalType>, processed_local_types: &BTreeSet<LocalType>) -> FrontendInternalResult<()>
     {
         match &**type_value {
@@ -493,7 +505,7 @@ impl TypeStack
         Ok(())
     }
 
-    pub fn change_type_params_to_types(&mut self, tree: &Tree) -> FrontendInternalResult<()>
+    pub fn change_type_params_to_types(&mut self, tree: &Tree) -> FrontendInternalResult<Option<LocalType>>
     {
         let mut visited_local_types: BTreeSet<LocalType> = BTreeSet::new();
         let mut type_values = vec![Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Tuple, Vec::new())); self.type_entries.len()];
@@ -505,6 +517,8 @@ impl TypeStack
                     self.set_type_value_for_local_type(*local_type, tree, type_values.as_mut_slice())
             })?;
         }
+        let last_idx = self.type_values.last().map(|p| p.1).unwrap_or(0);
+        let last_type_value = type_values.get(last_idx);
         for (type_values2, idx) in self.type_values.iter_mut().rev() {
             if *idx == 0 {
                 break;
@@ -520,6 +534,12 @@ impl TypeStack
             *idx = 0;
         }
         self.type_entries.clear();
-        Ok(())
+        match last_type_value {
+            Some(last_type_value) => {
+                self.type_entries.push(TypeStackEntry::Type(last_type_value.clone()));
+                Ok(Some(LocalType::new(0)))
+            },
+            None => Ok(None),
+        }
     }
 }
