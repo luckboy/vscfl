@@ -200,7 +200,7 @@ impl TypeStack
         Ok(new_local_type)
     }
     
-    fn type_name_from_type_values(&self, type_value1: &Rc<TypeValue>, type_value2: &Rc<TypeValue>, trait_ident: &str, typ: &Type) -> FrontendInternalResult<Option<TypeName>>
+    fn type_name_for_type_values(&self, type_value1: &Rc<TypeValue>, type_value2: &Rc<TypeValue>, trait_ident: &str, typ: &Type) -> FrontendInternalResult<Option<TypeName>>
     {
         match (&**type_value1, &**type_value2) {
             (TypeValue::Param(_, local_type1), TypeValue::Param(_, local_type2)) => {
@@ -210,7 +210,7 @@ impl TypeStack
                         let type_param_entry2_r = type_param_entry2.borrow();
                         let mut type_name: Option<TypeName> = None;
                         for (type_value3, type_value4) in type_param_entry1_r.type_values.iter().zip(type_param_entry2_r.type_values.iter()) {
-                            match self.type_name_from_type_values(type_value3, type_value4, trait_ident, typ)? {
+                            match self.type_name_for_type_values(type_value3, type_value4, trait_ident, typ)? {
                                 Some(tmp_type_name) => {
                                     type_name = Some(tmp_type_name.clone());
                                     break;
@@ -220,7 +220,7 @@ impl TypeStack
                         }
                         Ok(type_name)
                     },
-                    (Some(TypeStackEntry::Type(type_value3)), Some(_)) => self.type_name_from_type_values(type_value3, type_value2, trait_ident, typ),
+                    (Some(TypeStackEntry::Type(type_value3)), Some(_)) => self.type_name_for_type_values(type_value3, type_value2, trait_ident, typ),
                     _ => Err(FrontendInternalError(String::from("type_name_from_type_values: no type stack entry or type parameter entry"))),
                 }
             },
@@ -234,7 +234,7 @@ impl TypeStack
                         } else {
                             let mut type_name: Option<TypeName> = None;
                             for (type_value3, type_value4) in type_values1.iter().zip(type_param_entry2_r.type_values.iter()) {
-                                match self.type_name_from_type_values(type_value3, type_value4, trait_ident, typ)? {
+                                match self.type_name_for_type_values(type_value3, type_value4, trait_ident, typ)? {
                                     Some(tmp_type_name) => {
                                         type_name = Some(tmp_type_name.clone());
                                         break;
@@ -251,7 +251,7 @@ impl TypeStack
             (TypeValue::Type(_, _, type_values1), TypeValue::Type(_, _, type_values2)) => {
                 let mut type_name: Option<TypeName> = None;
                 for (type_value3, type_value4) in type_values1.iter().zip(type_values2.iter()) {
-                    match self.type_name_from_type_values(type_value3, type_value4, trait_ident, typ)? {
+                    match self.type_name_for_type_values(type_value3, type_value4, trait_ident, typ)? {
                         Some(tmp_type_name) => {
                             type_name = Some(tmp_type_name.clone());
                             break;
@@ -264,8 +264,8 @@ impl TypeStack
         }
     }
 
-    pub fn type_name_from_local_type_and_type(&self, local_type: LocalType, typ: &Type, trait_ident: &str) -> FrontendInternalResult<Option<TypeName>>
-    { self.type_name_from_type_values(&Rc::new(TypeValue::Param(UniqFlag::None, local_type)), typ.type_value(), trait_ident, typ) }
+    pub fn type_name_for_local_type_and_type(&self, local_type: LocalType, typ: &Type, trait_ident: &str) -> FrontendInternalResult<Option<TypeName>>
+    { self.type_name_for_type_values(&Rc::new(TypeValue::Param(UniqFlag::None, local_type)), typ.type_value(), trait_ident, typ) }
 
     fn set_type_values_for_type_value(&self, type_value1: &Rc<TypeValue>, type_value2: &Rc<TypeValue>, typ: &Type, type_values: &mut [Rc<TypeValue>]) -> FrontendInternalResult<Rc<TypeValue>>
     {
@@ -469,7 +469,7 @@ impl TypeStack
                     }
                     let mut shared_flag = SharedFlag::Shared;
                     for closure_local_type in &type_param_entry_r.closure_local_types {
-                        if self.shared_flag_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *closure_local_type)), tree)? == SharedFlag::None {
+                        if self.shared_flag_for_local_type(*closure_local_type, tree)? == SharedFlag::None {
                             shared_flag = SharedFlag::None;
                         }
                     }
