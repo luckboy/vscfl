@@ -1454,7 +1454,7 @@ pub enum Value
     Builtin(String),
     Fun(String),
     LocalFun(String, LocalFun),
-    EvaluableFun(String, fn(&[Value]) -> FrontendResult<Value>),
+    EvaluableFun(String, fn(&[Value], &Pos) -> FrontendResult<Value>),
 }
 
 #[derive(Clone, Debug)]
