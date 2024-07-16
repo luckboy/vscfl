@@ -15,6 +15,7 @@ use std::rc::*;
 use disjoint::DisjointSet;
 use disjoint::DisjointSetVec;
 use disjoint::disjoint_set_vec;
+use crate::frontend::error::FrontendResult;
 use crate::frontend::error::Pos;
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
@@ -1453,6 +1454,7 @@ pub enum Value
     Builtin(String),
     Fun(String),
     LocalFun(String, LocalFun),
+    EvaluableFun(String, fn(&[Value]) -> FrontendResult<Value>),
 }
 
 #[derive(Clone, Debug)]
