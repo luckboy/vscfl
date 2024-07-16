@@ -1458,7 +1458,30 @@ pub enum Value
 }
 
 #[derive(Clone, Debug)]
-pub struct Closure;
+pub struct Closure
+{
+    values: BTreeMap<String, Value>,
+}
+
+impl Closure
+{
+    pub fn new() -> Self
+    { Closure { values: BTreeMap::new(), } }
+    
+    pub fn values(&self) -> &BTreeMap<String, Value>
+    { &self.values }
+
+    pub fn value(&self, ident: &String) -> Option<&Value>
+    {
+        match self.values.get(ident) {
+            Some(value) => Some(value),
+            None => None,
+        }
+    }
+
+    pub fn add_value(&mut self, ident: String, value: Value)
+    { self.values.insert(ident, value); }
+}
 
 #[derive(Clone, Debug)]
 pub struct TraitVars
