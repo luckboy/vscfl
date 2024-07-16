@@ -56,12 +56,7 @@ impl TypeStack
     pub fn type_value(&self, local_type: LocalType) -> Option<&Rc<TypeValue>>
     {
         match self.type_values() {
-            Some(type_values) => {
-                match type_values.get(local_type.index()) {
-                    Some(type_value) => Some(type_value),
-                    None => None,
-                }
-            },
+            Some(type_values) => type_values.get(local_type.index()),
             None => None,
         }
     }
@@ -70,12 +65,7 @@ impl TypeStack
     { self.type_entries.as_slice() }
 
     pub fn type_entry(&self, local_type: LocalType) -> Option<&TypeStackEntry>
-    {
-        match self.type_entries().get(local_type.index()) {
-            Some(type_entry) => Some(type_entry),
-            None => None,
-        }
-    }
+    { self.type_entries().get(local_type.index()) }
     
     pub fn set_first_type_values_for_type(&mut self, typ: &Type)
     {

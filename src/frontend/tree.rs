@@ -1454,7 +1454,7 @@ pub enum Value
     Builtin(String),
     Fun(String),
     Lambda(String, LocalFun),
-    EvaluableFun(String, fn(&[Value], &Pos) -> FrontendResult<Value>),
+    EvalFun(String, fn(&[Value], &Pos) -> FrontendResult<Value>),
 }
 
 #[derive(Clone, Debug)]
@@ -1472,12 +1472,7 @@ impl Closure
     { &self.values }
 
     pub fn value(&self, ident: &String) -> Option<&Value>
-    {
-        match self.values.get(ident) {
-            Some(value) => Some(value),
-            None => None,
-        }
-    }
+    { self.values.get(ident) }
 
     pub fn add_value(&mut self, ident: String, value: Value)
     { self.values.insert(ident, value); }
