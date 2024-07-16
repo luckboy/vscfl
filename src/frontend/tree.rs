@@ -1413,7 +1413,47 @@ impl LocalFun
 }
 
 #[derive(Clone, Debug)]
-pub struct Value;
+pub enum Object
+{
+    String(Vec<u8>),
+    CharN(Vec<i8>),
+    ShortN(Vec<i16>),
+    IntN(Vec<i32>),
+    LongN(Vec<i64>),
+    UcharN(Vec<u8>),
+    UshortN(Vec<u16>),
+    UintN(Vec<i32>),
+    UlongN(Vec<i64>),
+    FloatN(Vec<f32>),
+    DoubleN(Vec<f64>),
+    Tuple(Vec<Value>),
+    Array(Vec<Value>),
+    Data(String, Vec<Value>),
+}
+
+#[derive(Clone, Debug)]
+pub enum Value
+{
+    Bool(bool),
+    Char(i8),
+    Short(i16),
+    Int(i32),
+    Long(i64),
+    Uchar(u8),
+    Ushort(u16),
+    Uint(u32),
+    Ulong(u64),
+    Float(f32),
+    Double(f64),
+    SizeT(u64),
+    PtrdiffT(i64),
+    IntptrT(i64),
+    UintptrT(u64),
+    Object(SharedFlag, Rc<RefCell<Object>>),
+    Builtin(String),
+    Fun(String),
+    LocalFun(String, LocalFun),
+}
 
 #[derive(Clone, Debug)]
 pub struct Closure;
