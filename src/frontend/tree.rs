@@ -1453,7 +1453,7 @@ pub enum Value
     Object(SharedFlag, Rc<RefCell<Object>>),
     Builtin(String),
     Fun(String),
-    LocalFun(String, LocalFun),
+    Lambda(String, LocalFun),
     EvaluableFun(String, fn(&[Value], &Pos) -> FrontendResult<Value>),
 }
 
