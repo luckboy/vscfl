@@ -858,7 +858,7 @@ impl EqTypeParamEntry
         }
     }
 
-    pub fn defined_new() -> EqTypeParamEntry
+    pub fn new_defined() -> EqTypeParamEntry
     {
         EqTypeParamEntry {
             type_value_name: None,
@@ -1015,7 +1015,7 @@ impl LocalTypes
                 None => (),
             }
         }
-        self.eq_type_param_entries = disjoint_set_vec![EqTypeParamEntry::defined_new(); typ.eq_type_param_set.len()];
+        self.eq_type_param_entries = disjoint_set_vec![EqTypeParamEntry::new_defined(); typ.eq_type_param_set.len()];
         for i in 0..typ.eq_type_param_set.len() {
             for j in (i + 1)..typ.eq_type_param_set.len() {
                 if typ.eq_type_param_set.is_joined(i, j) {
