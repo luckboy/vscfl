@@ -1430,6 +1430,10 @@ pub enum Object
     Tuple(Vec<Value>),
     Array(Vec<Value>),
     Data(String, Vec<Value>),
+    Builtin(String, Option<TypeName>),
+    Fun(String, Option<TypeName>),
+    Lambda(String, Option<TypeName>, LocalFun),
+    EvalFun(String, Option<TypeName>, fn(&[Value], &Pos) -> FrontendResult<Value>),
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -1451,10 +1455,6 @@ pub enum Value
     IntptrT(i64),
     UintptrT(u64),
     Object(SharedFlag, Rc<RefCell<Object>>),
-    Builtin(String),
-    Fun(String),
-    Lambda(String, LocalFun),
-    EvalFun(String, fn(&[Value], &Pos) -> FrontendResult<Value>),
 }
 
 #[derive(Clone, Debug)]
