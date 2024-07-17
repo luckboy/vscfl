@@ -323,11 +323,6 @@ impl Builtins
         for s in ["Bool", "Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Half", "Float", "Double", "SizeT", "PtrdiffT", "IntptrT", "UintptrT"] {
             impl_pairs.insert((String::from("Ord"), TypeName::Name(String::from(s))));
         }
-        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
-            for n in [2, 3, 4, 8, 16] {
-                impl_pairs.insert((String::from("Ord"), TypeName::Name(format!("{}{}", s, n))));
-            }
-        }
         // OpAnd
         for s in ["Bool", "Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "SizeT", "PtrdiffT", "IntptrT", "UintptrT", "ClMemFenceFlags"] {
             impl_pairs.insert((String::from("OpAnd"), TypeName::Name(String::from(s))));
