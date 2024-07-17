@@ -1398,7 +1398,7 @@ impl<'a> fmt::Display for LocalTypeWithLocalTypes<'a>
     { write!(f, "{}", self.1.local_type_to_string(self.0)) }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct LocalFun
 {
     index: usize,
@@ -1413,7 +1413,7 @@ impl LocalFun
     { self.index }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Object
 {
     String(Vec<u8>),
@@ -1432,7 +1432,7 @@ pub enum Object
     Data(String, Vec<Value>),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Value
 {
     Bool(bool),
