@@ -138,9 +138,9 @@ impl Limiter
             Var::Var(var_modifier, _, _, None, _, _, _, _, _) => check_global_var_modifier(*var_modifier, ident, pos, errs),
             Var::Fun(fun, trait_name, Some(typ)) => {
                 match &**fun {
-                    Fun::Fun(fun_modifier, _, _, _, Some(expr), _, _) => {
+                    Fun::Fun(fun_modifier, _, _, _, Some(body), _, _) => {
                         check_fun_modifier(*fun_modifier, ident, trait_name, &**typ, pos, errs);
-                        self.check_limits_for_expr(&**expr, false, errs)?;
+                        self.check_limits_for_expr(&**body, false, errs)?;
                     },
                     Fun::Fun(fun_modifier, _, _, _, None, _, _) => check_fun_modifier(*fun_modifier, ident, trait_name, &**typ, pos, errs),
                     Fun::Con(_) => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_limits_for_var: variable is contructor"))])),
@@ -278,7 +278,7 @@ impl Limiter
             ImplVar::Var(expr, _, _, _, _) => self.check_limits_for_expr(&**expr, true, errs)?,
             ImplVar::Fun(impl_fun, _) => {
                 match &**impl_fun {
-                    ImplFun(_, expr, _, _) => self.check_limits_for_expr(&**expr, false, errs)?,
+                    ImplFun(_, body, _, _) => self.check_limits_for_expr(&**body, false, errs)?,
                 }
             },
         }

@@ -151,7 +151,7 @@ impl Instancer
             Var::Var(_, _, _, None, _, _, _, _, _) => (),
             Var::Fun(fun, _, _) => {
                 match &**fun {
-                    Fun::Fun(_, args, _, _, Some(expr), _, Some(local_types)) => {
+                    Fun::Fun(_, args, _, _, Some(body), _, Some(local_types)) => {
                         let mut var_env: Environment<()> = Environment::new();
                         var_env.push_new_vars();
                         for arg in args {
@@ -161,7 +161,7 @@ impl Instancer
                                 },
                             }
                         }
-                        self.check_insts_for_expr(&**expr, tree, &mut var_env, &**local_types, errs)?;
+                        self.check_insts_for_expr(&**body, tree, &mut var_env, &**local_types, errs)?;
                     },
                     Fun::Fun(_, _, _, _, None, _, _) => (),
                     Fun::Con(_) => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_insts_for_var: variable is contructor"))])),
@@ -327,7 +327,7 @@ impl Instancer
             },
             ImplVar::Fun(impl_fun, _) => {
                 match &**impl_fun {
-                    ImplFun(args, expr, _, Some(local_types)) => {
+                    ImplFun(args, body, _, Some(local_types)) => {
                         let mut var_env: Environment<()> = Environment::new();
                         var_env.push_new_vars();
                         for arg in args {
@@ -337,7 +337,7 @@ impl Instancer
                                 },
                             }
                         }
-                        self.check_insts_for_expr(&**expr, tree, &mut var_env, &**local_types, errs)?;
+                        self.check_insts_for_expr(&**body, tree, &mut var_env, &**local_types, errs)?;
                     },
                     _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_insts_for_impl_var: no local types"))])),
                 }

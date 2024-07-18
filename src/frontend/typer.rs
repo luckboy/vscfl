@@ -3025,7 +3025,7 @@ impl Typer
             Var::Var(_, _, _, None, _, _, _, _, _) => (),
             Var::Fun(fun, _, _) => {
                 match &mut **fun {
-                    Fun::Fun(_, args, ret_type_expr, _, Some(expr), Some(ret_local_type), Some(local_types)) => {
+                    Fun::Fun(_, args, ret_type_expr, _, Some(body), Some(ret_local_type), Some(local_types)) => {
                         let mut var_env: Environment<()> = Environment::new();
                         let mut closure_stack = ClosureStack::new();
                         var_env.push_new_vars();
@@ -3036,7 +3036,7 @@ impl Typer
                                 },
                             }
                         }
-                        let ret_local_type2 = self.infer_types_for_expr(&mut **expr, tree, &mut var_env, &mut closure_stack, &mut **local_types, errs)?;
+                        let ret_local_type2 = self.infer_types_for_expr(&mut **body, tree, &mut var_env, &mut closure_stack, &mut **local_types, errs)?;
                         self.match_local_types(*ret_local_type, ret_local_type2, type_expr_pos(&**ret_type_expr), tree, local_types, errs)?;
                     },
                     Fun::Fun(_, _, _, _, None, _, _) => (),
