@@ -177,7 +177,7 @@ fn value_for_ident_and_type_name_in<T, F>(ident: &String, type_name: &Option<Typ
     match tree.var(ident) {
         Some(var) => {
             let var_r = var.borrow();
-            let first_builtin_value = Value::Object(SharedFlag::None, Rc::new(RefCell::new(Object::Builtin(ident.clone(), None))));
+            let first_builtin_value = Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Builtin(ident.clone(), None))));
             let (trait_ident, value) = match &*var_r {
                 Var::Builtin(tmp_trait_ident, _) => (tmp_trait_ident, &first_builtin_value),
                 Var::Var(_, _, _, _, tmp_trait_ident, _, _, _, Some(value)) => (tmp_trait_ident, value),
@@ -205,7 +205,7 @@ fn value_for_ident_and_type_name_in<T, F>(ident: &String, type_name: &Option<Typ
                                                             let impl_var_r = impl_var.borrow();
                                                             match &*impl_var_r {
                                                                 ImplVar::Builtin(_) => {
-                                                                    let second_builtin_value = Value::Object(SharedFlag::None, Rc::new(RefCell::new(Object::Builtin(ident.clone(), Some(type_name.clone())))));
+                                                                    let second_builtin_value = Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Builtin(ident.clone(), Some(type_name.clone())))));
                                                                     f(&second_builtin_value)
                                                                 },
                                                                 ImplVar::Var(_, _, _, _, Some(value)) => f(&value),
