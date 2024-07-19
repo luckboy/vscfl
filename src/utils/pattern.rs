@@ -54,6 +54,9 @@ impl<T: Clone + Eq + Ord> PatternNode<T>
     pub fn id(&self) -> &T
     { &self.id }
 
+    pub fn set_id(&mut self, id: T)
+    { self.id = id; }
+    
     pub fn forests(&self) -> &PatternForests<T>
     { &self.forests }
     
