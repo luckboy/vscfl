@@ -221,21 +221,21 @@ impl Evaluator
     pub fn new() -> Self
     { Evaluator { evals: Evals::new(), } }
 
-    fn value_for_ident_and_type_name_in<T, F>(&self, ident: &String, type_name: &Option<TypeName>, tree: &Tree, mut f: F) -> FrontendResultWithErrors<T>
-        where F: FnMut(&Value) -> FrontendResultWithErrors<T>
+    fn value_for_ident_and_type_name(&self, ident: &String, type_name: &Option<TypeName>, tree: &Tree) -> FrontendResultWithErrors<Value>
     {
         match tree.var(ident) {
             Some(var) => {
                 let var_r = var.borrow();
-                let first_builtin_value = match self.evals.fun(&(ident.clone(), None)) {
-                    Some(fun) => Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::EvalFun(ident.clone(), None, fun)))),
-                    None => Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Builtin(ident.clone(), None)))),
-                };
-                let first_fun_value = Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Fun(ident.clone(), None))));
                 let (trait_ident, value) = match &*var_r {
-                    Var::Builtin(tmp_trait_ident, _) => (tmp_trait_ident, &first_builtin_value),
-                    Var::Var(_, _, _, _, tmp_trait_ident, _, _, _, Some(value)) => (tmp_trait_ident, value),
-                    Var::Fun(_, tmp_trait_ident, _) => (tmp_trait_ident, &first_fun_value),
+                    Var::Builtin(tmp_trait_ident, _) => {
+                        let tmp_value = match self.evals.fun(&(ident.clone(), None)) {
+                            Some(fun) => Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::EvalFun(ident.clone(), None, fun)))),
+                            None => Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Builtin(ident.clone(), None)))),
+                        };
+                        (tmp_trait_ident, tmp_value)
+                    },
+                    Var::Var(_, _, _, _, tmp_trait_ident, _, _, _, Some(tmp_value)) => (tmp_trait_ident, tmp_value.clone()),
+                    Var::Fun(_, tmp_trait_ident, _) => (tmp_trait_ident, Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Fun(ident.clone(), None))))),
                     _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no value"))])),
                 };
                 match type_name {
@@ -260,21 +260,17 @@ impl Evaluator
                                                                 let impl_var_r = impl_var.borrow();
                                                                 match &*impl_var_r {
                                                                     ImplVar::Builtin(_) => {
-                                                                        let second_builtin_value = match self.evals.fun(&(ident.clone(), Some(type_name.clone()))) {
-                                                                            Some(fun) => Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::EvalFun(ident.clone(), Some(type_name.clone()), fun)))),
-                                                                            None => Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Builtin(ident.clone(), Some(type_name.clone()))))),
-                                                                        };
-                                                                        f(&second_builtin_value)
+                                                                        match self.evals.fun(&(ident.clone(), Some(type_name.clone()))) {
+                                                                            Some(fun) => Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::EvalFun(ident.clone(), Some(type_name.clone()), fun))))),
+                                                                            None => Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Builtin(ident.clone(), Some(type_name.clone())))))),
+                                                                        }
                                                                     },
-                                                                    ImplVar::Var(_, _, _, _, Some(value)) => f(&value),
-                                                                    ImplVar::Fun(_, _) => {
-                                                                        let second_fun_value = Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Fun(ident.clone(), None))));
-                                                                        f(&second_fun_value)
-                                                                    },
+                                                                    ImplVar::Var(_, _, _, _, Some(value2)) => Ok(value2.clone()),
+                                                                    ImplVar::Fun(_, _) => Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Fun(ident.clone(), None))))),
                                                                     _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no value"))])),
                                                                 }
                                                             },
-                                                            None => f(value),
+                                                            None => Ok(value),
                                                         }
                                                     },
                                                     None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no implementation"))])),
@@ -286,10 +282,10 @@ impl Evaluator
                                     None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no trait"))])),
                                 }
                             },
-                            None => f(value),
+                            None => Ok(value),
                         }
                     },
-                    None => f(value),
+                    None => Ok(value),
                 }
             },
             None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no variable"))])),
@@ -576,10 +572,8 @@ impl Evaluator
             },
             Pattern::Const(ident, Some(local_type), pos) => {
                 let type_name = type_name_for_var_ident_and_local_type(ident, *local_type, tree, type_stack, local_types)?;
-                self.value_for_ident_and_type_name_in(ident, &type_name, tree, |value| {
-                        self.add_pattern_node_for_value(value, forest);
-                        Ok(())
-                })?;
+                let value = self.value_for_ident_and_type_name(ident, &type_name, tree)?;
+                self.add_pattern_node_for_value(&value, forest);
             },
             Pattern::UnnamedFieldCon(ident, patterns, _, _, _) => {
                 let mut forests: Vec<PatternForest<PatternId>> = Vec::new();
