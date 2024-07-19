@@ -171,69 +171,6 @@ fn named_fields_for_con_ident_in<T, F>(ident: &String, tree: &Tree, mut f: F) ->
     }
 }
 
-fn value_for_ident_and_type_name_in<T, F>(ident: &String, type_name: &Option<TypeName>, tree: &Tree, z: T, mut f: F) -> FrontendResultWithErrors<T>
-    where F: FnMut(&Value) -> FrontendResultWithErrors<T>
-{
-    match tree.var(ident) {
-        Some(var) => {
-            let var_r = var.borrow();
-            let first_builtin_value = Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Builtin(ident.clone(), None))));
-            let (trait_ident, value) = match &*var_r {
-                Var::Builtin(tmp_trait_ident, _) => (tmp_trait_ident, &first_builtin_value),
-                Var::Var(_, _, _, _, tmp_trait_ident, _, _, _, Some(value)) => (tmp_trait_ident, value),
-                _ => return Ok(z),
-            };
-            match type_name {
-                Some(type_name) => {
-                    match trait_ident {
-                        Some(trait_ident) => {
-                            match tree.trait1(trait_ident) {
-                                Some(trait1) => {
-                                    let trait_r = trait1.borrow();
-                                    match &*trait_r {
-                                        Trait(_, _, Some(trait_vars)) => {
-                                            match trait_vars.impl1(&type_name) {
-                                                Some(impl1) => {
-                                                    let impl_r = impl1.borrow();
-                                                    let impl_vars = match &*impl_r {
-                                                        Impl::Builtin(_, _, Some(tmp_impl_vars)) => tmp_impl_vars,
-                                                        Impl::Impl(_, _, _, Some(tmp_impl_vars)) => tmp_impl_vars,
-                                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no implementation variables"))])),
-                                                    };
-                                                    match impl_vars.var(ident) {
-                                                        Some(impl_var) => {
-                                                            let impl_var_r = impl_var.borrow();
-                                                            match &*impl_var_r {
-                                                                ImplVar::Builtin(_) => {
-                                                                    let second_builtin_value = Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Builtin(ident.clone(), Some(type_name.clone())))));
-                                                                    f(&second_builtin_value)
-                                                                },
-                                                                ImplVar::Var(_, _, _, _, Some(value)) => f(&value),
-                                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: implementation variable is function or no value"))])),
-                                                            }
-                                                        },
-                                                        None => f(value),
-                                                    }
-                                                },
-                                                None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no implementation"))])),
-                                            }
-                                        },
-                                        _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no trait variables"))])),
-                                    }
-                                },
-                                None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no trait"))])),
-                            }
-                        },
-                        None => f(value),
-                    }
-                },
-                None => f(value),
-            }
-        },
-        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no variable"))])),
-    }
-}
-
 fn pattern_max_for_local_type(local_type: LocalType, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<Option<usize>>
 {
     Ok(None)
@@ -283,6 +220,81 @@ impl Evaluator
 {
     pub fn new() -> Self
     { Evaluator { evals: Evals::new(), } }
+
+    fn value_for_ident_and_type_name_in<T, F>(&self, ident: &String, type_name: &Option<TypeName>, tree: &Tree, mut f: F) -> FrontendResultWithErrors<T>
+        where F: FnMut(&Value) -> FrontendResultWithErrors<T>
+    {
+        match tree.var(ident) {
+            Some(var) => {
+                let var_r = var.borrow();
+                let first_builtin_value = match self.evals.fun(&(ident.clone(), None)) {
+                    Some(fun) => Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::EvalFun(ident.clone(), None, fun)))),
+                    None => Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Builtin(ident.clone(), None)))),
+                };
+                let first_fun_value = Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Fun(ident.clone(), None))));
+                let (trait_ident, value) = match &*var_r {
+                    Var::Builtin(tmp_trait_ident, _) => (tmp_trait_ident, &first_builtin_value),
+                    Var::Var(_, _, _, _, tmp_trait_ident, _, _, _, Some(value)) => (tmp_trait_ident, value),
+                    Var::Fun(_, tmp_trait_ident, _) => (tmp_trait_ident, &first_fun_value),
+                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no value"))])),
+                };
+                match type_name {
+                    Some(type_name) => {
+                        match trait_ident {
+                            Some(trait_ident) => {
+                                match tree.trait1(trait_ident) {
+                                    Some(trait1) => {
+                                        let trait_r = trait1.borrow();
+                                        match &*trait_r {
+                                            Trait(_, _, Some(trait_vars)) => {
+                                                match trait_vars.impl1(&type_name) {
+                                                    Some(impl1) => {
+                                                        let impl_r = impl1.borrow();
+                                                        let impl_vars = match &*impl_r {
+                                                            Impl::Builtin(_, _, Some(tmp_impl_vars)) => tmp_impl_vars,
+                                                            Impl::Impl(_, _, _, Some(tmp_impl_vars)) => tmp_impl_vars,
+                                                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no implementation variables"))])),
+                                                        };
+                                                        match impl_vars.var(ident) {
+                                                            Some(impl_var) => {
+                                                                let impl_var_r = impl_var.borrow();
+                                                                match &*impl_var_r {
+                                                                    ImplVar::Builtin(_) => {
+                                                                        let second_builtin_value = match self.evals.fun(&(ident.clone(), Some(type_name.clone()))) {
+                                                                            Some(fun) => Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::EvalFun(ident.clone(), Some(type_name.clone()), fun)))),
+                                                                            None => Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Builtin(ident.clone(), Some(type_name.clone()))))),
+                                                                        };
+                                                                        f(&second_builtin_value)
+                                                                    },
+                                                                    ImplVar::Var(_, _, _, _, Some(value)) => f(&value),
+                                                                    ImplVar::Fun(_, _) => {
+                                                                        let second_fun_value = Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Fun(ident.clone(), None))));
+                                                                        f(&second_fun_value)
+                                                                    },
+                                                                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no value"))])),
+                                                                }
+                                                            },
+                                                            None => f(value),
+                                                        }
+                                                    },
+                                                    None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no implementation"))])),
+                                                }
+                                            },
+                                            _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no trait variables"))])),
+                                        }
+                                    },
+                                    None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no trait"))])),
+                                }
+                            },
+                            None => f(value),
+                        }
+                    },
+                    None => f(value),
+                }
+            },
+            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no variable"))])),
+        }
+    }
     
     fn normalize_pattern_forest(&self, forest: &mut PatternForest<PatternId>) -> FrontendResultWithErrors<()>
     {
@@ -564,7 +576,7 @@ impl Evaluator
             },
             Pattern::Const(ident, Some(local_type), pos) => {
                 let type_name = type_name_for_var_ident_and_local_type(ident, *local_type, tree, type_stack, local_types)?;
-                value_for_ident_and_type_name_in(ident, &type_name, tree, (), |value| {
+                self.value_for_ident_and_type_name_in(ident, &type_name, tree, |value| {
                         self.add_pattern_node_for_value(value, forest);
                         Ok(())
                 })?;
@@ -614,6 +626,58 @@ impl Evaluator
 
     fn add_pattern_nodes_for_pattern_literal(&self, literal: &Literal<Pattern>, tree: &Tree, type_stack: &mut TypeStack, local_types: &LocalTypes, forest: &mut PatternForest<PatternId>) -> FrontendResultWithErrors<()>
     {
+        match literal {
+            Literal::Bool(b) => {
+                forest.add_node(PatternNode::new(PatternId::Bool(*b), PatternForests::Unfilled(Vec::new())));
+            },
+            Literal::Char(c) => {
+                forest.add_node(PatternNode::new(PatternId::Char(*c), PatternForests::Unfilled(Vec::new())));
+            },
+            Literal::Int(n) => {
+                forest.add_node(PatternNode::new(PatternId::Int(*n), PatternForests::Unfilled(Vec::new())));
+            },
+            Literal::Long(n) => {
+                forest.add_node(PatternNode::new(PatternId::Long(*n), PatternForests::Unfilled(Vec::new())));
+            },
+            Literal::Uint(n) => {
+                forest.add_node(PatternNode::new(PatternId::Uint(*n), PatternForests::Unfilled(Vec::new())));
+            },
+            Literal::Ulong(n) => {
+                forest.add_node(PatternNode::new(PatternId::Ulong(*n), PatternForests::Unfilled(Vec::new())));
+            },
+            Literal::Float(n) => {
+                forest.add_node(PatternNode::new(PatternId::Float(n.to_bits()), PatternForests::Unfilled(Vec::new())));
+            },
+            Literal::Double(n) => {
+                forest.add_node(PatternNode::new(PatternId::Double(n.to_bits()), PatternForests::Unfilled(Vec::new())));
+            },
+            Literal::String(bs) => {
+                forest.add_node(PatternNode::new(PatternId::String(bs.clone()), PatternForests::Unfilled(Vec::new())));
+            },
+            Literal::Tuple(field_patterns) => {
+                let mut forests: Vec<PatternForest<PatternId>> = Vec::new();
+                for field_pattern in field_patterns {
+                    let mut forest2: PatternForest<PatternId> = PatternForest::Alt(Vec::new(), pattern_max_for_local_type(pattern_local_type(&**field_pattern)?, tree, local_types)?);
+                    self.add_pattern_nodes_for_pattern(&**field_pattern, tree, type_stack, local_types, &mut forest2)?;
+                    forests.push(forest2);
+                }
+                forest.add_node(PatternNode::new(PatternId::Tuple(field_patterns.len()), PatternForests::Unfilled(forests)));
+            },
+            Literal::Array(elem_patterns) => {
+                let mut forests: Vec<PatternForest<PatternId>> = Vec::new();
+                for elem_pattern in elem_patterns {
+                    let mut forest2: PatternForest<PatternId> = PatternForest::Alt(Vec::new(), pattern_max_for_local_type(pattern_local_type(&**elem_pattern)?, tree, local_types)?);
+                    self.add_pattern_nodes_for_pattern(&**elem_pattern, tree, type_stack, local_types, &mut forest2)?;
+                    forests.push(forest2);
+                }
+                forest.add_node(PatternNode::new(PatternId::Array(elem_patterns.len()), PatternForests::Unfilled(forests)));
+            },
+            Literal::FilledArray(elem_pattern, len) => {
+                let mut forest2: PatternForest<PatternId> = PatternForest::Alt(Vec::new(), pattern_max_for_local_type(pattern_local_type(&**elem_pattern)?, tree, local_types)?);
+                self.add_pattern_nodes_for_pattern(&**elem_pattern, tree, type_stack, local_types, &mut forest2)?;
+                forest.add_node(PatternNode::new(PatternId::Array(*len), PatternForests::Filled(forest2, *len)));
+            },
+        }
         Ok(())
     }
 }
