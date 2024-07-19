@@ -221,7 +221,7 @@ impl Evaluator
     pub fn new() -> Self
     { Evaluator { evals: Evals::new(), } }
 
-    fn value_for_ident_and_type_name(&self, ident: &String, type_name: &Option<TypeName>, tree: &Tree) -> FrontendResultWithErrors<Value>
+    fn value_for_ident_and_type_name(&self, ident: &String, type_name: &Option<TypeName>, pos: Pos, tree: &Tree, are_errs: bool, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<Value>>
     {
         match tree.var(ident) {
             Some(var) => {
@@ -229,16 +229,16 @@ impl Evaluator
                 let (trait_ident, value) = match &*var_r {
                     Var::Builtin(tmp_trait_ident, _) => {
                         let tmp_value = match self.evals.fun(&(ident.clone(), None)) {
-                            Some(fun) => Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::EvalFun(ident.clone(), None, fun)))),
-                            None => Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Builtin(ident.clone(), None)))),
+                            Some(fun) => Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::EvalFun(ident.clone(), None, fun))))),
+                            None => Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Builtin(ident.clone(), None))))),
                         };
                         (tmp_trait_ident, tmp_value)
                     },
-                    Var::Var(_, _, _, _, tmp_trait_ident, _, _, _, Some(tmp_value)) => (tmp_trait_ident, tmp_value.clone()),
-                    Var::Fun(_, tmp_trait_ident, _) => (tmp_trait_ident, Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Fun(ident.clone(), None))))),
-                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no value"))])),
+                    Var::Var(_, _, _, _, tmp_trait_ident, _, _, _, Some(tmp_value)) => (tmp_trait_ident, Some(tmp_value.clone())),
+                    Var::Var(_, _, _, _, tmp_trait_ident, _, _, _, None) => (tmp_trait_ident, None),
+                    Var::Fun(_, tmp_trait_ident, _) => (tmp_trait_ident, Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Fun(ident.clone(), None)))))),
                 };
-                match type_name {
+                let value3 = match type_name {
                     Some(type_name) => {
                         match trait_ident {
                             Some(trait_ident) => {
@@ -261,32 +261,38 @@ impl Evaluator
                                                                 match &*impl_var_r {
                                                                     ImplVar::Builtin(_) => {
                                                                         match self.evals.fun(&(ident.clone(), Some(type_name.clone()))) {
-                                                                            Some(fun) => Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::EvalFun(ident.clone(), Some(type_name.clone()), fun))))),
-                                                                            None => Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Builtin(ident.clone(), Some(type_name.clone())))))),
+                                                                            Some(fun) => Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::EvalFun(ident.clone(), Some(type_name.clone()), fun))))),
+                                                                            None => Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Builtin(ident.clone(), Some(type_name.clone())))))),
                                                                         }
                                                                     },
-                                                                    ImplVar::Var(_, _, _, _, Some(value2)) => Ok(value2.clone()),
-                                                                    ImplVar::Fun(_, _) => Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Fun(ident.clone(), None))))),
-                                                                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no value"))])),
+                                                                    ImplVar::Var(_, _, _, _, Some(value2)) => Some(value2.clone()),
+                                                                    ImplVar::Var(_, _, _, _, None) => None,
+                                                                    ImplVar::Fun(_, _) => Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Fun(ident.clone(), None))))),
                                                                 }
                                                             },
-                                                            None => Ok(value),
+                                                            None => value,
                                                         }
                                                     },
-                                                    None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no implementation"))])),
+                                                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no implementation"))])),
                                                 }
                                             },
-                                            _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no trait variables"))])),
+                                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no trait variables"))])),
                                         }
                                     },
-                                    None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no trait"))])),
+                                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no trait"))])),
                                 }
                             },
-                            None => Ok(value),
+                            None => value,
                         }
                     },
-                    None => Ok(value),
+                    None => value,
+                };
+                if value3.is_none() {
+                    if are_errs  {
+                        errs.push(FrontendError::Message(pos, format!("unevaluated variable {}", ident)));
+                    }
                 }
+                Ok(value3)
             },
             None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no variable"))])),
         }
@@ -518,7 +524,7 @@ impl Evaluator
                         Bind(pattern, expr3) => {
                             self.check_pattern_exhaustions_for_expr(&**expr3, tree, type_stack, local_types, errs)?;
                             let mut forest: PatternForest<PatternId> = PatternForest::Alt(Vec::new(), pattern_max_for_local_type(pattern_local_type(&pattern)?, tree, local_types)?);
-                            self.add_pattern_nodes_for_pattern(&**pattern, tree, type_stack, local_types, &mut forest)?;
+                            self.add_pattern_nodes_for_pattern(&**pattern, tree, type_stack, local_types, &mut forest, errs)?;
                             self.normalize_pattern_forest(&mut forest)?;
                             match forest {
                                 PatternForest::All(_) => (),
@@ -535,7 +541,7 @@ impl Evaluator
                 for case in cases {
                     match case {
                         Case(pattern, expr3) => {
-                            self.add_pattern_nodes_for_pattern(&**pattern, tree, type_stack, local_types, &mut forest)?;
+                            self.add_pattern_nodes_for_pattern(&**pattern, tree, type_stack, local_types, &mut forest, errs)?;
                             self.check_pattern_exhaustions_for_expr(&**expr3, tree, type_stack, local_types, errs)?;
                         },
                     }
@@ -551,12 +557,12 @@ impl Evaluator
         Ok(())
     }
 
-    fn add_pattern_nodes_for_pattern(&self, pattern: &Pattern, tree: &Tree, type_stack: &mut TypeStack, local_types: &LocalTypes, forest: &mut PatternForest<PatternId>) -> FrontendResultWithErrors<()>
+    fn add_pattern_nodes_for_pattern(&self, pattern: &Pattern, tree: &Tree, type_stack: &mut TypeStack, local_types: &LocalTypes, forest: &mut PatternForest<PatternId>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         match pattern {
-            Pattern::Literal(literal, _, _) => self.add_pattern_nodes_for_pattern_literal(&**literal, tree, type_stack, local_types, forest)?,
+            Pattern::Literal(literal, _, _) => self.add_pattern_nodes_for_pattern_literal(&**literal, tree, type_stack, local_types, forest, errs)?,
             Pattern::As(literal, _, _, Some(local_type), _) => {
-                self.add_pattern_nodes_for_pattern_literal(&**literal, tree, type_stack, local_types, forest)?;
+                self.add_pattern_nodes_for_pattern_literal(&**literal, tree, type_stack, local_types, forest, errs)?;
                 match forest {
                     PatternForest::Alt(nodes, _) => {
                         match nodes.last() {
@@ -572,14 +578,16 @@ impl Evaluator
             },
             Pattern::Const(ident, Some(local_type), pos) => {
                 let type_name = type_name_for_var_ident_and_local_type(ident, *local_type, tree, type_stack, local_types)?;
-                let value = self.value_for_ident_and_type_name(ident, &type_name, tree)?;
-                self.add_pattern_node_for_value(&value, forest);
+                match self.value_for_ident_and_type_name(ident, &type_name, pos.clone(), tree, true, errs)? {
+                    Some(value) => self.add_pattern_node_for_value(&value, forest),
+                    None => (),
+                }
             },
             Pattern::UnnamedFieldCon(ident, patterns, _, _, _) => {
                 let mut forests: Vec<PatternForest<PatternId>> = Vec::new();
                 for pattern2 in patterns {
                     let mut forest2: PatternForest<PatternId> = PatternForest::Alt(Vec::new(), pattern_max_for_local_type(pattern_local_type(&**pattern2)?, tree, local_types)?);
-                    self.add_pattern_nodes_for_pattern(&**pattern2, tree, type_stack, local_types, &mut forest2)?;
+                    self.add_pattern_nodes_for_pattern(&**pattern2, tree, type_stack, local_types, &mut forest2, errs)?;
                     forests.push(forest2);
                 }
                 forest.add_node(PatternNode::new(PatternId::Data(ident.clone()), PatternForests::Unfilled(forests)));
@@ -593,7 +601,7 @@ impl Evaluator
                                     match named_fields.field_index(field_ident) {
                                         Some(field_idx) => {
                                             let mut forest2: PatternForest<PatternId> = PatternForest::Alt(Vec::new(), pattern_max_for_local_type(pattern_local_type(&**pattern2)?, tree, local_types)?);
-                                            self.add_pattern_nodes_for_pattern(&**pattern2, tree, type_stack, local_types, &mut forest2)?;
+                                            self.add_pattern_nodes_for_pattern(&**pattern2, tree, type_stack, local_types, &mut forest2, errs)?;
                                             forests[field_idx] = forest2;
                                         },
                                         None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_pattern_nodes_for_pattern: no field index"))])),
@@ -606,11 +614,11 @@ impl Evaluator
                 })?;
             },
             Pattern::Var(_, _, Some(local_type), _) => forest.set_all(self.has_one_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), tree, local_types)?),
-            Pattern::At(_, _, pattern2, _, _) => self.add_pattern_nodes_for_pattern(&**pattern2, tree, type_stack, local_types, forest)?,
+            Pattern::At(_, _, pattern2, _, _) => self.add_pattern_nodes_for_pattern(&**pattern2, tree, type_stack, local_types, forest, errs)?,
             Pattern::Wildcard(Some(local_type), _) => forest.set_all(self.has_one_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), tree, local_types)?),
             Pattern::Alt(patterns, _, _) => {
                 for pattern2 in patterns {
-                    self.add_pattern_nodes_for_pattern(&**pattern2, tree, type_stack, local_types, forest)?;
+                    self.add_pattern_nodes_for_pattern(&**pattern2, tree, type_stack, local_types, forest, errs)?;
                 }
             },
             _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_pattern_nodes_for_pattern: no local type"))])),
@@ -618,7 +626,7 @@ impl Evaluator
         Ok(())
     }
 
-    fn add_pattern_nodes_for_pattern_literal(&self, literal: &Literal<Pattern>, tree: &Tree, type_stack: &mut TypeStack, local_types: &LocalTypes, forest: &mut PatternForest<PatternId>) -> FrontendResultWithErrors<()>
+    fn add_pattern_nodes_for_pattern_literal(&self, literal: &Literal<Pattern>, tree: &Tree, type_stack: &mut TypeStack, local_types: &LocalTypes, forest: &mut PatternForest<PatternId>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         match literal {
             Literal::Bool(b) => {
@@ -652,7 +660,7 @@ impl Evaluator
                 let mut forests: Vec<PatternForest<PatternId>> = Vec::new();
                 for field_pattern in field_patterns {
                     let mut forest2: PatternForest<PatternId> = PatternForest::Alt(Vec::new(), pattern_max_for_local_type(pattern_local_type(&**field_pattern)?, tree, local_types)?);
-                    self.add_pattern_nodes_for_pattern(&**field_pattern, tree, type_stack, local_types, &mut forest2)?;
+                    self.add_pattern_nodes_for_pattern(&**field_pattern, tree, type_stack, local_types, &mut forest2, errs)?;
                     forests.push(forest2);
                 }
                 forest.add_node(PatternNode::new(PatternId::Tuple(field_patterns.len()), PatternForests::Unfilled(forests)));
@@ -661,14 +669,14 @@ impl Evaluator
                 let mut forests: Vec<PatternForest<PatternId>> = Vec::new();
                 for elem_pattern in elem_patterns {
                     let mut forest2: PatternForest<PatternId> = PatternForest::Alt(Vec::new(), pattern_max_for_local_type(pattern_local_type(&**elem_pattern)?, tree, local_types)?);
-                    self.add_pattern_nodes_for_pattern(&**elem_pattern, tree, type_stack, local_types, &mut forest2)?;
+                    self.add_pattern_nodes_for_pattern(&**elem_pattern, tree, type_stack, local_types, &mut forest2, errs)?;
                     forests.push(forest2);
                 }
                 forest.add_node(PatternNode::new(PatternId::Array(elem_patterns.len()), PatternForests::Unfilled(forests)));
             },
             Literal::FilledArray(elem_pattern, len) => {
                 let mut forest2: PatternForest<PatternId> = PatternForest::Alt(Vec::new(), pattern_max_for_local_type(pattern_local_type(&**elem_pattern)?, tree, local_types)?);
-                self.add_pattern_nodes_for_pattern(&**elem_pattern, tree, type_stack, local_types, &mut forest2)?;
+                self.add_pattern_nodes_for_pattern(&**elem_pattern, tree, type_stack, local_types, &mut forest2, errs)?;
                 forest.add_node(PatternNode::new(PatternId::Array(*len), PatternForests::Filled(forest2, *len)));
             },
         }
