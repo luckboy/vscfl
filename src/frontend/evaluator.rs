@@ -145,6 +145,68 @@ fn add_var_key(ident: &String, type_name: &Option<TypeName>, pos: Pos, tree: &Tr
     }
 }
 
+fn type_for_ident_and_type_name_in<T, F>(ident: &String, type_name: &Option<TypeName>, tree: &Tree, mut f: F) -> FrontendResultWithErrors<T>
+    where F: FnMut(&Type) -> FrontendResultWithErrors<T>
+{
+    match tree.var(ident) {
+        Some(var) => {
+            let var_r = var.borrow();
+            let (trait_ident, typ) = match &*var_r {
+                Var::Builtin(tmp_trait_ident, Some(tmp_type)) => (tmp_trait_ident, tmp_type),
+                Var::Var(_, _, _, _, tmp_trait_ident, _, _, Some(tmp_type), _) => (tmp_trait_ident, tmp_type),
+                Var::Fun(_, tmp_trait_ident, Some(tmp_type)) => (tmp_trait_ident, tmp_type),
+                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_for_ident_and_type_name_in: no type"))])),
+            };
+            match type_name {
+                Some(type_name) => {
+                    match trait_ident {
+                        Some(trait_ident) => {
+                            match tree.trait1(trait_ident) {
+                                Some(trait1) => {
+                                    let trait_r = trait1.borrow();
+                                    match &*trait_r {
+                                        Trait(_, _, Some(trait_vars)) => {
+                                            match trait_vars.impl1(&type_name) {
+                                                Some(impl1) => {
+                                                    let impl_r = impl1.borrow();
+                                                    let impl_vars = match &*impl_r {
+                                                        Impl::Builtin(_, _, Some(tmp_impl_vars)) => tmp_impl_vars,
+                                                        Impl::Impl(_, _, _, Some(tmp_impl_vars)) => tmp_impl_vars,
+                                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no implementation variables"))])),
+                                                    };
+                                                    match impl_vars.var(ident) {
+                                                        Some(impl_var) => {
+                                                            let impl_var_r = impl_var.borrow();
+                                                            match &*impl_var_r {
+                                                                ImplVar::Builtin(Some(type2)) => f(type2),
+                                                                ImplVar::Var(_, _, _, Some(type2), _) => f(type2),
+                                                                ImplVar::Fun(_, Some(type2)) => f(type2),
+                                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_for_ident_and_type_name_in: no type"))])),
+                                                            }
+                                                        },
+                                                        None => f(typ),
+                                                    }
+                                                },
+                                                None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_for_ident_and_type_name_in: no implementation"))])),
+                                            }
+                                        },
+                                        _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_for_ident_and_type_name_in: no trait variables"))])),
+                                    }
+                                },
+                                None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_for_ident_and_type_name_in: no trait"))])),
+                            }
+                        },
+                        None => f(typ),
+                    }
+                },
+                None => f(typ),
+            }
+        },
+        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_for_ident_and_type_name_in: no variable"))])),
+    }
+}
+
+
 fn type_for_fun_ident_in<T, F>(ident: &String, tree: &Tree, mut f: F) -> FrontendResultWithErrors<T>
     where F: FnMut(&Type) -> FrontendResultWithErrors<T>
 {
@@ -186,6 +248,41 @@ fn named_fields_for_con_ident_in<T, F>(ident: &String, tree: &Tree, mut f: F) ->
     }
 }
 
+fn pattern_max_for_type_ident(ident: &String, tree: &Tree) -> FrontendResultWithErrors<Option<usize>>
+{
+    match tree.type_var(ident) {
+        Some(type_var) => {
+            let type_var_r = type_var.borrow();
+            match &*type_var_r {
+                TypeVar::Builtin(_, _, _) => {
+                    if ident == &String::from("Bool") {
+                        Ok(Some(2))
+                    } else if ident == &String::from("Char") || ident == &String::from("Uchar") {
+                        Ok(Some(((u8::MAX as u64) + 1) as usize))
+                    } else if ident == &String::from("Short") || ident == &String::from("Ushort") {
+                        if (u16::MAX as u64) < (usize::MAX as u64) {
+                            Ok(Some(((u16::MAX as u64) + 1) as usize))
+                        } else {
+                            Ok(None)
+                        }
+                    } else if ident == &String::from("Int") || ident == &String::from("Uint")  || ident == &String::from("Half") || ident == &String::from("Float") {
+                        if (u32::MAX as u64) < (usize::MAX as u64) {
+                            Ok(Some(((u32::MAX as u64) + 1) as usize))
+                        } else {
+                            Ok(None)
+                        }
+                    } else {
+                        Ok(None)
+                    }
+                },
+                TypeVar::Data(_, cons, _) => Ok(Some(cons.len())),
+                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("pattern_max_for_type_ident: type variable is type synonym"))])),
+            }
+        },
+        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("pattern_max_for_type_ident: no type variable"))])),
+    }
+}
+
 fn pattern_max_for_local_type(local_type: LocalType, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<Option<usize>>
 {
     match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type))) {
@@ -195,42 +292,20 @@ fn pattern_max_for_local_type(local_type: LocalType, tree: &Tree, local_types: &
                 TypeValue::Param(_, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("pattern_max_for_local_type: type parameter in local type entry"))])),
                 TypeValue::Type(_, TypeValueName::Tuple | TypeValueName::Array(_), _) => Ok(Some(1)),
                 TypeValue::Type(_, TypeValueName::Fun, _) => Ok(None),
-                TypeValue::Type(_, TypeValueName::Name(ident), _) => {
-                    match tree.type_var(ident) {
-                        Some(type_var) => {
-                            let type_var_r = type_var.borrow();
-                            match &*type_var_r {
-                                TypeVar::Builtin(_, _, _) => {
-                                    if ident == &String::from("Bool") {
-                                        Ok(Some(2))
-                                    } else if ident == &String::from("Char") || ident == &String::from("Uchar") {
-                                        Ok(Some(((u8::MAX as u64) + 1) as usize))
-                                    } else if ident == &String::from("Short") || ident == &String::from("Ushort") {
-                                        if (u16::MAX as u64) < (usize::MAX as u64) {
-                                            Ok(Some(((u16::MAX as u64) + 1) as usize))
-                                        } else {
-                                            Ok(None)
-                                        }
-                                    } else if ident == &String::from("Int") || ident == &String::from("Uint")  || ident == &String::from("Half") || ident == &String::from("Float") {
-                                        if (u32::MAX as u64) < (usize::MAX as u64) {
-                                            Ok(Some(((u32::MAX as u64) + 1) as usize))
-                                        } else {
-                                            Ok(None)
-                                        }
-                                    } else {
-                                        Ok(None)
-                                    }
-                                },
-                                TypeVar::Data(_, cons, _) => Ok(Some(cons.len())),
-                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("pattern_max_for_local_type: type variable is type synonym"))])),
-                            }
-                        },
-                        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("pattern_max_for_local_type: no type variable"))])),
-                    }
-                },
+                TypeValue::Type(_, TypeValueName::Name(ident), _) => pattern_max_for_type_ident(ident, tree),
             }
         },
         None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("pattern_max_for_local_type: no local type entry"))])),
+    }
+}
+
+fn pattern_max_for_type(typ: &Type, tree: &Tree) -> FrontendResultWithErrors<Option<usize>>
+{
+    match &**typ.type_value() {
+        TypeValue::Param(_, _) => Ok(None),
+        TypeValue::Type(_, TypeValueName::Tuple | TypeValueName::Array(_), _) => Ok(Some(1)),
+        TypeValue::Type(_, TypeValueName::Fun, _) => Ok(None),
+        TypeValue::Type(_, TypeValueName::Name(ident), _) => pattern_max_for_type_ident(ident, tree),
     }
 }
 
@@ -331,13 +406,13 @@ impl Evaluator
                                                             None => value,
                                                         }
                                                     },
-                                                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no implementation"))])),
+                                                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name: no implementation"))])),
                                                 }
                                             },
-                                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no trait variables"))])),
+                                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name: no trait variables"))])),
                                         }
                                     },
-                                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no trait"))])),
+                                    None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name: no trait"))])),
                                 }
                             },
                             None => value,
@@ -352,7 +427,7 @@ impl Evaluator
                 }
                 Ok(value3)
             },
-            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name_in: no variable"))])),
+            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_ident_and_type_name: no variable"))])),
         }
     }
     
@@ -588,7 +663,7 @@ impl Evaluator
         }
     }
 
-    fn convert_pattern_ids_for_type_value(&self, node: &mut PatternNode<PatternId>, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<()>
+    fn convert_pattern_ids_for_type_value(&self, node: &mut PatternNode<PatternId>, max: &mut Option<usize>, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<()>
     {
         match local_types.type_entry_for_type_value(type_value) {
             Some(LocalTypeEntry::Param(_, _, _, _)) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: local type entry is type parameter"))])),
@@ -596,14 +671,14 @@ impl Evaluator
                 match &*type_value {
                     TypeValue::Param(_, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_one_for_type_value: type parameter in local type entry"))])),
                     TypeValue::Type(_, TypeValueName::Tuple, type_values) => {
-                        match node.forests() {
+                        match node.forests_mut() {
                             PatternForests::Unfilled(forests) => {
-                                for (forest, type_value2) in forests.iter().zip(type_values.iter()) {
+                                for (forest, type_value2) in forests.iter_mut().zip(type_values.iter()) {
                                     match forest {
-                                        PatternForest::Alt(nodes, _) => {
+                                        PatternForest::Alt(nodes, max2) => {
                                             for node2 in nodes {
                                                 let mut node2_r = node2.borrow_mut();
-                                                self.convert_pattern_ids_for_type_value(&mut *node2_r, type_value2, tree, local_types)?
+                                                self.convert_pattern_ids_for_type_value(&mut *node2_r, max2, type_value2, tree, local_types)?
                                             }
                                         },
                                         PatternForest::All(_) => (),
@@ -617,14 +692,14 @@ impl Evaluator
                     TypeValue::Type(_, TypeValueName::Array(_), type_values) => {
                         match type_values.first() {
                             Some(type_value2) => {
-                                match node.forests() {
+                                match node.forests_mut() {
                                     PatternForests::Unfilled(forests) => {
                                         for forest in forests {
                                             match forest {
-                                                PatternForest::Alt(nodes, _) => {
+                                                PatternForest::Alt(nodes, max2) => {
                                                     for node2 in nodes {
                                                         let mut node2_r = node2.borrow_mut();
-                                                        self.convert_pattern_ids_for_type_value(&mut *node2_r, type_value2, tree, local_types)?
+                                                        self.convert_pattern_ids_for_type_value(&mut *node2_r, max2, type_value2, tree, local_types)?
                                                     }
                                                 },
                                                 PatternForest::All(_) => (),
@@ -634,10 +709,10 @@ impl Evaluator
                                     },
                                     PatternForests::Filled(forest, _) => {
                                         match forest {
-                                            PatternForest::Alt(nodes, _) => {
+                                            PatternForest::Alt(nodes, max2) => {
                                                 for node2 in nodes {
                                                     let mut node2_r = node2.borrow_mut();
-                                                    self.convert_pattern_ids_for_type_value(&mut *node2_r, type_value2, tree, local_types)?
+                                                    self.convert_pattern_ids_for_type_value(&mut *node2_r, max2, type_value2, tree, local_types)?
                                                 }
                                             },
                                             PatternForest::All(_) => (),
@@ -653,6 +728,7 @@ impl Evaluator
                     TypeValue::Type(_, TypeValueName::Name(ident), _) => {
                         match tree.type_var(ident) {
                             Some(type_var) => {
+                                *max = pattern_max_for_type_ident(ident, tree)?;                                
                                 let type_var_r = type_var.borrow();
                                 match &*type_var_r {
                                     TypeVar::Builtin(_, _, _) => {
@@ -956,8 +1032,181 @@ impl Evaluator
         }
     }
     
-    fn add_pattern_node_for_value(&self, value: &Value, forest: &mut PatternForest<PatternId>)
-    {}
+    fn add_pattern_node_for_value(&self, value: &Value, tree: &Tree, forest: &mut PatternForest<PatternId>) -> FrontendResultWithErrors<()>
+    {
+        match value {
+            Value::Bool(b) => {
+                forest.add_node(PatternNode::new(PatternId::Bool(*b), PatternForests::Unfilled(Vec::new())));
+                forest.set_max(pattern_max_for_type_ident(&String::from("Bool"), tree)?);
+            },
+            Value::Char(c) => {
+                forest.add_node(PatternNode::new(PatternId::Char(*c), PatternForests::Unfilled(Vec::new())));
+                forest.set_max(pattern_max_for_type_ident(&String::from("Char"), tree)?);
+            },
+            Value::Short(n) => {
+                forest.add_node(PatternNode::new(PatternId::Short(*n), PatternForests::Unfilled(Vec::new())));
+                forest.set_max(pattern_max_for_type_ident(&String::from("Short"), tree)?);
+            },
+            Value::Int(n) => {
+                forest.add_node(PatternNode::new(PatternId::Int(*n), PatternForests::Unfilled(Vec::new())));
+                forest.set_max(pattern_max_for_type_ident(&String::from("Int"), tree)?);
+            },
+            Value::Long(n) => {
+                forest.add_node(PatternNode::new(PatternId::Long(*n), PatternForests::Unfilled(Vec::new())));
+                forest.set_max(pattern_max_for_type_ident(&String::from("Long"), tree)?);
+            },
+            Value::Uchar(c) => {
+                forest.add_node(PatternNode::new(PatternId::Uchar(*c), PatternForests::Unfilled(Vec::new())));
+                forest.set_max(pattern_max_for_type_ident(&String::from("Uchar"), tree)?);
+            },
+            Value::Ushort(n) => {
+                forest.add_node(PatternNode::new(PatternId::Ushort(*n), PatternForests::Unfilled(Vec::new())));
+                forest.set_max(pattern_max_for_type_ident(&String::from("Ushort"), tree)?);
+            },
+            Value::Uint(n) => {
+                forest.add_node(PatternNode::new(PatternId::Uint(*n), PatternForests::Unfilled(Vec::new())));
+                forest.set_max(pattern_max_for_type_ident(&String::from("Uint"), tree)?);
+            },
+            Value::Ulong(n) => {
+                forest.add_node(PatternNode::new(PatternId::Ulong(*n), PatternForests::Unfilled(Vec::new())));
+                forest.set_max(pattern_max_for_type_ident(&String::from("Ulong"), tree)?);
+            },
+            Value::Float(n) => {
+                forest.add_node(PatternNode::new(PatternId::Float(n.to_bits()), PatternForests::Unfilled(Vec::new())));
+                forest.set_max(pattern_max_for_type_ident(&String::from("Float"), tree)?);
+            },
+            Value::Double(n) => {
+                forest.add_node(PatternNode::new(PatternId::Double(n.to_bits()), PatternForests::Unfilled(Vec::new())));
+                forest.set_max(pattern_max_for_type_ident(&String::from("Double"), tree)?);
+            },
+            Value::SizeT(n) => {
+                forest.add_node(PatternNode::new(PatternId::SizeT(*n), PatternForests::Unfilled(Vec::new())));
+                forest.set_max(pattern_max_for_type_ident(&String::from("SizeT"), tree)?);
+            },
+            Value::PtrdiffT(n) => {
+                forest.add_node(PatternNode::new(PatternId::PtrdiffT(*n), PatternForests::Unfilled(Vec::new())));
+                forest.set_max(pattern_max_for_type_ident(&String::from("PtrdiffT"), tree)?);
+            },
+            Value::IntptrT(n) => {
+                forest.add_node(PatternNode::new(PatternId::IntptrT(*n), PatternForests::Unfilled(Vec::new())));
+                forest.set_max(pattern_max_for_type_ident(&String::from("IntptrT"), tree)?);
+            },
+            Value::UintptrT(n) => {
+                forest.add_node(PatternNode::new(PatternId::UintptrT(*n), PatternForests::Unfilled(Vec::new())));
+                forest.set_max(pattern_max_for_type_ident(&String::from("UintptrT"), tree)?);
+            },
+            Value::Object(_, object) => {
+                let object_r = object.borrow();
+                match &*object_r {
+                    Object::String(bs) => {
+                        forest.add_node(PatternNode::new(PatternId::String(bs.clone()), PatternForests::Unfilled(Vec::new())));
+                        forest.set_max(pattern_max_for_type_ident(&String::from("ConstantSlice"), tree)?);
+                    },
+                    Object::CharN(cs) => {
+                        forest.add_node(PatternNode::new(PatternId::CharN(cs.clone()), PatternForests::Unfilled(Vec::new())));
+                        forest.set_max(pattern_max_for_type_ident(&format!("Char{}", cs.len()), tree)?);
+                    },
+                    Object::ShortN(ns) => {
+                        forest.add_node(PatternNode::new(PatternId::ShortN(ns.clone()), PatternForests::Unfilled(Vec::new())));
+                        forest.set_max(pattern_max_for_type_ident(&format!("Short{}", ns.len()), tree)?);
+                    },
+                    Object::IntN(ns) => {
+                        forest.add_node(PatternNode::new(PatternId::IntN(ns.clone()), PatternForests::Unfilled(Vec::new())));
+                        forest.set_max(pattern_max_for_type_ident(&format!("Int{}", ns.len()), tree)?);
+                    },
+                    Object::LongN(ns) => {
+                        forest.add_node(PatternNode::new(PatternId::LongN(ns.clone()), PatternForests::Unfilled(Vec::new())));
+                        forest.set_max(pattern_max_for_type_ident(&format!("Long{}", ns.len()), tree)?);
+                    },
+                    Object::UcharN(cs) => {
+                        forest.add_node(PatternNode::new(PatternId::UcharN(cs.clone()), PatternForests::Unfilled(Vec::new())));
+                        forest.set_max(pattern_max_for_type_ident(&format!("Uchar{}", cs.len()), tree)?);
+                    },
+                    Object::UshortN(ns) => {
+                        forest.add_node(PatternNode::new(PatternId::UshortN(ns.clone()), PatternForests::Unfilled(Vec::new())));
+                        forest.set_max(pattern_max_for_type_ident(&format!("Ushort{}", ns.len()), tree)?);
+                    },
+                    Object::UintN(ns) => {
+                        forest.add_node(PatternNode::new(PatternId::UintN(ns.clone()), PatternForests::Unfilled(Vec::new())));
+                        forest.set_max(pattern_max_for_type_ident(&format!("Uint{}", ns.len()), tree)?);
+                    },
+                    Object::UlongN(ns) => {
+                        forest.add_node(PatternNode::new(PatternId::UlongN(ns.clone()), PatternForests::Unfilled(Vec::new())));
+                        forest.set_max(pattern_max_for_type_ident(&format!("Ulong{}", ns.len()), tree)?);
+                    },
+                    Object::FloatN(ns) => {
+                        forest.add_node(PatternNode::new(PatternId::FloatN(ns.iter().map(|n| n.to_bits()).collect()), PatternForests::Unfilled(Vec::new())));
+                        forest.set_max(pattern_max_for_type_ident(&format!("Float{}", ns.len()), tree)?);
+                    },
+                    Object::DoubleN(ns) => {
+                        forest.add_node(PatternNode::new(PatternId::DoubleN(ns.iter().map(|n| n.to_bits()).collect()), PatternForests::Unfilled(Vec::new())));
+                        forest.set_max(pattern_max_for_type_ident(&format!("Double{}", ns.len()), tree)?);
+                    },
+                    Object::Tuple(field_values) => {
+                        let mut forests: Vec<PatternForest<PatternId>> = Vec::new();
+                        for field_value in field_values {
+                            let mut forest2 = PatternForest::Alt(Vec::new(), None);
+                            self.add_pattern_node_for_value(field_value, tree, &mut forest2)?;
+                            forests.push(forest2);
+                        }
+                        forest.add_node(PatternNode::new(PatternId::Tuple(field_values.len()), PatternForests::Unfilled(forests)));
+                        forest.set_max(Some(1));
+                    },
+                    Object::Array(elem_values) => {
+                        let mut forests: Vec<PatternForest<PatternId>> = Vec::new();
+                        for elem_value in elem_values {
+                            let mut forest2 = PatternForest::Alt(Vec::new(), None);
+                            self.add_pattern_node_for_value(elem_value, tree, &mut forest2)?;
+                            forests.push(forest2);
+                        }
+                        forest.add_node(PatternNode::new(PatternId::Array(elem_values.len()), PatternForests::Unfilled(forests)));
+                        forest.set_max(Some(1));
+                    },
+                    Object::Data(con_ident, field_values) => {
+                        let mut forests: Vec<PatternForest<PatternId>> = Vec::new();
+                        for field_value in field_values {
+                            let mut forest2 = PatternForest::Alt(Vec::new(), None);
+                            self.add_pattern_node_for_value(field_value, tree, &mut forest2)?;
+                            forests.push(forest2);
+                        }
+                        forest.add_node(PatternNode::new(PatternId::Array(field_values.len()), PatternForests::Unfilled(forests)));
+                        type_for_fun_ident_in(con_ident, tree, |typ| {
+                                match &**typ.type_value() {
+                                    TypeValue::Type(_, TypeValueName::Fun, type_values) => {
+                                        match type_values.last() {
+                                            Some(type_value) => {
+                                                match &**type_value {
+                                                    TypeValue::Type(_, TypeValueName::Name(ident), _) => {
+                                                        forest.set_max(pattern_max_for_type_ident(ident, tree)?);
+                                                    },
+                                                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_pattern_node_for_value: type value isn't built-in type and data type"))])),
+                                                }
+                                            },
+                                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_pattern_node_for_value: no type value"))])),
+                                        }
+                                    },
+                                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_pattern_node_for_value: type isn't function type"))])),
+                                }
+                                Ok(())
+                        })?;
+                    },
+                    Object::Builtin(_, _) | Object::EvalFun(_, _, _)=> {
+                        let (ident, type_name) = match &*object_r {
+                            Object::Builtin(tmp_ident, tmp_type_name) => (tmp_ident, tmp_type_name),
+                            Object::EvalFun(tmp_ident, tmp_type_name, _) => (tmp_ident, tmp_type_name),
+                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_pattern_node_for_value: no ident and no type name"))])),
+                        };
+                        type_for_ident_and_type_name_in(ident, type_name, tree, |typ| {
+                                forest.set_max(pattern_max_for_type(typ, tree)?);
+                                Ok(())
+                        })?;
+                    },
+                    _ => (),
+                }
+            },
+        }
+        Ok(())
+    }
     
     fn check_pattern_exhaustions_for_expr(&self, expr: &Expr, tree: &Tree, type_stack: &mut TypeStack, local_types: &LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
@@ -1048,11 +1297,11 @@ impl Evaluator
             Pattern::As(literal, _, _, Some(local_type), _) => {
                 self.add_pattern_nodes_for_pattern_literal(&**literal, tree, type_stack, local_types, forest, errs)?;
                 match forest {
-                    PatternForest::Alt(nodes, _) => {
+                    PatternForest::Alt(nodes, max) => {
                         match nodes.last() {
                             Some(node) => {
                                 let mut node_r = node.borrow_mut();
-                                self.convert_pattern_ids_for_type_value(&mut *node_r, &Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), tree, local_types)?; 
+                                self.convert_pattern_ids_for_type_value(&mut *node_r, max, &Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), tree, local_types)?; 
                             },
                             None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_pattern_nodes_for_pattern: no last pattern node"))])),
                         }
@@ -1063,7 +1312,7 @@ impl Evaluator
             Pattern::Const(ident, Some(local_type), pos) => {
                 let type_name = type_name_for_var_ident_and_local_type(ident, *local_type, tree, type_stack, local_types)?;
                 match self.value_for_ident_and_type_name(ident, &type_name, pos.clone(), tree, true, errs)? {
-                    Some(value) => self.add_pattern_node_for_value(&value, forest),
+                    Some(value) => self.add_pattern_node_for_value(&value, tree, forest)?,
                     None => (),
                 }
             },

@@ -59,6 +59,9 @@ impl<T: Clone + Eq + Ord> PatternNode<T>
     
     pub fn forests(&self) -> &PatternForests<T>
     { &self.forests }
+
+    pub fn forests_mut(&mut self) -> &mut PatternForests<T>
+    { &mut self.forests }
     
     pub fn is_normalized(&self) -> bool
     { self.is_normalized }
@@ -301,6 +304,17 @@ impl<T: Clone + Eq + Ord> PatternForest<T>
     
     pub fn set_all(&mut self, is_one: bool)
     { *self = PatternForest::All(is_one); }
+    
+    pub fn set_max(&mut self, max: Option<usize>) -> bool
+    {
+        match self {
+            PatternForest::Alt(_, max2) => {
+                *max2 = max;
+                true
+            },
+            PatternForest::All(_) => false,
+        }
+    }
     
     fn union_without_normalization(&self, forest: &PatternForest<T>) -> Result<(PatternKind, PatternForest<T>), PatternError>
     {
