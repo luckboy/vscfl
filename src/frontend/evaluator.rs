@@ -1190,12 +1190,7 @@ impl Evaluator
                                 Ok(())
                         })?;
                     },
-                    Object::Builtin(_, _) | Object::EvalFun(_, _, _)=> {
-                        let (ident, type_name) = match &*object_r {
-                            Object::Builtin(tmp_ident, tmp_type_name) => (tmp_ident, tmp_type_name),
-                            Object::EvalFun(tmp_ident, tmp_type_name, _) => (tmp_ident, tmp_type_name),
-                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_pattern_node_for_value: no ident and no type name"))])),
-                        };
+                    Object::Builtin(ident, type_name) => {
                         type_for_ident_and_type_name_in(ident, type_name, tree, |typ| {
                                 forest.set_max(pattern_max_for_type(typ, tree)?);
                                 Ok(())
