@@ -145,6 +145,21 @@ fn add_var_key(ident: &String, type_name: &Option<TypeName>, pos: Pos, tree: &Tr
     }
 }
 
+fn type_for_fun_ident_in<T, F>(ident: &String, tree: &Tree, mut f: F) -> FrontendResultWithErrors<T>
+    where F: FnMut(&Type) -> FrontendResultWithErrors<T>
+{
+    match tree.var(ident) {
+        Some(var) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Fun(_, _, Some(typ)) => f(typ),
+                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_for_fun_ident_in: variable isn't function or no type"))])),
+            }
+        },
+        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_for_fun_ident_in: no variable"))])),
+    }
+}
+
 fn named_fields_for_con_ident_in<T, F>(ident: &String, tree: &Tree, mut f: F) -> FrontendResultWithErrors<T>
     where F: FnMut(&NamedFields) -> FrontendResultWithErrors<T>
 {
@@ -173,7 +188,50 @@ fn named_fields_for_con_ident_in<T, F>(ident: &String, tree: &Tree, mut f: F) ->
 
 fn pattern_max_for_local_type(local_type: LocalType, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<Option<usize>>
 {
-    Ok(None)
+    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type))) {
+        Some(LocalTypeEntry::Param(_, _, _, _)) => Ok(None),
+        Some(LocalTypeEntry::Type(type_value)) => {
+            match &*type_value {
+                TypeValue::Param(_, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("pattern_max_for_local_type: type parameter in local type entry"))])),
+                TypeValue::Type(_, TypeValueName::Tuple | TypeValueName::Array(_), _) => Ok(Some(1)),
+                TypeValue::Type(_, TypeValueName::Fun, _) => Ok(None),
+                TypeValue::Type(_, TypeValueName::Name(ident), _) => {
+                    match tree.type_var(ident) {
+                        Some(type_var) => {
+                            let type_var_r = type_var.borrow();
+                            match &*type_var_r {
+                                TypeVar::Builtin(_, _, _) => {
+                                    if ident == &String::from("Bool") {
+                                        Ok(Some(2))
+                                    } else if ident == &String::from("Char") || ident == &String::from("Uchar") {
+                                        Ok(Some(((u8::MAX as u64) + 1) as usize))
+                                    } else if ident == &String::from("Short") || ident == &String::from("Ushort") {
+                                        if (u16::MAX as u64) < (usize::MAX as u64) {
+                                            Ok(Some(((u16::MAX as u64) + 1) as usize))
+                                        } else {
+                                            Ok(None)
+                                        }
+                                    } else if ident == &String::from("Int") || ident == &String::from("Uint")  || ident == &String::from("Half") || ident == &String::from("Float") {
+                                        if (u32::MAX as u64) < (usize::MAX as u64) {
+                                            Ok(Some(((u32::MAX as u64) + 1) as usize))
+                                        } else {
+                                            Ok(None)
+                                        }
+                                    } else {
+                                        Ok(None)
+                                    }
+                                },
+                                TypeVar::Data(_, cons, _) => Ok(Some(cons.len())),
+                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("pattern_max_for_local_type: type variable is type synonym"))])),
+                            }
+                        },
+                        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("pattern_max_for_local_type: no type variable"))])),
+                    }
+                },
+            }
+        },
+        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("pattern_max_for_local_type: no local type entry"))])),
+    }
 }
 
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
@@ -442,7 +500,7 @@ impl Evaluator
                 }
             },
             Pattern::NamedFieldCon(_, pattern_named_field_pairs, _, _, _) => {
-                self.do_named_field_pairs(pattern_named_field_pairs.as_slice(), errs, |evaluator, expr, errs| evaluator.add_var_keys_for_pattern(pattern, tree, var_env, type_stack, local_types, keys, processed_keys, errs))?;
+                self.do_named_field_pairs(pattern_named_field_pairs.as_slice(), errs, |evaluator, pattern, errs| evaluator.add_var_keys_for_pattern(pattern, tree, var_env, type_stack, local_types, keys, processed_keys, errs))?;
             },
             Pattern::Var(_, ident, _, _) => {
                 var_env.add_var(ident.clone(), ());
@@ -464,12 +522,438 @@ impl Evaluator
 
     fn has_one_for_type_value(&self, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<bool>
     {
-        Ok(false)
+        match local_types.type_entry_for_type_value(type_value) {
+            Some(LocalTypeEntry::Param(_, _, _, _)) => Ok(false),
+            Some(LocalTypeEntry::Type(type_value)) => {
+                match &*type_value {
+                    TypeValue::Param(_, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_one_for_type_value: type parameter in local type entry"))])),
+                    TypeValue::Type(_, TypeValueName::Tuple | TypeValueName::Array(_), type_values) => {
+                        let mut is_one = true;
+                        for type_value2 in type_values {
+                            is_one &= self.has_one_for_type_value(type_value2, tree, local_types)?;
+                        }
+                        Ok(is_one)
+                    },
+                    TypeValue::Type(_, TypeValueName::Fun, _) => Ok(false),
+                    TypeValue::Type(_, TypeValueName::Name(ident), type_values) => {
+                        match tree.type_var(ident) {
+                            Some(type_var) => {
+                                let type_var_r = type_var.borrow();
+                                match &*type_var_r {
+                                    TypeVar::Builtin(_, _, _) => Ok(false),
+                                    TypeVar::Data(_, cons, _) => {
+                                        if cons.len() == 0 {
+                                            Ok(true)
+                                        } else if cons.len() == 1 {
+                                            let con_r = cons[0].borrow();
+                                            let con_ident = match &*con_r {
+                                                Con::UnnamedField(tmp_con_ident, _, _, _) => tmp_con_ident,
+                                                Con::NamedField(tmp_con_ident, _, _, _, _) => tmp_con_ident,
+                                            };
+                                            type_for_fun_ident_in(con_ident, tree, |typ| {
+                                                    match &**typ.type_value() {
+                                                        TypeValue::Type(_, TypeValueName::Fun, type_values2) => {
+                                                            if type_values2.len() >= 1 {
+                                                                let mut is_one = true;
+                                                                for type_value2 in type_values2 {
+                                                                    let new_type_value = match type_value2.substitute(type_values) {
+                                                                        Ok(Some(tmp_type_value)) => tmp_type_value,
+                                                                        Ok(None) => type_value2.clone(),
+                                                                        Err(err) => return Err(FrontendErrors::new(vec![FrontendError::Internal(format!("has_one_for_type_value: {}", err))])),
+                                                                    };
+                                                                    is_one &= self.has_one_for_type_value(&new_type_value, tree, local_types)?;
+                                                                }
+                                                                Ok(is_one)
+                                                            } else {
+                                                                Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_one_for_type_value: too few argument type values"))]))
+                                                            }
+                                                        },
+                                                        _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_one_for_type_value: type value isn't function type"))]))
+                                                    }
+                                            })?;
+                                            Ok(true)
+                                        } else {
+                                            Ok(false)
+                                        }
+                                    },
+                                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_one_for_type_value: type variable is type synonym"))])),
+                                }
+                            },
+                            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_one_for_type_value: no type variable"))])),
+                        }
+                    },
+                }
+            },
+            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_one_for_type_value: no local type entry"))])),
+        }
     }
 
     fn convert_pattern_ids_for_type_value(&self, node: &mut PatternNode<PatternId>, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<()>
     {
-        Ok(())
+        match local_types.type_entry_for_type_value(type_value) {
+            Some(LocalTypeEntry::Param(_, _, _, _)) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: local type entry is type parameter"))])),
+            Some(LocalTypeEntry::Type(type_value)) => {
+                match &*type_value {
+                    TypeValue::Param(_, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_one_for_type_value: type parameter in local type entry"))])),
+                    TypeValue::Type(_, TypeValueName::Tuple, type_values) => {
+                        match node.forests() {
+                            PatternForests::Unfilled(forests) => {
+                                for (forest, type_value2) in forests.iter().zip(type_values.iter()) {
+                                    match forest {
+                                        PatternForest::Alt(nodes, _) => {
+                                            for node2 in nodes {
+                                                let mut node2_r = node2.borrow_mut();
+                                                self.convert_pattern_ids_for_type_value(&mut *node2_r, type_value2, tree, local_types)?
+                                            }
+                                        },
+                                        PatternForest::All(_) => (),
+                                    }
+                                }
+                                Ok(())
+                            },
+                            _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: filled pattern forests"))])),
+                        }
+                    },
+                    TypeValue::Type(_, TypeValueName::Array(_), type_values) => {
+                        match type_values.first() {
+                            Some(type_value2) => {
+                                match node.forests() {
+                                    PatternForests::Unfilled(forests) => {
+                                        for forest in forests {
+                                            match forest {
+                                                PatternForest::Alt(nodes, _) => {
+                                                    for node2 in nodes {
+                                                        let mut node2_r = node2.borrow_mut();
+                                                        self.convert_pattern_ids_for_type_value(&mut *node2_r, type_value2, tree, local_types)?
+                                                    }
+                                                },
+                                                PatternForest::All(_) => (),
+                                            }
+                                        }
+                                        Ok(())
+                                    },
+                                    PatternForests::Filled(forest, _) => {
+                                        match forest {
+                                            PatternForest::Alt(nodes, _) => {
+                                                for node2 in nodes {
+                                                    let mut node2_r = node2.borrow_mut();
+                                                    self.convert_pattern_ids_for_type_value(&mut *node2_r, type_value2, tree, local_types)?
+                                                }
+                                            },
+                                            PatternForest::All(_) => (),
+                                        }
+                                        Ok(())
+                                    },
+                                }
+                            },
+                            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: no type value"))])),
+                        }
+                    },
+                    TypeValue::Type(_, TypeValueName::Fun, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: type value is function type"))])),
+                    TypeValue::Type(_, TypeValueName::Name(ident), _) => {
+                        match tree.type_var(ident) {
+                            Some(type_var) => {
+                                let type_var_r = type_var.borrow();
+                                match &*type_var_r {
+                                    TypeVar::Builtin(_, _, _) => {
+                                        if ident == &String::from("Char") {
+                                            match node.id() {
+                                                PatternId::Char(n) => node.set_id(PatternId::Char(*n as i8)),
+                                                PatternId::Short(n) => node.set_id(PatternId::Char(*n as i8)),
+                                                PatternId::Int(n) => node.set_id(PatternId::Char(*n as i8)),
+                                                PatternId::Long(n) => node.set_id(PatternId::Char(*n as i8)),
+                                                PatternId::Uchar(n) => node.set_id(PatternId::Char(*n as i8)),
+                                                PatternId::Ushort(n) => node.set_id(PatternId::Char(*n as i8)),
+                                                PatternId::Uint(n) => node.set_id(PatternId::Char(*n as i8)),
+                                                PatternId::Ulong(n) => node.set_id(PatternId::Char(*n as i8)),
+                                                PatternId::Half(n) => node.set_id(PatternId::Char(f32::from_bits(*n) as i8)),
+                                                PatternId::Float(n) => node.set_id(PatternId::Char(f32::from_bits(*n) as i8)),
+                                                PatternId::Double(n) => node.set_id(PatternId::Char(f64::from_bits(*n) as i8)),
+                                                PatternId::SizeT(n) => node.set_id(PatternId::Char(*n as i8)),
+                                                PatternId::PtrdiffT(n) => node.set_id(PatternId::Char(*n as i8)),
+                                                PatternId::IntptrT(n) => node.set_id(PatternId::Char(*n as i8)),
+                                                PatternId::UintptrT(n) => node.set_id(PatternId::Char(*n as i8)),
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: invalid pattern identifier"))]))
+                                            }
+                                        } else if ident == &String::from("Short") {
+                                            match node.id() {
+                                                PatternId::Char(n) => node.set_id(PatternId::Short(*n as i16)),
+                                                PatternId::Short(n) => node.set_id(PatternId::Short(*n as i16)),
+                                                PatternId::Int(n) => node.set_id(PatternId::Short(*n as i16)),
+                                                PatternId::Long(n) => node.set_id(PatternId::Short(*n as i16)),
+                                                PatternId::Uchar(n) => node.set_id(PatternId::Short(*n as i16)),
+                                                PatternId::Ushort(n) => node.set_id(PatternId::Short(*n as i16)),
+                                                PatternId::Uint(n) => node.set_id(PatternId::Short(*n as i16)),
+                                                PatternId::Ulong(n) => node.set_id(PatternId::Short(*n as i16)),
+                                                PatternId::Half(n) => node.set_id(PatternId::Short(f32::from_bits(*n) as i16)),
+                                                PatternId::Float(n) => node.set_id(PatternId::Short(f32::from_bits(*n) as i16)),
+                                                PatternId::Double(n) => node.set_id(PatternId::Short(f64::from_bits(*n) as i16)),
+                                                PatternId::SizeT(n) => node.set_id(PatternId::Short(*n as i16)),
+                                                PatternId::PtrdiffT(n) => node.set_id(PatternId::Short(*n as i16)),
+                                                PatternId::IntptrT(n) => node.set_id(PatternId::Short(*n as i16)),
+                                                PatternId::UintptrT(n) => node.set_id(PatternId::Short(*n as i16)),
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: invalid pattern identifier"))]))
+                                            }
+                                        } else if ident == &String::from("Int") {
+                                            match node.id() {
+                                                PatternId::Char(n) => node.set_id(PatternId::Int(*n as i32)),
+                                                PatternId::Short(n) => node.set_id(PatternId::Int(*n as i32)),
+                                                PatternId::Int(n) => node.set_id(PatternId::Int(*n as i32)),
+                                                PatternId::Long(n) => node.set_id(PatternId::Int(*n as i32)),
+                                                PatternId::Uchar(n) => node.set_id(PatternId::Int(*n as i32)),
+                                                PatternId::Ushort(n) => node.set_id(PatternId::Int(*n as i32)),
+                                                PatternId::Uint(n) => node.set_id(PatternId::Int(*n as i32)),
+                                                PatternId::Ulong(n) => node.set_id(PatternId::Int(*n as i32)),
+                                                PatternId::Half(n) => node.set_id(PatternId::Int(f32::from_bits(*n) as i32)),
+                                                PatternId::Float(n) => node.set_id(PatternId::Int(f32::from_bits(*n) as i32)),
+                                                PatternId::Double(n) => node.set_id(PatternId::Int(f64::from_bits(*n) as i32)),
+                                                PatternId::SizeT(n) => node.set_id(PatternId::Int(*n as i32)),
+                                                PatternId::PtrdiffT(n) => node.set_id(PatternId::Int(*n as i32)),
+                                                PatternId::IntptrT(n) => node.set_id(PatternId::Int(*n as i32)),
+                                                PatternId::UintptrT(n) => node.set_id(PatternId::Int(*n as i32)),
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: invalid pattern identifier"))]))
+                                            }
+                                        } else if ident == &String::from("Long") {
+                                            match node.id() {
+                                                PatternId::Char(n) => node.set_id(PatternId::Long(*n as i64)),
+                                                PatternId::Short(n) => node.set_id(PatternId::Long(*n as i64)),
+                                                PatternId::Int(n) => node.set_id(PatternId::Long(*n as i64)),
+                                                PatternId::Long(n) => node.set_id(PatternId::Long(*n as i64)),
+                                                PatternId::Uchar(n) => node.set_id(PatternId::Long(*n as i64)),
+                                                PatternId::Ushort(n) => node.set_id(PatternId::Long(*n as i64)),
+                                                PatternId::Uint(n) => node.set_id(PatternId::Long(*n as i64)),
+                                                PatternId::Ulong(n) => node.set_id(PatternId::Long(*n as i64)),
+                                                PatternId::Half(n) => node.set_id(PatternId::Long(f32::from_bits(*n) as i64)),
+                                                PatternId::Float(n) => node.set_id(PatternId::Long(f32::from_bits(*n) as i64)),
+                                                PatternId::Double(n) => node.set_id(PatternId::Long(f64::from_bits(*n) as i64)),
+                                                PatternId::SizeT(n) => node.set_id(PatternId::Long(*n as i64)),
+                                                PatternId::PtrdiffT(n) => node.set_id(PatternId::Long(*n as i64)),
+                                                PatternId::IntptrT(n) => node.set_id(PatternId::Long(*n as i64)),
+                                                PatternId::UintptrT(n) => node.set_id(PatternId::Long(*n as i64)),
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: invalid pattern identifier"))]))
+                                            }
+                                        } else if ident == &String::from("Uchar") {
+                                            match node.id() {
+                                                PatternId::Char(n) => node.set_id(PatternId::Uchar(*n as u8)),
+                                                PatternId::Short(n) => node.set_id(PatternId::Uchar(*n as u8)),
+                                                PatternId::Int(n) => node.set_id(PatternId::Uchar(*n as u8)),
+                                                PatternId::Long(n) => node.set_id(PatternId::Uchar(*n as u8)),
+                                                PatternId::Uchar(n) => node.set_id(PatternId::Uchar(*n as u8)),
+                                                PatternId::Ushort(n) => node.set_id(PatternId::Uchar(*n as u8)),
+                                                PatternId::Uint(n) => node.set_id(PatternId::Uchar(*n as u8)),
+                                                PatternId::Ulong(n) => node.set_id(PatternId::Uchar(*n as u8)),
+                                                PatternId::Half(n) => node.set_id(PatternId::Uchar(f32::from_bits(*n) as u8)),
+                                                PatternId::Float(n) => node.set_id(PatternId::Uchar(f32::from_bits(*n) as u8)),
+                                                PatternId::Double(n) => node.set_id(PatternId::Uchar(f64::from_bits(*n) as u8)),
+                                                PatternId::SizeT(n) => node.set_id(PatternId::Uchar(*n as u8)),
+                                                PatternId::PtrdiffT(n) => node.set_id(PatternId::Uchar(*n as u8)),
+                                                PatternId::IntptrT(n) => node.set_id(PatternId::Uchar(*n as u8)),
+                                                PatternId::UintptrT(n) => node.set_id(PatternId::Uchar(*n as u8)),
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: invalid pattern identifier"))]))
+                                            }
+                                        } else if ident == &String::from("Ushort") {
+                                            match node.id() {
+                                                PatternId::Char(n) => node.set_id(PatternId::Ushort(*n as u16)),
+                                                PatternId::Short(n) => node.set_id(PatternId::Ushort(*n as u16)),
+                                                PatternId::Int(n) => node.set_id(PatternId::Ushort(*n as u16)),
+                                                PatternId::Long(n) => node.set_id(PatternId::Ushort(*n as u16)),
+                                                PatternId::Uchar(n) => node.set_id(PatternId::Ushort(*n as u16)),
+                                                PatternId::Ushort(n) => node.set_id(PatternId::Ushort(*n as u16)),
+                                                PatternId::Uint(n) => node.set_id(PatternId::Ushort(*n as u16)),
+                                                PatternId::Ulong(n) => node.set_id(PatternId::Ushort(*n as u16)),
+                                                PatternId::Half(n) => node.set_id(PatternId::Ushort(f32::from_bits(*n) as u16)),
+                                                PatternId::Float(n) => node.set_id(PatternId::Ushort(f32::from_bits(*n) as u16)),
+                                                PatternId::Double(n) => node.set_id(PatternId::Ushort(f64::from_bits(*n) as u16)),
+                                                PatternId::SizeT(n) => node.set_id(PatternId::Ushort(*n as u16)),
+                                                PatternId::PtrdiffT(n) => node.set_id(PatternId::Ushort(*n as u16)),
+                                                PatternId::IntptrT(n) => node.set_id(PatternId::Ushort(*n as u16)),
+                                                PatternId::UintptrT(n) => node.set_id(PatternId::Ushort(*n as u16)),
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: invalid pattern identifier"))]))
+                                            }
+                                        } else if ident == &String::from("Uint") {
+                                            match node.id() {
+                                                PatternId::Char(n) => node.set_id(PatternId::Uint(*n as u32)),
+                                                PatternId::Short(n) => node.set_id(PatternId::Uint(*n as u32)),
+                                                PatternId::Int(n) => node.set_id(PatternId::Uint(*n as u32)),
+                                                PatternId::Long(n) => node.set_id(PatternId::Uint(*n as u32)),
+                                                PatternId::Uchar(n) => node.set_id(PatternId::Uint(*n as u32)),
+                                                PatternId::Ushort(n) => node.set_id(PatternId::Uint(*n as u32)),
+                                                PatternId::Uint(n) => node.set_id(PatternId::Uint(*n as u32)),
+                                                PatternId::Ulong(n) => node.set_id(PatternId::Uint(*n as u32)),
+                                                PatternId::Half(n) => node.set_id(PatternId::Uint(f32::from_bits(*n) as u32)),
+                                                PatternId::Float(n) => node.set_id(PatternId::Uint(f32::from_bits(*n) as u32)),
+                                                PatternId::Double(n) => node.set_id(PatternId::Uint(f64::from_bits(*n) as u32)),
+                                                PatternId::SizeT(n) => node.set_id(PatternId::Uint(*n as u32)),
+                                                PatternId::PtrdiffT(n) => node.set_id(PatternId::Uint(*n as u32)),
+                                                PatternId::IntptrT(n) => node.set_id(PatternId::Uint(*n as u32)),
+                                                PatternId::UintptrT(n) => node.set_id(PatternId::Uint(*n as u32)),
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: invalid pattern identifier"))]))
+                                            }
+                                        } else if ident == &String::from("Ulong") {
+                                            match node.id() {
+                                                PatternId::Char(n) => node.set_id(PatternId::Ulong(*n as u64)),
+                                                PatternId::Short(n) => node.set_id(PatternId::Ulong(*n as u64)),
+                                                PatternId::Int(n) => node.set_id(PatternId::Ulong(*n as u64)),
+                                                PatternId::Long(n) => node.set_id(PatternId::Ulong(*n as u64)),
+                                                PatternId::Uchar(n) => node.set_id(PatternId::Ulong(*n as u64)),
+                                                PatternId::Ushort(n) => node.set_id(PatternId::Ulong(*n as u64)),
+                                                PatternId::Uint(n) => node.set_id(PatternId::Ulong(*n as u64)),
+                                                PatternId::Ulong(n) => node.set_id(PatternId::Ulong(*n as u64)),
+                                                PatternId::Half(n) => node.set_id(PatternId::Ulong(f32::from_bits(*n) as u64)),
+                                                PatternId::Float(n) => node.set_id(PatternId::Ulong(f32::from_bits(*n) as u64)),
+                                                PatternId::Double(n) => node.set_id(PatternId::Ulong(f64::from_bits(*n) as u64)),
+                                                PatternId::SizeT(n) => node.set_id(PatternId::Ulong(*n as u64)),
+                                                PatternId::PtrdiffT(n) => node.set_id(PatternId::Ulong(*n as u64)),
+                                                PatternId::IntptrT(n) => node.set_id(PatternId::Ulong(*n as u64)),
+                                                PatternId::UintptrT(n) => node.set_id(PatternId::Ulong(*n as u64)),
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: invalid pattern identifier"))]))
+                                            }
+                                        } else if ident == &String::from("Half") {
+                                            match node.id() {
+                                                PatternId::Char(n) => node.set_id(PatternId::Half((*n as f32).to_bits())),
+                                                PatternId::Short(n) => node.set_id(PatternId::Half((*n as f32).to_bits())),
+                                                PatternId::Int(n) => node.set_id(PatternId::Half((*n as f32).to_bits())),
+                                                PatternId::Long(n) => node.set_id(PatternId::Half((*n as f32).to_bits())),
+                                                PatternId::Uchar(n) => node.set_id(PatternId::Half((*n as f32).to_bits())),
+                                                PatternId::Ushort(n) => node.set_id(PatternId::Half((*n as f32).to_bits())),
+                                                PatternId::Uint(n) => node.set_id(PatternId::Half((*n as f32).to_bits())),
+                                                PatternId::Ulong(n) => node.set_id(PatternId::Half((*n as f32).to_bits())),
+                                                PatternId::Half(n) => node.set_id(PatternId::Half(*n)),
+                                                PatternId::Float(n) => node.set_id(PatternId::Half(*n)),
+                                                PatternId::Double(n) => node.set_id(PatternId::Half((f64::from_bits(*n) as f32).to_bits())),
+                                                PatternId::SizeT(n) => node.set_id(PatternId::Half((*n as f32).to_bits())),
+                                                PatternId::PtrdiffT(n) => node.set_id(PatternId::Half((*n as f32).to_bits())),
+                                                PatternId::IntptrT(n) => node.set_id(PatternId::Half((*n as f32).to_bits())),
+                                                PatternId::UintptrT(n) => node.set_id(PatternId::Half((*n as f32).to_bits())),
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: invalid pattern identifier"))]))
+                                            }
+                                        } else if ident == &String::from("Float") {
+                                            match node.id() {
+                                                PatternId::Char(n) => node.set_id(PatternId::Float((*n as f32).to_bits())),
+                                                PatternId::Short(n) => node.set_id(PatternId::Float((*n as f32).to_bits())),
+                                                PatternId::Int(n) => node.set_id(PatternId::Float((*n as f32).to_bits())),
+                                                PatternId::Long(n) => node.set_id(PatternId::Float((*n as f32).to_bits())),
+                                                PatternId::Uchar(n) => node.set_id(PatternId::Float((*n as f32).to_bits())),
+                                                PatternId::Ushort(n) => node.set_id(PatternId::Float((*n as f32).to_bits())),
+                                                PatternId::Uint(n) => node.set_id(PatternId::Float((*n as f32).to_bits())),
+                                                PatternId::Ulong(n) => node.set_id(PatternId::Float((*n as f32).to_bits())),
+                                                PatternId::Half(n) => node.set_id(PatternId::Float(*n)),
+                                                PatternId::Float(n) => node.set_id(PatternId::Float(*n)),
+                                                PatternId::Double(n) => node.set_id(PatternId::Float((f64::from_bits(*n) as f32).to_bits())),
+                                                PatternId::SizeT(n) => node.set_id(PatternId::Float((*n as f32).to_bits())),
+                                                PatternId::PtrdiffT(n) => node.set_id(PatternId::Float((*n as f32).to_bits())),
+                                                PatternId::IntptrT(n) => node.set_id(PatternId::Float((*n as f32).to_bits())),
+                                                PatternId::UintptrT(n) => node.set_id(PatternId::Float((*n as f32).to_bits())),
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: invalid pattern identifier"))]))
+                                            }
+                                        } else if ident == &String::from("Double") {
+                                            match node.id() {
+                                                PatternId::Char(n) => node.set_id(PatternId::Double((*n as f64).to_bits())),
+                                                PatternId::Short(n) => node.set_id(PatternId::Double((*n as f64).to_bits())),
+                                                PatternId::Int(n) => node.set_id(PatternId::Double((*n as f64).to_bits())),
+                                                PatternId::Long(n) => node.set_id(PatternId::Double((*n as f64).to_bits())),
+                                                PatternId::Uchar(n) => node.set_id(PatternId::Double((*n as f64).to_bits())),
+                                                PatternId::Ushort(n) => node.set_id(PatternId::Double((*n as f64).to_bits())),
+                                                PatternId::Uint(n) => node.set_id(PatternId::Double((*n as f64).to_bits())),
+                                                PatternId::Ulong(n) => node.set_id(PatternId::Double((*n as f64).to_bits())),
+                                                PatternId::Half(n) => node.set_id(PatternId::Double((f32::from_bits(*n) as f64).to_bits())),
+                                                PatternId::Float(n) => node.set_id(PatternId::Double((f32::from_bits(*n) as f64).to_bits())),
+                                                PatternId::Double(n) => node.set_id(PatternId::Double(*n)),
+                                                PatternId::SizeT(n) => node.set_id(PatternId::Double((*n as f64).to_bits())),
+                                                PatternId::PtrdiffT(n) => node.set_id(PatternId::Double((*n as f64).to_bits())),
+                                                PatternId::IntptrT(n) => node.set_id(PatternId::Double((*n as f64).to_bits())),
+                                                PatternId::UintptrT(n) => node.set_id(PatternId::Double((*n as f64).to_bits())),
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: invalid pattern identifier"))]))
+                                            }
+                                        } else if ident == &String::from("SizeT") {
+                                            match node.id() {
+                                                PatternId::Char(n) => node.set_id(PatternId::SizeT(*n as u64)),
+                                                PatternId::Short(n) => node.set_id(PatternId::SizeT(*n as u64)),
+                                                PatternId::Int(n) => node.set_id(PatternId::SizeT(*n as u64)),
+                                                PatternId::Long(n) => node.set_id(PatternId::SizeT(*n as u64)),
+                                                PatternId::Uchar(n) => node.set_id(PatternId::SizeT(*n as u64)),
+                                                PatternId::Ushort(n) => node.set_id(PatternId::SizeT(*n as u64)),
+                                                PatternId::Uint(n) => node.set_id(PatternId::SizeT(*n as u64)),
+                                                PatternId::Ulong(n) => node.set_id(PatternId::SizeT(*n as u64)),
+                                                PatternId::Half(n) => node.set_id(PatternId::SizeT(f32::from_bits(*n) as u64)),
+                                                PatternId::Float(n) => node.set_id(PatternId::SizeT(f32::from_bits(*n) as u64)),
+                                                PatternId::Double(n) => node.set_id(PatternId::SizeT(f64::from_bits(*n) as u64)),
+                                                PatternId::SizeT(n) => node.set_id(PatternId::SizeT(*n as u64)),
+                                                PatternId::PtrdiffT(n) => node.set_id(PatternId::SizeT(*n as u64)),
+                                                PatternId::IntptrT(n) => node.set_id(PatternId::SizeT(*n as u64)),
+                                                PatternId::UintptrT(n) => node.set_id(PatternId::SizeT(*n as u64)),
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: invalid pattern identifier"))]))
+                                            }
+                                        } else if ident == &String::from("PtrdiffT") {
+                                            match node.id() {
+                                                PatternId::Char(n) => node.set_id(PatternId::PtrdiffT(*n as i64)),
+                                                PatternId::Short(n) => node.set_id(PatternId::PtrdiffT(*n as i64)),
+                                                PatternId::Int(n) => node.set_id(PatternId::PtrdiffT(*n as i64)),
+                                                PatternId::Long(n) => node.set_id(PatternId::PtrdiffT(*n as i64)),
+                                                PatternId::Uchar(n) => node.set_id(PatternId::PtrdiffT(*n as i64)),
+                                                PatternId::Ushort(n) => node.set_id(PatternId::PtrdiffT(*n as i64)),
+                                                PatternId::Uint(n) => node.set_id(PatternId::PtrdiffT(*n as i64)),
+                                                PatternId::Ulong(n) => node.set_id(PatternId::PtrdiffT(*n as i64)),
+                                                PatternId::Half(n) => node.set_id(PatternId::PtrdiffT(f32::from_bits(*n) as i64)),
+                                                PatternId::Float(n) => node.set_id(PatternId::PtrdiffT(f32::from_bits(*n) as i64)),
+                                                PatternId::Double(n) => node.set_id(PatternId::PtrdiffT(f64::from_bits(*n) as i64)),
+                                                PatternId::SizeT(n) => node.set_id(PatternId::PtrdiffT(*n as i64)),
+                                                PatternId::PtrdiffT(n) => node.set_id(PatternId::PtrdiffT(*n as i64)),
+                                                PatternId::IntptrT(n) => node.set_id(PatternId::PtrdiffT(*n as i64)),
+                                                PatternId::UintptrT(n) => node.set_id(PatternId::PtrdiffT(*n as i64)),
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: invalid pattern identifier"))]))
+                                            }
+                                        } else if ident == &String::from("IntptrT") {
+                                            match node.id() {
+                                                PatternId::Char(n) => node.set_id(PatternId::IntptrT(*n as i64)),
+                                                PatternId::Short(n) => node.set_id(PatternId::IntptrT(*n as i64)),
+                                                PatternId::Int(n) => node.set_id(PatternId::IntptrT(*n as i64)),
+                                                PatternId::Long(n) => node.set_id(PatternId::IntptrT(*n as i64)),
+                                                PatternId::Uchar(n) => node.set_id(PatternId::IntptrT(*n as i64)),
+                                                PatternId::Ushort(n) => node.set_id(PatternId::IntptrT(*n as i64)),
+                                                PatternId::Uint(n) => node.set_id(PatternId::IntptrT(*n as i64)),
+                                                PatternId::Ulong(n) => node.set_id(PatternId::IntptrT(*n as i64)),
+                                                PatternId::Half(n) => node.set_id(PatternId::IntptrT(f32::from_bits(*n) as i64)),
+                                                PatternId::Float(n) => node.set_id(PatternId::IntptrT(f32::from_bits(*n) as i64)),
+                                                PatternId::Double(n) => node.set_id(PatternId::IntptrT(f64::from_bits(*n) as i64)),
+                                                PatternId::SizeT(n) => node.set_id(PatternId::IntptrT(*n as i64)),
+                                                PatternId::PtrdiffT(n) => node.set_id(PatternId::IntptrT(*n as i64)),
+                                                PatternId::IntptrT(n) => node.set_id(PatternId::IntptrT(*n as i64)),
+                                                PatternId::UintptrT(n) => node.set_id(PatternId::IntptrT(*n as i64)),
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: invalid pattern identifier"))]))
+                                            }
+                                        } else if ident == &String::from("UintptrT") {
+                                            match node.id() {
+                                                PatternId::Char(n) => node.set_id(PatternId::UintptrT(*n as u64)),
+                                                PatternId::Short(n) => node.set_id(PatternId::UintptrT(*n as u64)),
+                                                PatternId::Int(n) => node.set_id(PatternId::UintptrT(*n as u64)),
+                                                PatternId::Long(n) => node.set_id(PatternId::UintptrT(*n as u64)),
+                                                PatternId::Uchar(n) => node.set_id(PatternId::UintptrT(*n as u64)),
+                                                PatternId::Ushort(n) => node.set_id(PatternId::UintptrT(*n as u64)),
+                                                PatternId::Uint(n) => node.set_id(PatternId::UintptrT(*n as u64)),
+                                                PatternId::Ulong(n) => node.set_id(PatternId::UintptrT(*n as u64)),
+                                                PatternId::Half(n) => node.set_id(PatternId::UintptrT(f32::from_bits(*n) as u64)),
+                                                PatternId::Float(n) => node.set_id(PatternId::UintptrT(f32::from_bits(*n) as u64)),
+                                                PatternId::Double(n) => node.set_id(PatternId::UintptrT(f64::from_bits(*n) as u64)),
+                                                PatternId::SizeT(n) => node.set_id(PatternId::UintptrT(*n as u64)),
+                                                PatternId::PtrdiffT(n) => node.set_id(PatternId::UintptrT(*n as u64)),
+                                                PatternId::IntptrT(n) => node.set_id(PatternId::UintptrT(*n as u64)),
+                                                PatternId::UintptrT(n) => node.set_id(PatternId::UintptrT(*n as u64)),
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: invalid pattern identifier"))]))
+                                            }
+                                        }
+                                        Ok(())
+                                    },
+                                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: type variable isn't built-in type"))])),
+                                }
+                            },
+                            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: no type variable"))])),
+                        }
+                    },
+                }
+            },
+            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: no local type entry"))])),
+        }
     }
     
     fn add_pattern_node_for_value(&self, value: &Value, forest: &mut PatternForest<PatternId>)
