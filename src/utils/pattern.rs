@@ -94,6 +94,14 @@ impl<T: Clone + Eq + Ord> PatternNode<T>
             PatternForests::Filled(forest, _) => forest.has_one(),
         }
     }
+    
+    pub fn is_empty(&self) -> bool
+    {
+        match &self.forests {
+            PatternForests::Unfilled(forests) => forests.iter().any(|f| f.is_empty()),
+            PatternForests::Filled(forest, _) => forest.is_empty(),
+        }
+    }
 }
 
 fn union_pattern_nodes_without_normalization<T: Clone + Eq + Ord>(node1: &Rc<RefCell<PatternNode<T>>>, node2: &Rc<RefCell<PatternNode<T>>>) -> Result<Vec<(PatternKind, Rc<RefCell<PatternNode<T>>>)>, PatternError>
@@ -456,7 +464,13 @@ impl<T: Clone + Eq + Ord> PatternForest<T>
     pub fn normalize(&mut self) -> Result<(), PatternError>
     {
         match self {
-            PatternForest::Alt(nodes, max) => *self = PatternForest::Alt(Vec::new(), *max).union_without_normalization(&PatternForest::Alt(nodes.clone(), *max))?.1,
+            PatternForest::Alt(nodes, max) => {
+                let new_nodes: Vec<Rc<RefCell<PatternNode<T>>>> = nodes.iter().filter(|n| {
+                        let r = n.borrow();
+                        !r.is_empty()
+                }).map(|n| n.clone()).collect();
+                *self = PatternForest::Alt(Vec::new(), *max).union_without_normalization(&PatternForest::Alt(new_nodes, *max))?.1
+            },
             PatternForest::All(_) => (),
         }
         Ok(())
@@ -474,6 +488,19 @@ impl<T: Clone + Eq + Ord> PatternForest<T>
                 }
             },
             PatternForest::All(is_one) => *is_one,
+        }
+    }
+    
+    pub fn is_empty(&self) -> bool
+    {
+        match self {
+            PatternForest::Alt(nodes, _) => {
+                nodes.is_empty() || nodes.iter().all(|n| {
+                        let r = n.borrow();
+                        r.is_empty()
+                })
+            },
+            PatternForest::All(is_one) => true,
         }
     }
 }
