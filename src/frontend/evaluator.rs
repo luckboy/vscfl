@@ -6,6 +6,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 //
 use std::cell::*;
+use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::rc::*;
 use crate::frontend::error::*;
@@ -309,6 +310,18 @@ fn pattern_max_for_type(typ: &Type, tree: &Tree) -> FrontendResultWithErrors<Opt
     }
 }
 
+fn add_error_for_object(object: &Object, pos: Pos, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+{
+    match object {
+        Object::Builtin(_, _) => {
+            errs.push(FrontendError::Message(pos.clone(), String::from("value of built-in variable mustn't be in vector")));
+            Ok(())
+        },
+        _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_error_for_object: invalid object"))])),
+    }
+}
+
+
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 enum PatternId
 {
@@ -456,12 +469,12 @@ impl Evaluator
         match literal {
             Literal::Tuple(field_others) => {
                 for field_other in field_others {
-                    f(self, &**field_other, errs)?
+                    f(self, &**field_other, errs)?;
                 }
             },
             Literal::Array(elem_others) => {
                 for elem_other in elem_others {
-                    f(self, &**elem_other, errs)?
+                    f(self, &**elem_other, errs)?;
                 }
             },
             Literal::FilledArray(elem_other, _) => f(self, &**elem_other, errs)?,
@@ -469,6 +482,37 @@ impl Evaluator
         }
         Ok(())
     }
+
+    fn do_named_field_pairs_mut_for_setting<T, F>(&self, named_field_pairs: &mut [NamedFieldPair<T>], mut f: F) -> FrontendResultWithErrors<()>
+        where F: FnMut(&Self, &mut T) -> FrontendResultWithErrors<()>
+    {
+        for named_field_pair in named_field_pairs {
+            match named_field_pair {
+                NamedFieldPair(_, other, _) => f(self, other)?,
+            }
+        }
+        Ok(())
+    }    
+
+    fn do_literal_mut_for_setting<T, F>(&self, literal: &mut Literal<T>, mut f: F) -> FrontendResultWithErrors<()>
+        where F: FnMut(&Self, &mut T) -> FrontendResultWithErrors<()>,
+    {
+        match literal {
+            Literal::Tuple(field_others) => {
+                for field_other in field_others {
+                    f(self, &mut **field_other)?;
+                }
+            },
+            Literal::Array(elem_others) => {
+                for elem_other in elem_others {
+                    f(self, &mut **elem_other)?;
+                }
+            },
+            Literal::FilledArray(elem_other, _) => f(self, &mut **elem_other)?,
+            _ => (),
+        }
+        Ok(())
+    }    
     
     fn add_var_keys_for_expr(&self, expr: &Expr, tree: &Tree, var_env: &mut Environment<()>, type_stack: &mut TypeStack, local_types: &LocalTypes, keys: &mut Vec<(String, Option<TypeName>)>, processed_keys: &BTreeSet<(String, Option<TypeName>)>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
@@ -1407,6 +1451,444 @@ impl Evaluator
                 self.add_pattern_nodes_for_pattern(&**elem_pattern, tree, type_stack, local_types, &mut forest2, errs)?;
                 forest.add_node(PatternNode::new(PatternId::Array(*len), PatternForests::Filled(forest2, *len)));
             },
+        }
+        Ok(())
+    }
+    
+    fn set_local_funs_for_expr(&self, expr: &mut Expr, local_fun_counter: &mut usize) -> FrontendResultWithErrors<()>
+    {
+        match expr {
+            Expr::Literal(literal, _, _) => self.do_literal_mut_for_setting(&mut **literal, |evaluator, expr| evaluator.set_local_funs_for_expr(expr, local_fun_counter))?,
+            Expr::Lambda(_, _, _, _, _, local_fun, _, _) => {
+                *local_fun = Some(LocalFun::new(*local_fun_counter));
+                *local_fun_counter += 1;
+            },
+            Expr::Var(_, _, _) => (),
+            Expr::NamedFieldConApp(_, expr_named_field_pairs, _, _, _) => {
+                self.do_named_field_pairs_mut_for_setting(expr_named_field_pairs.as_mut_slice(), |evaluator, expr| evaluator.set_local_funs_for_expr(expr, local_fun_counter))?;
+            },
+            Expr::PrintfApp(exprs, _, _) => {
+                for expr2 in exprs {
+                    self.set_local_funs_for_expr(&mut **expr2, local_fun_counter)?;
+                }
+            },
+            Expr::App(expr2, exprs, _, _) => {
+                self.set_local_funs_for_expr(&mut **expr2, local_fun_counter)?;
+                for expr3 in exprs {
+                    self.set_local_funs_for_expr(&mut **expr3, local_fun_counter)?;
+                }
+            },
+            Expr::GetField(expr2, _, _, _) => self.set_local_funs_for_expr(&mut **expr2, local_fun_counter)?,
+            Expr::Get2Field(expr2, _, _, _) => self.set_local_funs_for_expr(&mut **expr2, local_fun_counter)?,
+            Expr::SetField(expr2, _, expr3, _, _) => {
+                self.set_local_funs_for_expr(&mut **expr2, local_fun_counter)?;
+                self.set_local_funs_for_expr(&mut **expr3, local_fun_counter)?;
+            },
+            Expr::UpdateField(expr2, _, expr3, _, _) => {
+                self.set_local_funs_for_expr(&mut **expr2, local_fun_counter)?;
+                self.set_local_funs_for_expr(&mut **expr3, local_fun_counter)?;
+            },
+            Expr::UpdateGet2Field(expr2, _, expr3, _, _) => {
+                self.set_local_funs_for_expr(&mut **expr2, local_fun_counter)?;
+                self.set_local_funs_for_expr(&mut **expr3, local_fun_counter)?;
+            },
+            Expr::Uniq(expr2, _, _) => self.set_local_funs_for_expr(&mut **expr2, local_fun_counter)?,
+            Expr::Shared(expr2, _, _) => self.set_local_funs_for_expr(&mut **expr2, local_fun_counter)?,
+            Expr::Typed(expr2, _, _, _) => self.set_local_funs_for_expr(&mut **expr2, local_fun_counter)?,
+            Expr::As(expr2, _, _, _) => self.set_local_funs_for_expr(&mut **expr2, local_fun_counter)?,
+            Expr::If(expr2, expr3, expr4, _, _) => {
+                self.set_local_funs_for_expr(&mut **expr2, local_fun_counter)?;
+                self.set_local_funs_for_expr(&mut **expr3, local_fun_counter)?;
+                self.set_local_funs_for_expr(&mut **expr4, local_fun_counter)?;
+            },
+            Expr::Let(binds, expr2, _, _) => {
+                for bind in binds {
+                    match bind {
+                        Bind(_, expr3) => self.set_local_funs_for_expr(&mut **expr3, local_fun_counter)?,
+                    }
+                }
+                self.set_local_funs_for_expr(&mut **expr2, local_fun_counter)?;
+            },
+            Expr::Match(expr2, cases, _, _) => {
+                self.set_local_funs_for_expr(&mut **expr2, local_fun_counter)?;
+                for case in cases {
+                    match case {
+                        Case(_, expr3) => self.set_local_funs_for_expr(&mut **expr3, local_fun_counter)?,
+                    }
+                }
+            },
+        }
+        Ok(())
+    }
+
+    fn value_for_fields_with_ref_fun_in<F>(&self, value: &mut Value, local_type: LocalType, fields: &mut [Field], pos: &Pos, tree: &Tree, local_types: &LocalTypes, are_settings: bool, errs: &mut Vec<FrontendError>, f: &mut F) -> FrontendResultWithErrors<bool>
+        where F: FnMut(&mut Value, &mut Vec<FrontendError>) -> FrontendResultWithErrors<bool>
+    {
+        match fields.first() {
+            Some(field) => {
+                let next_local_type: LocalType;
+                let field_idx = match field {
+                    Field::Unnamed(tmp_field_idx, Some(field_local_type)) => {
+                        next_local_type = *field_local_type;
+                        *tmp_field_idx
+                    },
+                    Field::Named(field_ident, Some(field_local_type)) => {
+                        next_local_type = *field_local_type;
+                        match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type))) {
+                            Some(LocalTypeEntry::Type(type_value)) => {
+                                match &*type_value {
+                                    TypeValue::Type(_, TypeValueName::Name(type_ident), _) => {
+                                        match tree.type_var(type_ident) {
+                                            Some(type_var) => {
+                                                let type_var_r = type_var.borrow();
+                                                match &*type_var_r {
+                                                    TypeVar::Builtin(_, Some(fields2), _) => {
+                                                        match fields2.field_index(field_ident) {
+                                                            Some(tmp_field_idx) => tmp_field_idx,
+                                                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: type variable hasn't field"))])),
+                                                        }
+                                                    },
+                                                    TypeVar::Data(_, cons, _) => {
+                                                        match cons.first() {
+                                                            Some(con) => {
+                                                                let con_r = con.borrow();
+                                                                match &*con_r {
+                                                                    Con::NamedField(_, _, _, Some(named_fields), _) => {
+                                                                        match named_fields.field_index(field_ident) {
+                                                                            Some(tmp_field_idx) => tmp_field_idx,
+                                                                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: type variable hasn't field"))])),
+                                                                        }
+                                                                    },
+                                                                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: type variable isn't type or no fields"))])),
+                                                                }
+                                                            },
+                                                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: type variable hasn't constructor"))])),
+                                                        }
+                                                    },
+                                                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: type variable isn't type or no fields"))])),
+                                                }
+                                            },
+                                            None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: no type variable"))])),
+                                        }
+                                    },
+                                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: type value isn't type or type value hasn't field"))]))
+                                }
+                            },
+                            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: no local type entry"))])),
+                        }
+                    },
+                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: no local type"))])),
+                };
+                match value {
+                    Value::Object(shared_flag, object) => {
+                        if *shared_flag == SharedFlag::Shared && are_settings {
+                            let new_object = object.clone();
+                            let new_object_r = new_object.borrow();
+                            *object = Rc::new(RefCell::new(new_object_r.clone()));
+                        }
+                        let mut object_r = object.borrow_mut();
+                        match &mut *object_r {
+                            Object::CharN(cs) => {
+                                match cs.get_mut(field_idx) {
+                                    Some(c) => {
+                                        let mut vec_field_value = Value::Char(*c);
+                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f)?;
+                                        if are_settings && is_set {
+                                            match vec_field_value {
+                                                Value::Char(c2) => *c = c2,
+                                                Value::Object(_, object2) => {
+                                                    let object2_r = object2.borrow();
+                                                    add_error_for_object(&*object2_r, pos.clone(), errs)?;
+                                                    return Ok(false);
+                                                },
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: invalid value"))])),
+                                            }
+                                        }
+                                        Ok(is_set)
+                                    },
+                                    None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: value hasn't field value"))])),
+                                }
+                            },
+                            Object::ShortN(ns) => {
+                                match ns.get_mut(field_idx) {
+                                    Some(n) => {
+                                        let mut vec_field_value = Value::Short(*n);
+                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f)?;
+                                        if are_settings && is_set {
+                                            match vec_field_value {
+                                                Value::Short(n2) => *n = n2,
+                                                Value::Object(_, object2) => {
+                                                    let object2_r = object2.borrow();
+                                                    add_error_for_object(&*object2_r, pos.clone(), errs)?;
+                                                    return Ok(false);
+                                                },
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: invalid value"))])),
+                                            }
+                                        }
+                                        Ok(is_set)
+                                    },
+                                    None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: value hasn't field value"))])),
+                                }
+                            },
+                            Object::IntN(ns) => {
+                                match ns.get_mut(field_idx) {
+                                    Some(n) => {
+                                        let mut vec_field_value = Value::Int(*n);
+                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f)?;
+                                        if are_settings && is_set {
+                                            match vec_field_value {
+                                                Value::Int(n2) => *n = n2,
+                                                Value::Object(_, object2) => {
+                                                    let object2_r = object2.borrow();
+                                                    add_error_for_object(&*object2_r, pos.clone(), errs)?;
+                                                    return Ok(false);
+                                                },
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: invalid value"))])),
+                                            }
+                                        }
+                                        Ok(is_set)
+                                    },
+                                    None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: value hasn't field value"))])),
+                                }
+                            },
+                            Object::LongN(ns) => {
+                                match ns.get_mut(field_idx) {
+                                    Some(n) => {
+                                        let mut vec_field_value = Value::Long(*n);
+                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f)?;
+                                        if are_settings && is_set {
+                                            match vec_field_value {
+                                                Value::Long(n2) => *n = n2,
+                                                Value::Object(_, object2) => {
+                                                    let object2_r = object2.borrow();
+                                                    add_error_for_object(&*object2_r, pos.clone(), errs)?;
+                                                    return Ok(false);
+                                                },
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: invalid value"))])),
+                                            }
+                                        }
+                                        Ok(is_set)
+                                    },
+                                    None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: value hasn't field value"))])),
+                                }
+                            },
+                            Object::UcharN(cs) => {
+                                match cs.get_mut(field_idx) {
+                                    Some(c) => {
+                                        let mut vec_field_value = Value::Uchar(*c);
+                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f)?;
+                                        if are_settings && is_set {
+                                            match vec_field_value {
+                                                Value::Uchar(c2) => *c = c2,
+                                                Value::Object(_, object2) => {
+                                                    let object2_r = object2.borrow();
+                                                    add_error_for_object(&*object2_r, pos.clone(), errs)?;
+                                                    return Ok(false);
+                                                },
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: invalid value"))])),
+                                            }
+                                        }
+                                        Ok(is_set)
+                                    },
+                                    None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: value hasn't field value"))])),
+                                }
+                            },
+                            Object::UshortN(ns) => {
+                                match ns.get_mut(field_idx) {
+                                    Some(n) => {
+                                        let mut vec_field_value = Value::Ushort(*n);
+                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f)?;
+                                        if are_settings && is_set {
+                                            match vec_field_value {
+                                                Value::Ushort(n2) => *n = n2,
+                                                Value::Object(_, object2) => {
+                                                    let object2_r = object2.borrow();
+                                                    add_error_for_object(&*object2_r, pos.clone(), errs)?;
+                                                    return Ok(false);
+                                                },
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: invalid value"))])),
+                                            }
+                                        }
+                                        Ok(is_set)
+                                    },
+                                    None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: value hasn't field value"))])),
+                                }
+                            },
+                            Object::UintN(ns) => {
+                                match ns.get_mut(field_idx) {
+                                    Some(n) => {
+                                        let mut vec_field_value = Value::Uint(*n);
+                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f)?;
+                                        if are_settings && is_set {
+                                            match vec_field_value {
+                                                Value::Uint(n2) => *n = n2,
+                                                Value::Object(_, object2) => {
+                                                    let object2_r = object2.borrow();
+                                                    add_error_for_object(&*object2_r, pos.clone(), errs)?;
+                                                    return Ok(false);
+                                                },
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: invalid value"))])),
+                                            }
+                                        }
+                                        Ok(is_set)
+                                    },
+                                    None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: value hasn't field value"))])),
+                                }
+                            },
+                            Object::UlongN(ns) => {
+                                match ns.get_mut(field_idx) {
+                                    Some(n) => {
+                                        let mut vec_field_value = Value::Ulong(*n);
+                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f)?;
+                                        if are_settings && is_set {
+                                            match vec_field_value {
+                                                Value::Ulong(n2) => *n = n2,
+                                                Value::Object(_, object2) => {
+                                                    let object2_r = object2.borrow();
+                                                    add_error_for_object(&*object2_r, pos.clone(), errs)?;
+                                                    return Ok(false);
+                                                },
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: invalid value"))])),
+                                            }
+                                        }
+                                        Ok(is_set)
+                                    },
+                                    None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: value hasn't field value"))])),
+                                }
+                            },    
+                            Object::FloatN(ns) => {
+                                match ns.get_mut(field_idx) {
+                                    Some(n) => {
+                                        let mut vec_field_value = Value::Float(*n);
+                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f)?;
+                                        if are_settings && is_set {
+                                            match vec_field_value {
+                                                Value::Float(n2) => *n = n2,
+                                                Value::Object(_, object2) => {
+                                                    let object2_r = object2.borrow();
+                                                    add_error_for_object(&*object2_r, pos.clone(), errs)?;
+                                                    return Ok(false);
+                                                },
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: invalid value"))])),
+                                            }
+                                        }
+                                        Ok(is_set)
+                                    },
+                                    None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: value hasn't field value"))])),
+                                }
+                            },
+                            Object::DoubleN(ns) => {
+                                match ns.get_mut(field_idx) {
+                                    Some(n) => {
+                                        let mut vec_field_value = Value::Double(*n);
+                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f)?;
+                                        if are_settings && is_set {
+                                            match vec_field_value {
+                                                Value::Double(n2) => *n = n2,
+                                                Value::Object(_, object2) => {
+                                                    let object2_r = object2.borrow();
+                                                    add_error_for_object(&*object2_r, pos.clone(), errs)?;
+                                                    return Ok(false);
+                                                },
+                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: invalid value"))])),
+                                            }
+                                        }
+                                        Ok(is_set)
+                                    },
+                                    None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: value hasn't field value"))])),
+                                }
+                            },
+                            Object::Tuple(field_values) => {
+                                match field_values.get_mut(field_idx) {
+                                    Some(field_value) => self.value_for_fields_with_ref_fun_in(field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f),
+                                    None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: value hasn't field value"))])),
+                                }
+                            },
+                            Object::Data(_, field_values) => {
+                                match field_values.get_mut(field_idx) {
+                                    Some(field_value) => self.value_for_fields_with_ref_fun_in(field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f),
+                                    None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: value hasn't field value"))])),
+                                }
+                            },
+                            _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: object hasn't fields"))])),
+                        }
+                    },
+                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: value isn't object"))])),
+                }
+            },
+            None => f(value, errs),
+        }
+    }
+    
+    fn value_for_fields_in<F>(&self, value: &mut Value, local_type: LocalType, fields: &mut [Field], pos: &Pos, tree: &Tree, local_types: &LocalTypes, are_settings: bool, errs: &mut Vec<FrontendError>, mut f: F) -> FrontendResultWithErrors<bool>
+        where F: FnMut(&mut Value, &mut Vec<FrontendError>) -> FrontendResultWithErrors<bool>
+    { self.value_for_fields_with_ref_fun_in(value, local_type, fields, pos, tree, local_types, are_settings, errs, &mut f) }
+
+    fn set_closures_for_expr(&self, expr: &mut Expr, closures: &mut BTreeMap<LocalFun, Closure>) -> FrontendResultWithErrors<()>
+    {
+        match expr {
+            Expr::Literal(literal, _, _) => self.do_literal_mut_for_setting(&mut **literal, |evaluator, expr| evaluator.set_closures_for_expr(expr, closures))?,
+            Expr::Lambda(_, _, _, _, _, Some(local_fun), closure, _) => {
+                match closures.remove(local_fun) {
+                    Some(closure2) => *closure = Some(Box::new(closure2)),
+                    None => (),
+                }
+            },
+            Expr::Var(_, _, _) => (),
+            Expr::NamedFieldConApp(_, expr_named_field_pairs, _, _, _) => {
+                self.do_named_field_pairs_mut_for_setting(expr_named_field_pairs.as_mut_slice(), |evaluator, expr| evaluator.set_closures_for_expr(expr, closures))?;
+            },
+            Expr::PrintfApp(exprs, _, _) => {
+                for expr2 in exprs {
+                    self.set_closures_for_expr(&mut **expr2, closures)?;
+                }
+            },
+            Expr::App(expr2, exprs, _, _) => {
+                self.set_closures_for_expr(&mut **expr2, closures)?;
+                for expr3 in exprs {
+                    self.set_closures_for_expr(&mut **expr3, closures)?;
+                }
+            },
+            Expr::GetField(expr2, _, _, _) => self.set_closures_for_expr(&mut **expr2, closures)?,
+            Expr::Get2Field(expr2, _, _, _) => self.set_closures_for_expr(&mut **expr2, closures)?,
+            Expr::SetField(expr2, _, expr3, _, _) => {
+                self.set_closures_for_expr(&mut **expr2, closures)?;
+                self.set_closures_for_expr(&mut **expr3, closures)?;
+            },
+            Expr::UpdateField(expr2, _, expr3, _, _) => {
+                self.set_closures_for_expr(&mut **expr2, closures)?;
+                self.set_closures_for_expr(&mut **expr3, closures)?;
+            },
+            Expr::UpdateGet2Field(expr2, _, expr3, _, _) => {
+                self.set_closures_for_expr(&mut **expr2, closures)?;
+                self.set_closures_for_expr(&mut **expr3, closures)?;
+            },
+            Expr::Uniq(expr2, _, _) => self.set_closures_for_expr(&mut **expr2, closures)?,
+            Expr::Shared(expr2, _, _) => self.set_closures_for_expr(&mut **expr2, closures)?,
+            Expr::Typed(expr2, _, _, _) => self.set_closures_for_expr(&mut **expr2, closures)?,
+            Expr::As(expr2, _, _, _) => self.set_closures_for_expr(&mut **expr2, closures)?,
+            Expr::If(expr2, expr3, expr4, _, _) => {
+                self.set_closures_for_expr(&mut **expr2, closures)?;
+                self.set_closures_for_expr(&mut **expr3, closures)?;
+                self.set_closures_for_expr(&mut **expr4, closures)?;
+            },
+            Expr::Let(binds, expr2, _, _) => {
+                for bind in binds {
+                    match bind {
+                        Bind(_, expr3) => self.set_closures_for_expr(&mut **expr3, closures)?,
+                    }
+                }
+                self.set_closures_for_expr(&mut **expr2, closures)?;
+            },
+            Expr::Match(expr2, cases, _, _) => {
+                self.set_closures_for_expr(&mut **expr2, closures)?;
+                for case in cases {
+                    match case {
+                        Case(_, expr3) => self.set_closures_for_expr(&mut **expr3, closures)?,
+                    }
+                }
+            },
+            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("set_closures_for_expr: no local function"))])),
         }
         Ok(())
     }
