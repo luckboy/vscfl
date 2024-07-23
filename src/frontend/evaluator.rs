@@ -2211,7 +2211,7 @@ impl Evaluator
             },
             Pattern::Const(ident, Some(local_type), pos) => {
                 let type_name = type_name_for_var_ident_and_local_type(ident, *local_type, tree, type_stack, local_types)?;
-                match self.value_for_ident_and_type_name(ident, &type_name, pos.clone(), tree, true, errs)? {
+                match self.value_for_ident_and_type_name(ident, &type_name, pos.clone(), tree, false, errs)? {
                     Some(value) => self.value_to_pattern_value(&value, pos, errs),
                     None => Ok(None),
                 }
