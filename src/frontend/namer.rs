@@ -158,17 +158,22 @@ fn check_type_name(type_name: &TypeName, pos: Pos, tree: &Tree, errs: &mut Vec<F
     }
 }
 
-fn add_var_ident(ident: &String, pos: Pos, var_env: &mut Environment<()>, var_idents: &mut BTreeSet<String>, is_in_alt_pattern: bool, errs: &mut Vec<FrontendError>)
+fn add_var_ident(ident: &String, pos: &Pos, var_env: &mut Environment<()>, var_idents: &mut BTreeSet<String>, is_in_as_pattern: bool, is_in_alt_pattern: bool, errs: &mut Vec<FrontendError>)
 {
-    if !is_in_alt_pattern {
+    if !is_in_as_pattern && !is_in_alt_pattern {
         if !var_idents.contains(ident) {
             var_env.add_var(ident.clone(), ());
             var_idents.insert(ident.clone());
         } else {
-            errs.push(FrontendError::Message(pos, format!("already variable {} in pattern", ident)));
+            errs.push(FrontendError::Message(pos.clone(), format!("already variable {} in pattern", ident)));
         }
     } else {
-        errs.push(FrontendError::Message(pos, String::from("variable pattern mustn't be in alternative pattern")));
+        if is_in_as_pattern {
+            errs.push(FrontendError::Message(pos.clone(), String::from("variable pattern mustn't be in casting pattern")));
+        }
+        if is_in_alt_pattern {
+            errs.push(FrontendError::Message(pos.clone(), String::from("variable pattern mustn't be in alternative pattern")));
+        }
     }
 }
 
@@ -786,7 +791,7 @@ impl Namer
                         Bind(pattern, expr3) => {
                             self.check_idents_for_expr(&**expr3, tree, var_env, type_param_env, errs)?;
                             let mut var_idents: BTreeSet<String> = BTreeSet::new();
-                            self.check_idents_for_pattern(&**pattern, tree, var_env, type_param_env, &mut var_idents, false, errs)?;
+                            self.check_idents_for_pattern(&**pattern, tree, var_env, type_param_env, &mut var_idents, false, false, errs)?;
                         },
                     }
                 }
@@ -800,7 +805,7 @@ impl Namer
                         Case(pattern, expr3) => {
                             var_env.push_new_vars();
                             let mut var_idents: BTreeSet<String> = BTreeSet::new();
-                            self.check_idents_for_pattern(&**pattern, tree, var_env, type_param_env, &mut var_idents, false, errs)?;
+                            self.check_idents_for_pattern(&**pattern, tree, var_env, type_param_env, &mut var_idents, false, false, errs)?;
                             self.check_idents_for_expr(&**expr3, tree, var_env, type_param_env, errs)?;
                             var_env.pop_vars();
                         },
@@ -811,17 +816,17 @@ impl Namer
         Ok(())
     }
     
-    fn check_idents_for_pattern(&self, pattern: &Pattern, tree: &Tree, var_env: &mut Environment<()>, type_param_env: &mut Environment<()>, var_idents: &mut BTreeSet<String>, is_in_alt_pattern: bool, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn check_idents_for_pattern(&self, pattern: &Pattern, tree: &Tree, var_env: &mut Environment<()>, type_param_env: &mut Environment<()>, var_idents: &mut BTreeSet<String>, is_in_as_pattern: bool, is_in_alt_pattern: bool, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         match pattern {
             Pattern::Literal(literal, _, _) => {
                 self.check_idents_for_literal(&**literal, tree, var_env, type_param_env, errs, |namer, pattern, tree, var_env, type_param_env, errs| {
-                    namer.check_idents_for_pattern(pattern, tree, var_env, type_param_env, var_idents, is_in_alt_pattern, errs)
+                    namer.check_idents_for_pattern(pattern, tree, var_env, type_param_env, var_idents, is_in_as_pattern, is_in_alt_pattern, errs)
                 })?;
             },
             Pattern::As(literal, type_expr, _, _, _) => {
                 self.check_idents_for_literal(&**literal, tree, var_env, type_param_env, errs, |namer, pattern, tree, var_env, type_param_env, errs| {
-                    namer.check_idents_for_pattern(pattern, tree, var_env, type_param_env, var_idents, is_in_alt_pattern, errs)
+                    namer.check_idents_for_pattern(pattern, tree, var_env, type_param_env, var_idents, true, is_in_alt_pattern, errs)
                 })?;
                 self.check_idents_for_type_expr(&**type_expr, tree, type_param_env, false, true, errs)?;
             },
@@ -843,28 +848,28 @@ impl Namer
                     None => (),
                 }
                 for pattern2 in patterns {
-                    self.check_idents_for_pattern(&**pattern2, tree, var_env, type_param_env, var_idents, is_in_alt_pattern, errs)?;
+                    self.check_idents_for_pattern(&**pattern2, tree, var_env, type_param_env, var_idents, is_in_as_pattern, is_in_alt_pattern, errs)?;
                 }
             },
             Pattern::NamedFieldCon(ident, pattern_named_field_pairs, _, _, pos) => {
                 match check_con_ident(ident, pos.clone(), tree, true, errs) {
                     Some(con) => {
                         self.check_idents_for_named_field_pairs(pattern_named_field_pairs.as_slice(), pos.clone(), con, tree, var_env, type_param_env, errs, |namer, pattern, tree, var_env, type_param_env, errs| {
-                                namer.check_idents_for_pattern(pattern, tree, var_env, type_param_env, var_idents, is_in_alt_pattern, errs)
+                                namer.check_idents_for_pattern(pattern, tree, var_env, type_param_env, var_idents, is_in_as_pattern, is_in_alt_pattern, errs)
                         })?;
                     },
                     None => (),
                 }
             }
-            Pattern::Var(_, ident, _, pos) => add_var_ident(ident, pos.clone(), var_env, var_idents, is_in_alt_pattern, errs),
+            Pattern::Var(_, ident, _, pos) => add_var_ident(ident, pos, var_env, var_idents, is_in_as_pattern, is_in_alt_pattern, errs),
             Pattern::At(_, ident, pattern2, _, pos) => {
-                add_var_ident(ident, pos.clone(), var_env, var_idents, is_in_alt_pattern, errs);
-                self.check_idents_for_pattern(&**pattern2, tree, var_env, type_param_env, var_idents, is_in_alt_pattern, errs)?;
+                add_var_ident(ident, pos, var_env, var_idents, is_in_as_pattern, is_in_alt_pattern, errs);
+                self.check_idents_for_pattern(&**pattern2, tree, var_env, type_param_env, var_idents, is_in_as_pattern, is_in_alt_pattern, errs)?;
             },
             Pattern::Wildcard(_, _) => (),
             Pattern::Alt(patterns, _, _) => {
                 for pattern2 in patterns {
-                    self.check_idents_for_pattern(&**pattern2, tree, var_env, type_param_env, var_idents, true, errs)?;
+                    self.check_idents_for_pattern(&**pattern2, tree, var_env, type_param_env, var_idents, is_in_as_pattern, true, errs)?;
                 }
             },
         }

@@ -2303,6 +2303,41 @@ x: Int =
 }
 
 #[test]
+fn test_namer_check_idents_complains_on_variable_pattern_must_not_be_in_casting_pattern()
+{
+    let s = "
+builtin type Int;
+x: Int = 
+    1 match {
+        (x, 2.0) as (Int, Int) => 1;
+    };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(4, pos.line);
+                    assert_eq!(10, pos.column);
+                    assert_eq!(String::from("variable pattern mustn't be in casting pattern"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
 fn test_namer_check_idents_complains_on_variable_pattern_must_not_be_in_alternative_pattern()
 {
     let s = "
