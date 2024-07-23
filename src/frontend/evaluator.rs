@@ -32,6 +32,31 @@ fn pattern_pos(pattern: &Pattern) -> &Pos
     }
 }
 
+fn expr_local_type(expr: &Expr) -> FrontendResultWithErrors<LocalType>
+{
+    match expr {
+        Expr::Literal(_, Some(local_type), _) => Ok(*local_type),
+        Expr::Lambda(_, _, _, _, Some(local_type), _, _, _) => Ok(*local_type),
+        Expr::Var(_, Some(local_type), _) => Ok(*local_type),
+        Expr::NamedFieldConApp(_, _, _, Some(local_type), _) => Ok(*local_type),
+        Expr::PrintfApp(_, Some(local_type), _) => Ok(*local_type),
+        Expr::App(_, _, Some(local_type), _) => Ok(*local_type),
+        Expr::GetField(_, _, Some(local_type), _) => Ok(*local_type),
+        Expr::Get2Field(_, _, Some(local_type), _) => Ok(*local_type),
+        Expr::SetField(_, _, _, Some(local_type), _) => Ok(*local_type),
+        Expr::UpdateField(_, _, _, Some(local_type), _) => Ok(*local_type),
+        Expr::UpdateGet2Field(_, _, _, Some(local_type), _) => Ok(*local_type),
+        Expr::Uniq(_, Some(local_type), _) => Ok(*local_type),
+        Expr::Shared(_, Some(local_type), _) => Ok(*local_type),
+        Expr::Typed(_, _, Some(local_type), _) => Ok(*local_type),
+        Expr::As(_, _, Some(local_type), _) => Ok(*local_type),
+        Expr::Let(_, _, Some(local_type), _) => Ok(*local_type),
+        Expr::If(_, _, _, Some(local_type), _) => Ok(*local_type),
+        Expr::Match(_, _, Some(local_type), _) => Ok(*local_type),
+        _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("expr_local_type: no local type"))])),
+    }
+}
+
 fn pattern_local_type(pattern: &Pattern) -> FrontendResultWithErrors<LocalType>
 {
     match pattern {
@@ -143,6 +168,22 @@ fn add_var_key(ident: &String, type_name: &Option<TypeName>, pos: Pos, tree: &Tr
             }
         },
         None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no variable"))])),
+    }
+}
+
+fn shared_flag_for_local_type(local_type: LocalType, tree: &Tree, type_stack: &mut TypeStack, local_types: &LocalTypes) -> FrontendResultWithErrors<SharedFlag>
+{
+    match type_stack.push_type_entries_for_local_type(local_type, local_types) {
+        Ok(new_local_type) => {
+            match type_stack.shared_flag_for_local_type(new_local_type, tree) {
+                Ok(shared_flag) => {
+                    type_stack.pop_type_entries();
+                    Ok(shared_flag)
+                },
+                Err(err) => Err(FrontendErrors::new(vec![FrontendError::Internal(format!("{}", err))])),
+            }
+        },
+        Err(err) => Err(FrontendErrors::new(vec![FrontendError::Internal(format!("{}", err))])),
     }
 }
 
@@ -321,7 +362,6 @@ fn add_error_for_object(object: &Object, pos: Pos, errs: &mut Vec<FrontendError>
     }
 }
 
-
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 enum PatternId
 {
@@ -357,6 +397,50 @@ enum PatternId
     Data(String),
 }
 
+#[derive(Clone, Debug)]
+enum PatternObject
+{
+    String(Vec<u8>),
+    CharN(Vec<i8>),
+    ShortN(Vec<i16>),
+    IntN(Vec<i32>),
+    LongN(Vec<i64>),
+    UcharN(Vec<u8>),
+    UshortN(Vec<u16>),
+    UintN(Vec<u32>),
+    UlongN(Vec<u64>),
+    FloatN(Vec<f32>),
+    DoubleN(Vec<f64>),
+    Tuple(Vec<PatternValue>),
+    Array(Vec<PatternValue>),
+    Data(String, Vec<PatternValue>),
+    Var(String),
+    At(String, PatternValue),
+    Alt(Vec<PatternValue>),
+}
+
+#[derive(Clone, Debug)]
+enum PatternValue
+{
+    Bool(bool),
+    Char(i8),
+    Short(i16),
+    Int(i32),
+    Long(i64),
+    Uchar(u8),
+    Ushort(u16),
+    Uint(u32),
+    Ulong(u64),
+    Float(f32),
+    Double(f64),
+    SizeT(u64),
+    PtrdiffT(i64),
+    IntptrT(i64),
+    UintptrT(u64),
+    Wildcard,
+    Object(Rc<RefCell<PatternObject>>),
+}
+
 pub struct Evaluator
 {
     evals: Evals,
@@ -382,7 +466,13 @@ impl Evaluator
                     },
                     Var::Var(_, _, _, _, tmp_trait_ident, _, _, _, Some(tmp_value)) => (tmp_trait_ident, Some(tmp_value.clone())),
                     Var::Var(_, _, _, _, tmp_trait_ident, _, _, _, None) => (tmp_trait_ident, None),
-                    Var::Fun(_, tmp_trait_ident, _) => (tmp_trait_ident, Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Fun(ident.clone(), None)))))),
+                    Var::Fun(fun, tmp_trait_ident, _) => {
+                        let tmp_value = match &**fun {
+                            Fun::Fun(_, _, _, _, _, _, _) => Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Fun(ident.clone(), None))))),
+                            Fun::Con(_) => Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Con(ident.clone()))))),
+                        };
+                        (tmp_trait_ident, tmp_value)
+                    },
                 };
                 let value3 = match type_name {
                     Some(type_name) => {
@@ -1521,7 +1611,7 @@ impl Evaluator
         Ok(())
     }
 
-    fn value_for_fields_with_ref_fun_in<F>(&self, value: &mut Value, local_type: LocalType, fields: &mut [Field], pos: &Pos, tree: &Tree, local_types: &LocalTypes, are_settings: bool, errs: &mut Vec<FrontendError>, f: &mut F) -> FrontendResultWithErrors<bool>
+    fn value_for_fields_with_ref_fun_in<F>(&self, value: &mut Value, local_type: LocalType, fields: &[Field], pos: &Pos, tree: &Tree, local_types: &LocalTypes, are_settings: bool, errs: &mut Vec<FrontendError>, f: &mut F) -> FrontendResultWithErrors<bool>
         where F: FnMut(&mut Value, &mut Vec<FrontendError>) -> FrontendResultWithErrors<bool>
     {
         match fields.first() {
@@ -1582,9 +1672,9 @@ impl Evaluator
                 match value {
                     Value::Object(shared_flag, object) => {
                         if *shared_flag == SharedFlag::Shared && are_settings {
-                            let new_object = object.clone();
-                            let new_object_r = new_object.borrow();
-                            *object = Rc::new(RefCell::new(new_object_r.clone()));
+                            let tmp_object = object.clone();
+                            let tmp_object_r = tmp_object.borrow();
+                            *object = Rc::new(RefCell::new(tmp_object_r.clone()));
                         }
                         let mut object_r = object.borrow_mut();
                         match &mut *object_r {
@@ -1592,7 +1682,7 @@ impl Evaluator
                                 match cs.get_mut(field_idx) {
                                     Some(c) => {
                                         let mut vec_field_value = Value::Char(*c);
-                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f)?;
+                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &fields[1..], pos, tree, local_types, are_settings, errs, f)?;
                                         if are_settings && is_set {
                                             match vec_field_value {
                                                 Value::Char(c2) => *c = c2,
@@ -1613,7 +1703,7 @@ impl Evaluator
                                 match ns.get_mut(field_idx) {
                                     Some(n) => {
                                         let mut vec_field_value = Value::Short(*n);
-                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f)?;
+                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &fields[1..], pos, tree, local_types, are_settings, errs, f)?;
                                         if are_settings && is_set {
                                             match vec_field_value {
                                                 Value::Short(n2) => *n = n2,
@@ -1634,7 +1724,7 @@ impl Evaluator
                                 match ns.get_mut(field_idx) {
                                     Some(n) => {
                                         let mut vec_field_value = Value::Int(*n);
-                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f)?;
+                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &fields[1..], pos, tree, local_types, are_settings, errs, f)?;
                                         if are_settings && is_set {
                                             match vec_field_value {
                                                 Value::Int(n2) => *n = n2,
@@ -1655,7 +1745,7 @@ impl Evaluator
                                 match ns.get_mut(field_idx) {
                                     Some(n) => {
                                         let mut vec_field_value = Value::Long(*n);
-                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f)?;
+                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &fields[1..], pos, tree, local_types, are_settings, errs, f)?;
                                         if are_settings && is_set {
                                             match vec_field_value {
                                                 Value::Long(n2) => *n = n2,
@@ -1676,7 +1766,7 @@ impl Evaluator
                                 match cs.get_mut(field_idx) {
                                     Some(c) => {
                                         let mut vec_field_value = Value::Uchar(*c);
-                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f)?;
+                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &fields[1..], pos, tree, local_types, are_settings, errs, f)?;
                                         if are_settings && is_set {
                                             match vec_field_value {
                                                 Value::Uchar(c2) => *c = c2,
@@ -1697,7 +1787,7 @@ impl Evaluator
                                 match ns.get_mut(field_idx) {
                                     Some(n) => {
                                         let mut vec_field_value = Value::Ushort(*n);
-                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f)?;
+                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &fields[1..], pos, tree, local_types, are_settings, errs, f)?;
                                         if are_settings && is_set {
                                             match vec_field_value {
                                                 Value::Ushort(n2) => *n = n2,
@@ -1718,7 +1808,7 @@ impl Evaluator
                                 match ns.get_mut(field_idx) {
                                     Some(n) => {
                                         let mut vec_field_value = Value::Uint(*n);
-                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f)?;
+                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &fields[1..], pos, tree, local_types, are_settings, errs, f)?;
                                         if are_settings && is_set {
                                             match vec_field_value {
                                                 Value::Uint(n2) => *n = n2,
@@ -1739,7 +1829,7 @@ impl Evaluator
                                 match ns.get_mut(field_idx) {
                                     Some(n) => {
                                         let mut vec_field_value = Value::Ulong(*n);
-                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f)?;
+                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &fields[1..], pos, tree, local_types, are_settings, errs, f)?;
                                         if are_settings && is_set {
                                             match vec_field_value {
                                                 Value::Ulong(n2) => *n = n2,
@@ -1760,7 +1850,7 @@ impl Evaluator
                                 match ns.get_mut(field_idx) {
                                     Some(n) => {
                                         let mut vec_field_value = Value::Float(*n);
-                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f)?;
+                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &fields[1..], pos, tree, local_types, are_settings, errs, f)?;
                                         if are_settings && is_set {
                                             match vec_field_value {
                                                 Value::Float(n2) => *n = n2,
@@ -1781,7 +1871,7 @@ impl Evaluator
                                 match ns.get_mut(field_idx) {
                                     Some(n) => {
                                         let mut vec_field_value = Value::Double(*n);
-                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f)?;
+                                        let is_set = self.value_for_fields_with_ref_fun_in(&mut vec_field_value, next_local_type, &fields[1..], pos, tree, local_types, are_settings, errs, f)?;
                                         if are_settings && is_set {
                                             match vec_field_value {
                                                 Value::Double(n2) => *n = n2,
@@ -1800,13 +1890,13 @@ impl Evaluator
                             },
                             Object::Tuple(field_values) => {
                                 match field_values.get_mut(field_idx) {
-                                    Some(field_value) => self.value_for_fields_with_ref_fun_in(field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f),
+                                    Some(field_value) => self.value_for_fields_with_ref_fun_in(field_value, next_local_type, &fields[1..], pos, tree, local_types, are_settings, errs, f),
                                     None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: value hasn't field value"))])),
                                 }
                             },
                             Object::Data(_, field_values) => {
                                 match field_values.get_mut(field_idx) {
-                                    Some(field_value) => self.value_for_fields_with_ref_fun_in(field_value, next_local_type, &mut fields[1..], pos, tree, local_types, are_settings, errs, f),
+                                    Some(field_value) => self.value_for_fields_with_ref_fun_in(field_value, next_local_type, &fields[1..], pos, tree, local_types, are_settings, errs, f),
                                     None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: value hasn't field value"))])),
                                 }
                             },
@@ -1819,11 +1909,454 @@ impl Evaluator
             None => f(value, errs),
         }
     }
-    
-    fn value_for_fields_in<F>(&self, value: &mut Value, local_type: LocalType, fields: &mut [Field], pos: &Pos, tree: &Tree, local_types: &LocalTypes, are_settings: bool, errs: &mut Vec<FrontendError>, mut f: F) -> FrontendResultWithErrors<bool>
+
+    fn value_for_fields_in<F>(&self, value: &mut Value, local_type: LocalType, fields: &[Field], pos: &Pos, tree: &Tree, local_types: &LocalTypes, are_settings: bool, errs: &mut Vec<FrontendError>, mut f: F) -> FrontendResultWithErrors<bool>
         where F: FnMut(&mut Value, &mut Vec<FrontendError>) -> FrontendResultWithErrors<bool>
     { self.value_for_fields_with_ref_fun_in(value, local_type, fields, pos, tree, local_types, are_settings, errs, &mut f) }
 
+    fn convert_value_for_type_value(&self, value: &Value, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<Value>
+    { Ok(Value::Bool(false)) }
+
+    fn convert_pattern_value_for_type_value(&self, pattern_value: &PatternValue, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<PatternValue>
+    { Ok(PatternValue::Bool(false)) }
+    
+    fn value_to_pattern_value(&self, value: &Value, pos: &Pos, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<PatternValue>>
+    { Ok(None) }
+    
+    fn match_value_with_pattern_value(&self, value: &Value, pattern_value: &PatternValue, var_env: &mut Environment<Value>) -> FrontendResultWithErrors<bool>
+    { Ok(false) }
+    
+    fn evaluate_value_for_expr(&self, expr: &Expr, tree: &Tree, var_env: &mut Environment<Value>, type_stack: &mut TypeStack, local_types: &LocalTypes, closures: &mut BTreeMap<LocalFun, Closure>, var_key: &(String, Option<TypeName>), errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<Value>>
+    {
+        match expr {
+            Expr::Literal(literal, Some(local_type), _) => {
+                match self.evaluate_value_for_expr_literal(&**literal, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
+                    Some(mut value) => {
+                        value.set_shared_flag(shared_flag_for_local_type(*local_type, tree, type_stack, local_types)?);
+                        Ok(Some(value))
+                    },
+                    None => Ok(None),
+                }
+            },
+            Expr::Lambda(args, _, body, _, Some(local_type), Some(local_fun), _, _) => {
+                let mut lambda_var_env = Environment::new();
+                lambda_var_env.push_new_vars();
+                for arg in &*args {
+                    match arg {
+                        LambdaArg(ident, _, _, _) => {
+                            lambda_var_env.add_var(ident.clone(), ());
+                        },
+                    }
+                }
+                let mut closure = Closure::new();
+                self.add_closure_vars_for_expr(&**body, var_env, &mut lambda_var_env, &mut closure);
+                closures.insert(*local_fun, closure);
+                lambda_var_env.pop_vars();
+                let shared_flag = shared_flag_for_local_type(*local_type, tree, type_stack, local_types)?;
+                Ok(Some(Value::Object(shared_flag, Rc::new(RefCell::new(Object::Lambda(var_key.0.clone(), var_key.1.clone(), *local_fun))))))
+            },
+            Expr::Var(ident, Some(local_type), pos) => {
+                match var_env.var(ident) {
+                    Some(value) => Ok(Some(value.clone())),
+                    None => {
+                        let type_name = type_name_for_var_ident_and_local_type(ident, *local_type, tree, type_stack, local_types)?;
+                        self.value_for_ident_and_type_name(ident, &type_name, pos.clone(), tree, true, errs)
+                    },
+                }
+            },
+            Expr::NamedFieldConApp(ident, expr_named_field_pairs, _, Some(local_type), pos) => {
+                named_fields_for_con_ident_in(ident, tree, |named_fields| {
+                        let mut field_values = vec![Value::Bool(false); expr_named_field_pairs.len()];
+                        for expr_named_field_pair in expr_named_field_pairs {
+                            match expr_named_field_pair {
+                                NamedFieldPair(field_ident, expr2, _) => {
+                                    match named_fields.field_index(field_ident) {
+                                        Some(field_idx) => {
+                                            match self.evaluate_value_for_expr(&**expr2, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
+                                                Some(field_value) => field_values[field_idx] = field_value,
+                                                None => return Ok(None),
+                                            }
+                                        },
+                                        None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_value_for_expr: no field index"))])),
+                                    }
+                                },
+                            }
+                        }
+                        let shared_flag = shared_flag_for_local_type(*local_type, tree, type_stack, local_types)?;
+                        Ok(Some(Value::Object(shared_flag, Rc::new(RefCell::new(Object::Data(ident.clone(), field_values))))))
+                })
+            },
+            Expr::PrintfApp(_, _, pos) => {
+                errs.push(FrontendError::Message(pos.clone(), String::from("printf is unsupported for evaluation of variable values")));
+                Ok(None)
+            },
+            Expr::App(expr2, exprs, Some(local_type), pos) => {
+                match self.evaluate_value_for_expr(&**expr2, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
+                    Some(Value::Object(_, object)) => {
+                        let object_r = object.borrow();
+                        match &*object_r {
+                            Object::Con(con_ident) => {
+                                let mut field_values: Vec<Value> = Vec::new();
+                                for expr3 in exprs {
+                                    match self.evaluate_value_for_expr(&**expr3, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
+                                        Some(field_value) => field_values.push(field_value),
+                                        None => return Ok(None),
+                                    }
+                                }
+                                let shared_flag = shared_flag_for_local_type(*local_type, tree, type_stack, local_types)?;
+                                Ok(Some(Value::Object(shared_flag, Rc::new(RefCell::new(Object::Data(con_ident.clone(), field_values))))))
+                            },
+                            Object::EvalFun(_, _, fun) => {
+                                let mut arg_values: Vec<Value> = Vec::new();
+                                for expr3 in exprs {
+                                    match self.evaluate_value_for_expr(&**expr3, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
+                                        Some(arg_value) => arg_values.push(arg_value),
+                                        None => return Ok(None),
+                                    }
+                                }
+                                match fun(arg_values.as_slice(), pos) {
+                                    Ok(value) => Ok(Some(value)),
+                                    Err(err @ FrontendError::Internal(_)) => Err(FrontendErrors::new(vec![err])),
+                                    Err(err) => {
+                                        errs.push(err);
+                                        Ok(None)
+                                    },
+                                }
+                            },
+                            _ => {
+                                errs.push(FrontendError::Message(pos.clone(), String::from("value isn't evaluable function")));
+                                Ok(None)
+                            },
+                        }
+                    },
+                    Some(_) => {
+                        errs.push(FrontendError::Message(pos.clone(), String::from("value isn't evaluable function")));
+                        Ok(None)
+                    }
+                    None => Ok(None),
+                }
+            },
+            Expr::GetField(expr2, fields, _, pos) => {
+                match self.evaluate_value_for_expr(&**expr2, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
+                    Some(mut value) => {
+                        let mut value2: Option<Value> = None;
+                        self.value_for_fields_in(&mut value, expr_local_type(&**expr2)?, fields.as_slice(), pos, tree, local_types, false, errs, |value, _| {
+                                value2 = Some(value.clone());
+                                Ok(false)
+                        })?;
+                        Ok(value2)
+                    },
+                    None => Ok(None),
+                }
+            },
+            Expr::Get2Field(expr2, fields, Some(local_type), pos) => {
+                match self.evaluate_value_for_expr(&**expr2, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
+                    Some(mut value) => {
+                        let mut value2: Option<Value> = None;
+                        self.value_for_fields_in(&mut value, expr_local_type(&**expr2)?, fields.as_slice(), pos, tree, local_types, false, errs, |value, _| {
+                                let shared_flag = shared_flag_for_local_type(*local_type, tree, type_stack, local_types)?;
+                                value2 = Some(value.clone());
+                                Ok(false)
+                        })?;
+                        match value2 {
+                            Some(value2) => {
+                                let shared_flag = shared_flag_for_local_type(*local_type, tree, type_stack, local_types)?;
+                                Ok(Some(Value::Object(shared_flag, Rc::new(RefCell::new(Object::Tuple(vec![value2, value]))))))
+                            },
+                            None => Ok(None),
+                        }
+                    },
+                    None => Ok(None),
+                }
+            },
+            Expr::SetField(expr2, fields, expr3, _, pos) => {
+                match self.evaluate_value_for_expr(&**expr2, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
+                    Some(mut value) => {
+                        let is_success = self.value_for_fields_in(&mut value, expr_local_type(&**expr2)?, fields.as_slice(), pos, tree, local_types, true, errs, |value, errs| {
+                                match self.evaluate_value_for_expr(&**expr3, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
+                                    Some(value2) => {
+                                        *value = value2;
+                                        Ok(true)
+                                    },
+                                    None => Ok(false),
+                                }
+                        })?;
+                        if is_success {
+                            Ok(Some(value))
+                        } else {
+                            Ok(None)
+                        }
+                    },
+                    None => Ok(None),
+                }
+            },
+            Expr::UpdateField(_, _, _, _, pos) => {
+                errs.push(FrontendError::Message(pos.clone(), String::from("opterator <-> is unsupported for evaluation of variable values")));
+                Ok(None)
+            },
+            Expr::UpdateGet2Field(_, _, _, _, pos) => {
+                errs.push(FrontendError::Message(pos.clone(), String::from("opterator <-> -> is unsupported for evaluation of variable values")));
+                Ok(None)
+            },
+            Expr::Uniq(expr2, _, _) => {
+                match self.evaluate_value_for_expr(&**expr2, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
+                    Some(Value::Object(SharedFlag::Shared, object)) => {
+                        let object_r = object.borrow();
+                        Ok(Some(Value::Object(SharedFlag::None, Rc::new(RefCell::new(object_r.clone())))))
+                    },
+                    Some(value) => Ok(Some(value)),
+                    None => Ok(None),
+                }
+            },
+            Expr::Shared(expr2, _, _) => {
+                match self.evaluate_value_for_expr(&**expr2, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
+                    Some(Value::Object(SharedFlag::None, object)) => {
+                        Ok(Some(Value::Object(SharedFlag::Shared, object.clone())))
+                    },
+                    Some(value) => Ok(Some(value)),
+                    None => Ok(None),
+                }
+            },
+            Expr::Typed(expr2, _, _, _) => self.evaluate_value_for_expr(&**expr2, tree, var_env, type_stack, local_types, closures, var_key, errs),
+            Expr::As(expr2, _, Some(local_type), _) => {
+                match self.evaluate_value_for_expr(&**expr2, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
+                    Some(value) => Ok(Some(self.convert_value_for_type_value(&value, &Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), tree, local_types)?)),
+                    None => Ok(None),
+                }
+            },
+            Expr::If(expr2, expr3, expr4, _, pos) => {
+                match self.evaluate_value_for_expr(&**expr2, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
+                    Some(Value::Bool(true)) => self.evaluate_value_for_expr(&**expr3, tree, var_env, type_stack, local_types, closures, var_key, errs),
+                    Some(Value::Bool(false)) => self.evaluate_value_for_expr(&**expr4, tree, var_env, type_stack, local_types, closures, var_key, errs),
+                    Some(Value::Object(_, object)) => {
+                        let object_r = object.borrow();
+                        match &*object_r {
+                            Object::Builtin(_, _) => {
+                                errs.push(FrontendError::Message(pos.clone(), String::from("value of built-in variable mustn't be condition")));
+                                Ok(None)
+                            },
+                            _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_value_for_expr: invalid object"))])),
+                        }
+                    },
+                    Some(_) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_value_for_expr: invalid value"))])),
+                    None => Ok(None),
+                }
+            },
+            Expr::Let(binds, expr2, _, _) => {
+                var_env.push_new_vars();
+                for bind in binds {
+                    match bind {
+                        Bind(pattern, expr3) => {
+                            match self.evaluate_value_for_expr(&**expr3, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
+                                Some(value) => {
+                                    match self.evaluate_pattern_value_for_pattern(pattern, tree, type_stack, local_types, errs)? {
+                                        Some(pattern_value) => {
+                                            if !self.match_value_with_pattern_value(&value, &pattern_value, var_env)? {
+                                                return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_value_for_expr: can't match value with pattern value"))]));
+                                            }
+                                        },
+                                        None => return Ok(None),
+                                    }
+                                },
+                                None => return Ok(None),
+                            }
+                        },
+                    }
+                }
+                match self.evaluate_value_for_expr(&**expr2, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
+                    Some(value) => {
+                        var_env.pop_vars();
+                        Ok(Some(value))
+                    },
+                    None => Ok(None),
+                }
+            },
+            Expr::Match(expr2, cases, _, _) => {
+                match self.evaluate_value_for_expr(&**expr2, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
+                    Some(value) => {
+                        for case in cases {
+                            match case {
+                                Case(pattern, expr3) => {
+                                    var_env.push_new_vars();
+                                    match self.evaluate_pattern_value_for_pattern(pattern, tree, type_stack, local_types, errs)? {
+                                        Some(pattern_value) => {
+                                            if self.match_value_with_pattern_value(&value, &pattern_value, var_env)? {
+                                                return self.evaluate_value_for_expr(&**expr3, tree, var_env, type_stack, local_types, closures, var_key, errs);
+                                            }
+                                        },
+                                        None => return Ok(None),
+                                    }
+                                    var_env.pop_vars();
+                                },
+                            }
+                        }
+                        Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_value_for_expr: can't match value with all pattern values"))]))
+                    },
+                    None => Ok(None),
+                }
+            },
+            _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_value_for_expr: no local type or no local function"))])),
+        }
+    }
+
+    fn evaluate_pattern_value_for_pattern(&self, pattern: &Pattern, tree: &Tree, type_stack: &mut TypeStack, local_types: &LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<PatternValue>>
+    {
+        match pattern {
+            Pattern::Literal(literal, _, _) => self.evaluate_pattern_value_for_pattern_literal(&**literal, tree, type_stack, local_types, errs),
+            Pattern::As(literal, _, _, Some(local_type), _) => {
+                match self.evaluate_pattern_value_for_pattern_literal(&**literal, tree, type_stack, local_types, errs)? {
+                    Some(pattern_value) => Ok(Some(self.convert_pattern_value_for_type_value(&pattern_value, &Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), tree, local_types)?)),
+                    None => Ok(None),
+                }
+            },
+            Pattern::Const(ident, Some(local_type), pos) => {
+                let type_name = type_name_for_var_ident_and_local_type(ident, *local_type, tree, type_stack, local_types)?;
+                match self.value_for_ident_and_type_name(ident, &type_name, pos.clone(), tree, true, errs)? {
+                    Some(value) => self.value_to_pattern_value(&value, pos, errs),
+                    None => Ok(None),
+                }
+            },
+            Pattern::UnnamedFieldCon(ident, patterns, _, _, _) => {
+                let mut field_pattern_values: Vec<PatternValue> = Vec::new();
+                for pattern2 in patterns {
+                    match self.evaluate_pattern_value_for_pattern(pattern2, tree, type_stack, local_types, errs)? {
+                        Some(field_pattern_value) => field_pattern_values.push(field_pattern_value),
+                        None => return Ok(None),
+                    }
+                }
+                Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::Data(ident.clone(), field_pattern_values))))))
+            },
+            Pattern::NamedFieldCon(ident, pattern_named_field_pairs, _, _, _) => {
+                named_fields_for_con_ident_in(ident, tree, |named_fields| {
+                        let mut field_pattern_values = vec![PatternValue::Bool(false); pattern_named_field_pairs.len()];
+                        for pattern_named_field_pair in pattern_named_field_pairs {
+                            match pattern_named_field_pair {
+                                NamedFieldPair(field_ident, pattern2, _) => {
+                                    match named_fields.field_index(field_ident) {
+                                        Some(field_idx) => {
+                                            match self.evaluate_pattern_value_for_pattern(&**pattern2, tree, type_stack, local_types, errs)? {
+                                                Some(field_pattern_value) => field_pattern_values[field_idx] = field_pattern_value,
+                                                None => return Ok(None),
+                                            }
+                                        },
+                                        None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_pattern_value_for_pattern: no field index"))])),
+                                    }
+                                },
+                            }
+                        }
+                        Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::Data(ident.clone(), field_pattern_values))))))
+                })
+            },
+            Pattern::Var(_, ident, _, _) => Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::Var(ident.clone())))))),
+            Pattern::At(_, ident, pattern2, _, _) => {
+                match self.evaluate_pattern_value_for_pattern(&**pattern2, tree, type_stack, local_types, errs)? {
+                    Some(pattern_value) => Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::At(ident.clone(), pattern_value)))))),
+                    None => Ok(None),
+                }
+            },
+            Pattern::Wildcard(_, _) => Ok(Some(PatternValue::Wildcard)),
+            Pattern::Alt(patterns, _, _) => {
+                let mut pattern_values: Vec<PatternValue> = Vec::new();
+                for pattern2 in patterns {
+                    match self.evaluate_pattern_value_for_pattern(pattern2, tree, type_stack, local_types, errs)? {
+                        Some(pattern_value) => pattern_values.push(pattern_value),
+                        None => return Ok(None),
+                    }
+                }
+                Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::Alt(pattern_values))))))
+            },
+            _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_pattern_value_for_pattern: no local type"))])),
+        }
+    }
+
+    fn evaluate_value_for_expr_literal(&self, literal: &Literal<Expr>, tree: &Tree, var_env: &mut Environment<Value>, type_stack: &mut TypeStack, local_types: &LocalTypes, closures: &mut BTreeMap<LocalFun, Closure>, var_key: &(String, Option<TypeName>), errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<Value>>
+    {
+        match literal {
+            Literal::Bool(b) => Ok(Some(Value::Bool(*b))),
+            Literal::Char(c) => Ok(Some(Value::Char(*c))),
+            Literal::Int(n) => Ok(Some(Value::Int(*n))),
+            Literal::Long(n) => Ok(Some(Value::Long(*n))),
+            Literal::Uint(n) => Ok(Some(Value::Uint(*n))),
+            Literal::Ulong(n) => Ok(Some(Value::Ulong(*n))),
+            Literal::Float(n) => Ok(Some(Value::Float(*n))),
+            Literal::Double(n) => Ok(Some(Value::Double(*n))),
+            Literal::String(bs) => Ok(Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::String(bs.clone())))))),
+            Literal::Tuple(field_exprs) => {
+                let mut field_values: Vec<Value> = Vec::new();
+                for field_expr in field_exprs {
+                    match self.evaluate_value_for_expr(&**field_expr, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
+                        Some(field_value) => field_values.push(field_value),
+                        None => return Ok(None),
+                    }
+                }
+                Ok(Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Tuple(field_values))))))
+            },
+            Literal::Array(elem_exprs) => {
+                let mut elem_values: Vec<Value> = Vec::new();
+                for elem_expr in elem_exprs {
+                    match self.evaluate_value_for_expr(&**elem_expr, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
+                        Some(elem_value) => elem_values.push(elem_value),
+                        None => return Ok(None),
+                    }
+                }
+                Ok(Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Array(elem_values))))))
+            },
+            Literal::FilledArray(elem_expr, len) => {
+                match self.evaluate_value_for_expr(&**elem_expr, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
+                    Some(elem_value) => Ok(Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Array(vec![elem_value; *len])))))),
+                    None => Ok(None),
+                }
+            },
+        }
+    }
+
+    fn evaluate_pattern_value_for_pattern_literal(&self, literal: &Literal<Pattern>, tree: &Tree, type_stack: &mut TypeStack, local_types: &LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<PatternValue>>
+    {
+        match literal {
+            Literal::Bool(b) => Ok(Some(PatternValue::Bool(*b))),
+            Literal::Char(c) => Ok(Some(PatternValue::Char(*c))),
+            Literal::Int(n) => Ok(Some(PatternValue::Int(*n))),
+            Literal::Long(n) => Ok(Some(PatternValue::Long(*n))),
+            Literal::Uint(n) => Ok(Some(PatternValue::Uint(*n))),
+            Literal::Ulong(n) => Ok(Some(PatternValue::Ulong(*n))),
+            Literal::Float(n) => Ok(Some(PatternValue::Float(*n))),
+            Literal::Double(n) => Ok(Some(PatternValue::Double(*n))),
+            Literal::String(bs) => Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::String(bs.clone())))))),
+            Literal::Tuple(field_patterns) => {
+                let mut field_pattern_values: Vec<PatternValue> = Vec::new();
+                for field_pattern in field_patterns {
+                    match self.evaluate_pattern_value_for_pattern(field_pattern, tree, type_stack, local_types, errs)? {
+                        Some(field_pattern_value) => field_pattern_values.push(field_pattern_value),
+                        None => return Ok(None),
+                    }
+                }
+                Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::Tuple(field_pattern_values))))))
+            },
+            Literal::Array(elem_patterns) => {
+                let mut elem_pattern_values: Vec<PatternValue> = Vec::new();
+                for elem_pattern in elem_patterns {
+                    match self.evaluate_pattern_value_for_pattern(elem_pattern, tree, type_stack, local_types, errs)? {
+                        Some(elem_pattern_value) => elem_pattern_values.push(elem_pattern_value),
+                        None => return Ok(None),
+                    }
+                }
+                Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::Array(elem_pattern_values))))))
+            },
+            Literal::FilledArray(elem_pattern, len) => {
+                match self.evaluate_pattern_value_for_pattern(elem_pattern, tree, type_stack, local_types, errs)? {
+                    Some(elem_pattern_value) => Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::Array(vec![elem_pattern_value; *len])))))),
+                    None => Ok(None),
+                }
+            },
+        }
+    }
+
+    fn add_closure_vars_for_expr(&self, expr: &Expr, closure_var_env: &Environment<Value>, var_env: &mut Environment<()>, closure: &mut Closure)
+    {}
+
+    fn add_vars_for_pattern(&self, expr: &Pattern, var_env: &mut Environment<()>)
+    {}
+    
     fn set_closures_for_expr(&self, expr: &mut Expr, closures: &mut BTreeMap<LocalFun, Closure>) -> FrontendResultWithErrors<()>
     {
         match expr {

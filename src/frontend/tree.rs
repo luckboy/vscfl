@@ -1432,6 +1432,7 @@ pub enum Object
     Data(String, Vec<Value>),
     Builtin(String, Option<TypeName>),
     Fun(String, Option<TypeName>),
+    Con(String),
     Lambda(String, Option<TypeName>, LocalFun),
     EvalFun(String, Option<TypeName>, fn(&[Value], &Pos) -> FrontendResult<Value>),
 }
@@ -1455,6 +1456,20 @@ pub enum Value
     IntptrT(i64),
     UintptrT(u64),
     Object(SharedFlag, Rc<RefCell<Object>>),
+}
+
+impl Value
+{
+    pub fn set_shared_flag(&mut self, shared_flag: SharedFlag) -> bool
+    {
+        match self {
+            Value::Object(shared_flag2, _) => {
+                *shared_flag2 = shared_flag;
+                true
+            }
+            _ => false,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
