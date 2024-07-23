@@ -1914,11 +1914,11 @@ impl Evaluator
         where F: FnMut(&mut Value, &mut Vec<FrontendError>) -> FrontendResultWithErrors<bool>
     { self.value_for_fields_with_ref_fun_in(value, local_type, fields, pos, tree, local_types, are_settings, errs, &mut f) }
 
-    fn convert_value_for_type_value(&self, value: &Value, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<Value>
-    { Ok(Value::Bool(false)) }
+    fn convert_value_for_type_value(&self, value: &Value, type_value: &Rc<TypeValue>, pos: &Pos, tree: &Tree, local_types: &LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<Value>>
+    { Ok(None) }
 
-    fn convert_pattern_value_for_type_value(&self, pattern_value: &PatternValue, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<PatternValue>
-    { Ok(PatternValue::Bool(false)) }
+    fn convert_pattern_value_for_type_value(&self, pattern_value: &PatternValue, type_value: &Rc<TypeValue>, pos: &Pos, tree: &Tree, local_types: &LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<PatternValue>>
+    { Ok(None) }
     
     fn value_to_pattern_value(&self, value: &Value, pos: &Pos, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<PatternValue>>
     { Ok(None) }
@@ -2118,9 +2118,9 @@ impl Evaluator
                 }
             },
             Expr::Typed(expr2, _, _, _) => self.evaluate_value_for_expr(&**expr2, tree, var_env, type_stack, local_types, closures, var_key, errs),
-            Expr::As(expr2, _, Some(local_type), _) => {
+            Expr::As(expr2, _, Some(local_type), pos) => {
                 match self.evaluate_value_for_expr(&**expr2, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
-                    Some(value) => Ok(Some(self.convert_value_for_type_value(&value, &Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), tree, local_types)?)),
+                    Some(value) => self.convert_value_for_type_value(&value, &Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), pos, tree, local_types, errs),
                     None => Ok(None),
                 }
             },
@@ -2203,9 +2203,9 @@ impl Evaluator
     {
         match pattern {
             Pattern::Literal(literal, _, _) => self.evaluate_pattern_value_for_pattern_literal(&**literal, tree, type_stack, local_types, errs),
-            Pattern::As(literal, _, _, Some(local_type), _) => {
+            Pattern::As(literal, _, _, Some(local_type), pos) => {
                 match self.evaluate_pattern_value_for_pattern_literal(&**literal, tree, type_stack, local_types, errs)? {
-                    Some(pattern_value) => Ok(Some(self.convert_pattern_value_for_type_value(&pattern_value, &Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), tree, local_types)?)),
+                    Some(pattern_value) => self.convert_pattern_value_for_type_value(&pattern_value, &Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), pos, tree, local_types, errs),
                     None => Ok(None),
                 }
             },
