@@ -613,8 +613,8 @@ impl Evaluator
     pub fn evaluate_values(&self, tree: &Tree) -> FrontendResultWithErrors<()>
     {
         let mut errs: Vec<FrontendError> = Vec::new();
-        self.evaluate_values_for_defs(tree, &mut errs)?;
-        self.check_pattern_exhaustions_for_defs(tree, &mut errs)?;
+        self.evaluate_values_for_var_defs(tree, &mut errs)?;
+        self.check_pattern_exhaustions_for_fun_defs(tree, &mut errs)?;
         if errs.is_empty() {
             Ok(())
         } else {
@@ -804,7 +804,7 @@ impl Evaluator
         Ok(())
     }
     
-    fn evaluate_values_for_defs(&self, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn evaluate_values_for_var_defs(&self, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         let mut visited_keys: BTreeSet<(String, Option<TypeName>)> = BTreeSet::new();
         for def in tree.defs() {
@@ -841,7 +841,7 @@ impl Evaluator
         Ok(())
     }
 
-    fn check_pattern_exhaustions_for_defs(&self, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn check_pattern_exhaustions_for_fun_defs(&self, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         for def in tree.defs() {
             match &**def {
