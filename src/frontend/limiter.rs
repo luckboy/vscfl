@@ -231,7 +231,7 @@ impl Limiter
     {
         match pattern {
             Pattern::Literal(literal, _, _) => self.check_limits_for_literal(&**literal, is_in_var, errs, Self::check_limits_for_pattern)?,
-            Pattern::As(literal, _, _, _, _) => self.check_limits_for_literal(&**literal, is_in_var, errs, Self::check_limits_for_pattern)?,
+            Pattern::As(_, _, _, _, _) => (),
             Pattern::Const(_, _, _) => (),
             Pattern::UnnamedFieldCon(_, patterns, _, _, _) => {
                 for pattern2 in patterns {
