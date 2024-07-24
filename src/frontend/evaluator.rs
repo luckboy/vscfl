@@ -232,10 +232,10 @@ fn do_var_for_var_key<T, F>(key: &(String, Option<TypeName>), tree: &Tree, z: T,
                         },
                     }
                 },
-                _ => Ok(z),
+                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: variable isn't variable or no local types or no type"))])),
             }
         },
-        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: no variable or no local types or no type"))])),
+        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: no variable"))])),
     }
 }
 
@@ -300,10 +300,10 @@ fn do_var_mut_for_var_key<T, F>(key: &(String, Option<TypeName>), tree: &Tree, z
                         },
                     }
                 },
-                _ => Ok(z),
+                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: variable isn't variable or no local types or no type"))])),
             }
         },
-        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: no variable no local types or no type"))])),
+        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: no variable"))])),
     }
 }
 
