@@ -491,7 +491,7 @@ fn add_error_for_object_and_vec_field(object: &Object, pos: Pos, errs: &mut Vec<
 {
     match object {
         Object::Builtin(_, _) => {
-            errs.push(FrontendError::Message(pos.clone(), String::from("value of built-in variable mustn't be in vector")));
+            errs.push(FrontendError::Message(pos.clone(), String::from("value of built-in variable mustn't be in vector in variable expression")));
             Ok(())
         },
         _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_error_for_object_and_vec_field: invalid object"))])),
@@ -502,7 +502,7 @@ fn add_error_for_object_and_casting(object: &Object, pos: Pos, errs: &mut Vec<Fr
 {
     match object {
         Object::Builtin(_, _) => {
-            errs.push(FrontendError::Message(pos.clone(), String::from("can't cast value of built-in variable")));
+            errs.push(FrontendError::Message(pos.clone(), String::from("can't cast value of built-in variable in variable expression")));
             Ok(())
         },
         _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_error_for_object_and_casting: invalid object"))])),
@@ -2544,7 +2544,7 @@ impl Evaluator
                                             }
                                          } else if ident == &String::from("Half") {
                                              if are_half_errs {
-                                                 errs.push(FrontendError::Message(pos.clone(), String::from("can't cast value to type Half")));
+                                                 errs.push(FrontendError::Message(pos.clone(), String::from("can't cast value to type Half in variable expression")));
                                              }
                                              Ok(None)
                                         } else if ident == &String::from("Float") {
@@ -2929,7 +2929,7 @@ impl Evaluator
                                             }
                                          } else if ident == &String::from("Half") {
                                              if are_half_errs {
-                                                 errs.push(FrontendError::Message(pos.clone(), String::from("can't cast value to type Half")));
+                                                 errs.push(FrontendError::Message(pos.clone(), String::from("can't cast pattern to type Half in variable expression")));
                                              }
                                              Ok(None)
                                         } else if ident == &String::from("Float") {
