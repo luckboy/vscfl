@@ -351,14 +351,25 @@ fn pattern_max_for_type(typ: &Type, tree: &Tree) -> FrontendResultWithErrors<Opt
     }
 }
 
-fn add_error_for_object(object: &Object, pos: Pos, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+fn add_error_for_object_and_vec_field(object: &Object, pos: Pos, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
 {
     match object {
         Object::Builtin(_, _) => {
             errs.push(FrontendError::Message(pos.clone(), String::from("value of built-in variable mustn't be in vector")));
             Ok(())
         },
-        _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_error_for_object: invalid object"))])),
+        _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_error_for_object_and_vec_field: invalid object"))])),
+    }
+}
+
+fn add_error_for_object_and_casting(object: &Object, pos: Pos, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+{
+    match object {
+        Object::Builtin(_, _) => {
+            errs.push(FrontendError::Message(pos.clone(), String::from("can't cast value of built-in variable")));
+            Ok(())
+        },
+        _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_error_for_object_and_casting: invalid object"))])),
     }
 }
 
@@ -573,6 +584,35 @@ impl Evaluator
         Ok(())
     }
 
+    fn do_named_field_pairs_for_closure<T, F>(&self, named_field_pairs: &[NamedFieldPair<T>], mut f: F)
+        where F: FnMut(&Self, &T)
+    {
+        for named_field_pair in named_field_pairs {
+            match named_field_pair {
+                NamedFieldPair(_, other, _) => f(self, other),
+            }
+        }
+    }    
+
+    fn do_literal_for_closure<T, F>(&self, literal: &Literal<T>, mut f: F)
+        where F: FnMut(&Self, &T),
+    {
+        match literal {
+            Literal::Tuple(field_others) => {
+                for field_other in field_others {
+                    f(self, &**field_other);
+                }
+            },
+            Literal::Array(elem_others) => {
+                for elem_other in elem_others {
+                    f(self, &**elem_other);
+                }
+            },
+            Literal::FilledArray(elem_other, _) => f(self, &**elem_other),
+            _ => (),
+        }
+    }    
+    
     fn do_named_field_pairs_mut_for_setting<T, F>(&self, named_field_pairs: &mut [NamedFieldPair<T>], mut f: F) -> FrontendResultWithErrors<()>
         where F: FnMut(&Self, &mut T) -> FrontendResultWithErrors<()>
     {
@@ -803,7 +843,7 @@ impl Evaluator
             Some(LocalTypeEntry::Param(_, _, _, _)) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: local type entry is type parameter"))])),
             Some(LocalTypeEntry::Type(type_value)) => {
                 match &*type_value {
-                    TypeValue::Param(_, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_one_for_type_value: type parameter in local type entry"))])),
+                    TypeValue::Param(_, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: type parameter in local type entry"))])),
                     TypeValue::Type(_, TypeValueName::Tuple, type_values) => {
                         match node.forests_mut() {
                             PatternForests::Unfilled(forests) => {
@@ -1151,6 +1191,8 @@ impl Evaluator
                                                 PatternId::UintptrT(n) => node.set_id(PatternId::UintptrT(*n as u64)),
                                                 _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: invalid pattern identifier"))]))
                                             }
+                                        } else {
+                                            return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_ids_for_type_value: invalid type identifier"))]))
                                         }
                                         Ok(())
                                     },
@@ -1688,7 +1730,7 @@ impl Evaluator
                                                 Value::Char(c2) => *c = c2,
                                                 Value::Object(_, object2) => {
                                                     let object2_r = object2.borrow();
-                                                    add_error_for_object(&*object2_r, pos.clone(), errs)?;
+                                                    add_error_for_object_and_vec_field(&*object2_r, pos.clone(), errs)?;
                                                     return Ok(false);
                                                 },
                                                 _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: invalid value"))])),
@@ -1709,7 +1751,7 @@ impl Evaluator
                                                 Value::Short(n2) => *n = n2,
                                                 Value::Object(_, object2) => {
                                                     let object2_r = object2.borrow();
-                                                    add_error_for_object(&*object2_r, pos.clone(), errs)?;
+                                                    add_error_for_object_and_vec_field(&*object2_r, pos.clone(), errs)?;
                                                     return Ok(false);
                                                 },
                                                 _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: invalid value"))])),
@@ -1730,7 +1772,7 @@ impl Evaluator
                                                 Value::Int(n2) => *n = n2,
                                                 Value::Object(_, object2) => {
                                                     let object2_r = object2.borrow();
-                                                    add_error_for_object(&*object2_r, pos.clone(), errs)?;
+                                                    add_error_for_object_and_vec_field(&*object2_r, pos.clone(), errs)?;
                                                     return Ok(false);
                                                 },
                                                 _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: invalid value"))])),
@@ -1751,7 +1793,7 @@ impl Evaluator
                                                 Value::Long(n2) => *n = n2,
                                                 Value::Object(_, object2) => {
                                                     let object2_r = object2.borrow();
-                                                    add_error_for_object(&*object2_r, pos.clone(), errs)?;
+                                                    add_error_for_object_and_vec_field(&*object2_r, pos.clone(), errs)?;
                                                     return Ok(false);
                                                 },
                                                 _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: invalid value"))])),
@@ -1772,7 +1814,7 @@ impl Evaluator
                                                 Value::Uchar(c2) => *c = c2,
                                                 Value::Object(_, object2) => {
                                                     let object2_r = object2.borrow();
-                                                    add_error_for_object(&*object2_r, pos.clone(), errs)?;
+                                                    add_error_for_object_and_vec_field(&*object2_r, pos.clone(), errs)?;
                                                     return Ok(false);
                                                 },
                                                 _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: invalid value"))])),
@@ -1793,7 +1835,7 @@ impl Evaluator
                                                 Value::Ushort(n2) => *n = n2,
                                                 Value::Object(_, object2) => {
                                                     let object2_r = object2.borrow();
-                                                    add_error_for_object(&*object2_r, pos.clone(), errs)?;
+                                                    add_error_for_object_and_vec_field(&*object2_r, pos.clone(), errs)?;
                                                     return Ok(false);
                                                 },
                                                 _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: invalid value"))])),
@@ -1814,7 +1856,7 @@ impl Evaluator
                                                 Value::Uint(n2) => *n = n2,
                                                 Value::Object(_, object2) => {
                                                     let object2_r = object2.borrow();
-                                                    add_error_for_object(&*object2_r, pos.clone(), errs)?;
+                                                    add_error_for_object_and_vec_field(&*object2_r, pos.clone(), errs)?;
                                                     return Ok(false);
                                                 },
                                                 _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: invalid value"))])),
@@ -1835,7 +1877,7 @@ impl Evaluator
                                                 Value::Ulong(n2) => *n = n2,
                                                 Value::Object(_, object2) => {
                                                     let object2_r = object2.borrow();
-                                                    add_error_for_object(&*object2_r, pos.clone(), errs)?;
+                                                    add_error_for_object_and_vec_field(&*object2_r, pos.clone(), errs)?;
                                                     return Ok(false);
                                                 },
                                                 _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: invalid value"))])),
@@ -1856,7 +1898,7 @@ impl Evaluator
                                                 Value::Float(n2) => *n = n2,
                                                 Value::Object(_, object2) => {
                                                     let object2_r = object2.borrow();
-                                                    add_error_for_object(&*object2_r, pos.clone(), errs)?;
+                                                    add_error_for_object_and_vec_field(&*object2_r, pos.clone(), errs)?;
                                                     return Ok(false);
                                                 },
                                                 _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: invalid value"))])),
@@ -1877,7 +1919,7 @@ impl Evaluator
                                                 Value::Double(n2) => *n = n2,
                                                 Value::Object(_, object2) => {
                                                     let object2_r = object2.borrow();
-                                                    add_error_for_object(&*object2_r, pos.clone(), errs)?;
+                                                    add_error_for_object_and_vec_field(&*object2_r, pos.clone(), errs)?;
                                                     return Ok(false);
                                                 },
                                                 _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: invalid value"))])),
@@ -1914,17 +1956,945 @@ impl Evaluator
         where F: FnMut(&mut Value, &mut Vec<FrontendError>) -> FrontendResultWithErrors<bool>
     { self.value_for_fields_with_ref_fun_in(value, local_type, fields, pos, tree, local_types, are_settings, errs, &mut f) }
 
-    fn convert_value_for_type_value(&self, value: &Value, type_value: &Rc<TypeValue>, pos: &Pos, tree: &Tree, local_types: &LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<Value>>
-    { Ok(None) }
+    fn convert_value_for_type_value(&self, value: &Value, type_value: &Rc<TypeValue>, pos: &Pos, tree: &Tree, local_types: &LocalTypes, are_half_errs: bool, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<Value>>
+    {
+        match local_types.type_entry_for_type_value(type_value) {
+            Some(LocalTypeEntry::Param(_, _, _, _)) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: local type entry is type parameter"))])),
+            Some(LocalTypeEntry::Type(type_value2)) => {
+                match &*type_value2 {
+                    TypeValue::Param(_, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: type parameter in local type entry"))])),
+                    TypeValue::Type(_, TypeValueName::Tuple, type_values) => {
+                        match value {
+                            Value::Object(shared_flag, object) => {
+                                let object2 = if *shared_flag == SharedFlag::Shared {
+                                    let tmp_object = object.clone();
+                                    let tmp_object_r = tmp_object.borrow();
+                                    Rc::new(RefCell::new(tmp_object_r.clone()))
+                                } else {
+                                    object.clone()
+                                };
+                                let mut object2_r = object2.borrow_mut();
+                                match &mut *object2_r {
+                                    Object::Tuple(field_values) => {
+                                        for (field_value, type_value2) in field_values.iter_mut().zip(type_values.iter()) {
+                                            match self.convert_value_for_type_value(field_value, type_value2, pos, tree, local_types, are_half_errs, errs)? {
+                                                Some(field_value2) => *field_value = field_value2,
+                                                None => return Ok(None),
+                                            }
+                                        }
+                                        Ok(Some(Value::Object(*shared_flag, object2.clone())))
+                                    },
+                                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: object isn't tuple"))])),
+                                }
+                            },
+                            _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: value isn't object"))])),
+                        }
+                    },
+                    TypeValue::Type(_, TypeValueName::Array(_), type_values) => {
+                        match type_values.first() {
+                            Some(type_value2) => {
+                                match value {
+                                    Value::Object(shared_flag, object) => {
+                                        let object2 = if *shared_flag == SharedFlag::Shared {
+                                            let tmp_object = object.clone();
+                                            let tmp_object_r = tmp_object.borrow();
+                                            Rc::new(RefCell::new(tmp_object_r.clone()))
+                                        } else {
+                                            object.clone()
+                                        };
+                                        let mut object2_r = object2.borrow_mut();
+                                        match &mut *object2_r {
+                                            Object::Array(elem_values) => {
+                                                let mut are_half_errs2 = are_half_errs;
+                                                for elem_value in elem_values {
+                                                    match self.convert_value_for_type_value(elem_value, type_value2, pos, tree, local_types, are_half_errs2, errs)? {
+                                                        Some(elem_value2) => *elem_value = elem_value2,
+                                                        None => return Ok(None),
+                                                    }
+                                                    are_half_errs2 = false;
+                                                }
+                                                Ok(Some(Value::Object(*shared_flag, object2.clone())))
+                                            },
+                                            _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: object isn't tuple"))])),
+                                        }
+                                    },
+                                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: value isn't object"))])),
+                                }
+                            },
+                            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: no type value"))])),
+                        }
+                    },
+                    TypeValue::Type(_, TypeValueName::Fun, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: type value is function type"))])),
+                    TypeValue::Type(_, TypeValueName::Name(ident), _) => {
+                        match tree.type_var(ident) {
+                            Some(type_var) => {
+                                let type_var_r = type_var.borrow();
+                                match &*type_var_r {
+                                    TypeVar::Builtin(_, _, _) => {
+                                        if ident == &String::from("Char") {
+                                            match value {
+                                                Value::Char(c) => Ok(Some(Value::Char(*c as i8))),
+                                                Value::Short(n) => Ok(Some(Value::Char(*n as i8))),
+                                                Value::Int(n) => Ok(Some(Value::Char(*n as i8))),
+                                                Value::Long(n) => Ok(Some(Value::Char(*n as i8))),
+                                                Value::Uchar(c) => Ok(Some(Value::Char(*c as i8))),
+                                                Value::Ushort(n) => Ok(Some(Value::Char(*n as i8))),
+                                                Value::Uint(n) => Ok(Some(Value::Char(*n as i8))),
+                                                Value::Ulong(n) => Ok(Some(Value::Char(*n as i8))),
+                                                Value::Float(n) => Ok(Some(Value::Char(*n as i8))),
+                                                Value::Double(n) => Ok(Some(Value::Char(*n as i8))),
+                                                Value::SizeT(n) => Ok(Some(Value::Char(*n as i8))),
+                                                Value::PtrdiffT(n) => Ok(Some(Value::Char(*n as i8))),
+                                                Value::IntptrT(n) => Ok(Some(Value::Char(*n as i8))),
+                                                Value::UintptrT(n) => Ok(Some(Value::Char(*n as i8))),
+                                                Value::Object(_, object) => {
+                                                    let object_r = object.borrow();
+                                                    add_error_for_object_and_casting(&*object_r, pos.clone(), errs)?;
+                                                    Ok(None)
+                                                },
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("Short") {
+                                            match value {
+                                                Value::Char(c) => Ok(Some(Value::Short(*c as i16))),
+                                                Value::Short(n) => Ok(Some(Value::Short(*n as i16))),
+                                                Value::Int(n) => Ok(Some(Value::Short(*n as i16))),
+                                                Value::Long(n) => Ok(Some(Value::Short(*n as i16))),
+                                                Value::Uchar(c) => Ok(Some(Value::Short(*c as i16))),
+                                                Value::Ushort(n) => Ok(Some(Value::Short(*n as i16))),
+                                                Value::Uint(n) => Ok(Some(Value::Short(*n as i16))),
+                                                Value::Ulong(n) => Ok(Some(Value::Short(*n as i16))),
+                                                Value::Float(n) => Ok(Some(Value::Short(*n as i16))),
+                                                Value::Double(n) => Ok(Some(Value::Short(*n as i16))),
+                                                Value::SizeT(n) => Ok(Some(Value::Short(*n as i16))),
+                                                Value::PtrdiffT(n) => Ok(Some(Value::Short(*n as i16))),
+                                                Value::IntptrT(n) => Ok(Some(Value::Short(*n as i16))),
+                                                Value::UintptrT(n) => Ok(Some(Value::Short(*n as i16))),
+                                                Value::Object(_, object) => {
+                                                    let object_r = object.borrow();
+                                                    add_error_for_object_and_casting(&*object_r, pos.clone(), errs)?;
+                                                    Ok(None)
+                                                },
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("Int") {
+                                            match value {
+                                                Value::Char(c) => Ok(Some(Value::Int(*c as i32))),
+                                                Value::Short(n) => Ok(Some(Value::Int(*n as i32))),
+                                                Value::Int(n) => Ok(Some(Value::Int(*n as i32))),
+                                                Value::Long(n) => Ok(Some(Value::Int(*n as i32))),
+                                                Value::Uchar(c) => Ok(Some(Value::Int(*c as i32))),
+                                                Value::Ushort(n) => Ok(Some(Value::Int(*n as i32))),
+                                                Value::Uint(n) => Ok(Some(Value::Int(*n as i32))),
+                                                Value::Ulong(n) => Ok(Some(Value::Int(*n as i32))),
+                                                Value::Float(n) => Ok(Some(Value::Int(*n as i32))),
+                                                Value::Double(n) => Ok(Some(Value::Int(*n as i32))),
+                                                Value::SizeT(n) => Ok(Some(Value::Int(*n as i32))),
+                                                Value::PtrdiffT(n) => Ok(Some(Value::Int(*n as i32))),
+                                                Value::IntptrT(n) => Ok(Some(Value::Int(*n as i32))),
+                                                Value::UintptrT(n) => Ok(Some(Value::Int(*n as i32))),
+                                                Value::Object(_, object) => {
+                                                    let object_r = object.borrow();
+                                                    add_error_for_object_and_casting(&*object_r, pos.clone(), errs)?;
+                                                    Ok(None)
+                                                },
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("Long") {
+                                            match value {
+                                                Value::Char(c) => Ok(Some(Value::Long(*c as i64))),
+                                                Value::Short(n) => Ok(Some(Value::Long(*n as i64))),
+                                                Value::Int(n) => Ok(Some(Value::Long(*n as i64))),
+                                                Value::Long(n) => Ok(Some(Value::Long(*n as i64))),
+                                                Value::Uchar(c) => Ok(Some(Value::Long(*c as i64))),
+                                                Value::Ushort(n) => Ok(Some(Value::Long(*n as i64))),
+                                                Value::Uint(n) => Ok(Some(Value::Long(*n as i64))),
+                                                Value::Ulong(n) => Ok(Some(Value::Long(*n as i64))),
+                                                Value::Float(n) => Ok(Some(Value::Long(*n as i64))),
+                                                Value::Double(n) => Ok(Some(Value::Long(*n as i64))),
+                                                Value::SizeT(n) => Ok(Some(Value::Long(*n as i64))),
+                                                Value::PtrdiffT(n) => Ok(Some(Value::Long(*n as i64))),
+                                                Value::IntptrT(n) => Ok(Some(Value::Long(*n as i64))),
+                                                Value::UintptrT(n) => Ok(Some(Value::Long(*n as i64))),
+                                                Value::Object(_, object) => {
+                                                    let object_r = object.borrow();
+                                                    add_error_for_object_and_casting(&*object_r, pos.clone(), errs)?;
+                                                    Ok(None)
+                                                },
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("Uchar") {
+                                            match value {
+                                                Value::Char(c) => Ok(Some(Value::Uchar(*c as u8))),
+                                                Value::Short(n) => Ok(Some(Value::Uchar(*n as u8))),
+                                                Value::Int(n) => Ok(Some(Value::Uchar(*n as u8))),
+                                                Value::Long(n) => Ok(Some(Value::Uchar(*n as u8))),
+                                                Value::Uchar(c) => Ok(Some(Value::Uchar(*c as u8))),
+                                                Value::Ushort(n) => Ok(Some(Value::Uchar(*n as u8))),
+                                                Value::Uint(n) => Ok(Some(Value::Uchar(*n as u8))),
+                                                Value::Ulong(n) => Ok(Some(Value::Uchar(*n as u8))),
+                                                Value::Float(n) => Ok(Some(Value::Uchar(*n as u8))),
+                                                Value::Double(n) => Ok(Some(Value::Uchar(*n as u8))),
+                                                Value::SizeT(n) => Ok(Some(Value::Uchar(*n as u8))),
+                                                Value::PtrdiffT(n) => Ok(Some(Value::Uchar(*n as u8))),
+                                                Value::IntptrT(n) => Ok(Some(Value::Uchar(*n as u8))),
+                                                Value::UintptrT(n) => Ok(Some(Value::Uchar(*n as u8))),
+                                                Value::Object(_, object) => {
+                                                    let object_r = object.borrow();
+                                                    add_error_for_object_and_casting(&*object_r, pos.clone(), errs)?;
+                                                    Ok(None)
+                                                },
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("Ushort") {
+                                            match value {
+                                                Value::Char(c) => Ok(Some(Value::Ushort(*c as u16))),
+                                                Value::Short(n) => Ok(Some(Value::Ushort(*n as u16))),
+                                                Value::Int(n) => Ok(Some(Value::Ushort(*n as u16))),
+                                                Value::Long(n) => Ok(Some(Value::Ushort(*n as u16))),
+                                                Value::Uchar(c) => Ok(Some(Value::Ushort(*c as u16))),
+                                                Value::Ushort(n) => Ok(Some(Value::Ushort(*n as u16))),
+                                                Value::Uint(n) => Ok(Some(Value::Ushort(*n as u16))),
+                                                Value::Ulong(n) => Ok(Some(Value::Ushort(*n as u16))),
+                                                Value::Float(n) => Ok(Some(Value::Ushort(*n as u16))),
+                                                Value::Double(n) => Ok(Some(Value::Ushort(*n as u16))),
+                                                Value::SizeT(n) => Ok(Some(Value::Ushort(*n as u16))),
+                                                Value::PtrdiffT(n) => Ok(Some(Value::Ushort(*n as u16))),
+                                                Value::IntptrT(n) => Ok(Some(Value::Ushort(*n as u16))),
+                                                Value::UintptrT(n) => Ok(Some(Value::Ushort(*n as u16))),
+                                                Value::Object(_, object) => {
+                                                    let object_r = object.borrow();
+                                                    add_error_for_object_and_casting(&*object_r, pos.clone(), errs)?;
+                                                    Ok(None)
+                                                },
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("Uint") {
+                                            match value {
+                                                Value::Char(c) => Ok(Some(Value::Uint(*c as u32))),
+                                                Value::Short(n) => Ok(Some(Value::Uint(*n as u32))),
+                                                Value::Int(n) => Ok(Some(Value::Uint(*n as u32))),
+                                                Value::Long(n) => Ok(Some(Value::Uint(*n as u32))),
+                                                Value::Uchar(c) => Ok(Some(Value::Uint(*c as u32))),
+                                                Value::Ushort(n) => Ok(Some(Value::Uint(*n as u32))),
+                                                Value::Uint(n) => Ok(Some(Value::Uint(*n as u32))),
+                                                Value::Ulong(n) => Ok(Some(Value::Uint(*n as u32))),
+                                                Value::Float(n) => Ok(Some(Value::Uint(*n as u32))),
+                                                Value::Double(n) => Ok(Some(Value::Uint(*n as u32))),
+                                                Value::SizeT(n) => Ok(Some(Value::Uint(*n as u32))),
+                                                Value::PtrdiffT(n) => Ok(Some(Value::Uint(*n as u32))),
+                                                Value::IntptrT(n) => Ok(Some(Value::Uint(*n as u32))),
+                                                Value::UintptrT(n) => Ok(Some(Value::Uint(*n as u32))),
+                                                Value::Object(_, object) => {
+                                                    let object_r = object.borrow();
+                                                    add_error_for_object_and_casting(&*object_r, pos.clone(), errs)?;
+                                                    Ok(None)
+                                                },
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("Ulong") {
+                                            match value {
+                                                Value::Char(c) => Ok(Some(Value::Ulong(*c as u64))),
+                                                Value::Short(n) => Ok(Some(Value::Ulong(*n as u64))),
+                                                Value::Int(n) => Ok(Some(Value::Ulong(*n as u64))),
+                                                Value::Long(n) => Ok(Some(Value::Ulong(*n as u64))),
+                                                Value::Uchar(c) => Ok(Some(Value::Ulong(*c as u64))),
+                                                Value::Ushort(n) => Ok(Some(Value::Ulong(*n as u64))),
+                                                Value::Uint(n) => Ok(Some(Value::Ulong(*n as u64))),
+                                                Value::Ulong(n) => Ok(Some(Value::Ulong(*n as u64))),
+                                                Value::Float(n) => Ok(Some(Value::Ulong(*n as u64))),
+                                                Value::Double(n) => Ok(Some(Value::Ulong(*n as u64))),
+                                                Value::SizeT(n) => Ok(Some(Value::Ulong(*n as u64))),
+                                                Value::PtrdiffT(n) => Ok(Some(Value::Ulong(*n as u64))),
+                                                Value::IntptrT(n) => Ok(Some(Value::Ulong(*n as u64))),
+                                                Value::UintptrT(n) => Ok(Some(Value::Ulong(*n as u64))),
+                                                Value::Object(_, object) => {
+                                                    let object_r = object.borrow();
+                                                    add_error_for_object_and_casting(&*object_r, pos.clone(), errs)?;
+                                                    Ok(None)
+                                                },
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: invalid value"))])),
+                                            }
+                                         } else if ident == &String::from("Half") {
+                                             if are_half_errs {
+                                                 errs.push(FrontendError::Message(pos.clone(), String::from("can't cast value to type Half")));
+                                             }
+                                             Ok(None)
+                                        } else if ident == &String::from("Float") {
+                                            match value {
+                                                Value::Char(c) => Ok(Some(Value::Float(*c as f32))),
+                                                Value::Short(n) => Ok(Some(Value::Float(*n as f32))),
+                                                Value::Int(n) => Ok(Some(Value::Float(*n as f32))),
+                                                Value::Long(n) => Ok(Some(Value::Float(*n as f32))),
+                                                Value::Uchar(c) => Ok(Some(Value::Float(*c as f32))),
+                                                Value::Ushort(n) => Ok(Some(Value::Float(*n as f32))),
+                                                Value::Uint(n) => Ok(Some(Value::Float(*n as f32))),
+                                                Value::Ulong(n) => Ok(Some(Value::Float(*n as f32))),
+                                                Value::Float(n) => Ok(Some(Value::Float(*n as f32))),
+                                                Value::Double(n) => Ok(Some(Value::Float(*n as f32))),
+                                                Value::SizeT(n) => Ok(Some(Value::Float(*n as f32))),
+                                                Value::PtrdiffT(n) => Ok(Some(Value::Float(*n as f32))),
+                                                Value::IntptrT(n) => Ok(Some(Value::Float(*n as f32))),
+                                                Value::UintptrT(n) => Ok(Some(Value::Float(*n as f32))),
+                                                Value::Object(_, object) => {
+                                                    let object_r = object.borrow();
+                                                    add_error_for_object_and_casting(&*object_r, pos.clone(), errs)?;
+                                                    Ok(None)
+                                                },
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("Double") {
+                                            match value {
+                                                Value::Char(c) => Ok(Some(Value::Double(*c as f64))),
+                                                Value::Short(n) => Ok(Some(Value::Double(*n as f64))),
+                                                Value::Int(n) => Ok(Some(Value::Double(*n as f64))),
+                                                Value::Long(n) => Ok(Some(Value::Double(*n as f64))),
+                                                Value::Uchar(c) => Ok(Some(Value::Double(*c as f64))),
+                                                Value::Ushort(n) => Ok(Some(Value::Double(*n as f64))),
+                                                Value::Uint(n) => Ok(Some(Value::Double(*n as f64))),
+                                                Value::Ulong(n) => Ok(Some(Value::Double(*n as f64))),
+                                                Value::Float(n) => Ok(Some(Value::Double(*n as f64))),
+                                                Value::Double(n) => Ok(Some(Value::Double(*n as f64))),
+                                                Value::SizeT(n) => Ok(Some(Value::Double(*n as f64))),
+                                                Value::PtrdiffT(n) => Ok(Some(Value::Double(*n as f64))),
+                                                Value::IntptrT(n) => Ok(Some(Value::Double(*n as f64))),
+                                                Value::UintptrT(n) => Ok(Some(Value::Double(*n as f64))),
+                                                Value::Object(_, object) => {
+                                                    let object_r = object.borrow();
+                                                    add_error_for_object_and_casting(&*object_r, pos.clone(), errs)?;
+                                                    Ok(None)
+                                                },
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("SizeT") {
+                                            match value {
+                                                Value::Char(c) => Ok(Some(Value::SizeT(*c as u64))),
+                                                Value::Short(n) => Ok(Some(Value::SizeT(*n as u64))),
+                                                Value::Int(n) => Ok(Some(Value::SizeT(*n as u64))),
+                                                Value::Long(n) => Ok(Some(Value::SizeT(*n as u64))),
+                                                Value::Uchar(c) => Ok(Some(Value::SizeT(*c as u64))),
+                                                Value::Ushort(n) => Ok(Some(Value::SizeT(*n as u64))),
+                                                Value::Uint(n) => Ok(Some(Value::SizeT(*n as u64))),
+                                                Value::Ulong(n) => Ok(Some(Value::SizeT(*n as u64))),
+                                                Value::Float(n) => Ok(Some(Value::SizeT(*n as u64))),
+                                                Value::Double(n) => Ok(Some(Value::SizeT(*n as u64))),
+                                                Value::SizeT(n) => Ok(Some(Value::SizeT(*n as u64))),
+                                                Value::PtrdiffT(n) => Ok(Some(Value::SizeT(*n as u64))),
+                                                Value::IntptrT(n) => Ok(Some(Value::SizeT(*n as u64))),
+                                                Value::UintptrT(n) => Ok(Some(Value::SizeT(*n as u64))),
+                                                Value::Object(_, object) => {
+                                                    let object_r = object.borrow();
+                                                    add_error_for_object_and_casting(&*object_r, pos.clone(), errs)?;
+                                                    Ok(None)
+                                                },
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("PtrdiffT") {
+                                            match value {
+                                                Value::Char(c) => Ok(Some(Value::PtrdiffT(*c as i64))),
+                                                Value::Short(n) => Ok(Some(Value::PtrdiffT(*n as i64))),
+                                                Value::Int(n) => Ok(Some(Value::PtrdiffT(*n as i64))),
+                                                Value::Long(n) => Ok(Some(Value::PtrdiffT(*n as i64))),
+                                                Value::Uchar(c) => Ok(Some(Value::PtrdiffT(*c as i64))),
+                                                Value::Ushort(n) => Ok(Some(Value::PtrdiffT(*n as i64))),
+                                                Value::Uint(n) => Ok(Some(Value::PtrdiffT(*n as i64))),
+                                                Value::Ulong(n) => Ok(Some(Value::PtrdiffT(*n as i64))),
+                                                Value::Float(n) => Ok(Some(Value::PtrdiffT(*n as i64))),
+                                                Value::Double(n) => Ok(Some(Value::PtrdiffT(*n as i64))),
+                                                Value::SizeT(n) => Ok(Some(Value::PtrdiffT(*n as i64))),
+                                                Value::PtrdiffT(n) => Ok(Some(Value::PtrdiffT(*n as i64))),
+                                                Value::IntptrT(n) => Ok(Some(Value::PtrdiffT(*n as i64))),
+                                                Value::UintptrT(n) => Ok(Some(Value::PtrdiffT(*n as i64))),
+                                                Value::Object(_, object) => {
+                                                    let object_r = object.borrow();
+                                                    add_error_for_object_and_casting(&*object_r, pos.clone(), errs)?;
+                                                    Ok(None)
+                                                },
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("IntptrT") {
+                                            match value {
+                                                Value::Char(c) => Ok(Some(Value::IntptrT(*c as i64))),
+                                                Value::Short(n) => Ok(Some(Value::IntptrT(*n as i64))),
+                                                Value::Int(n) => Ok(Some(Value::IntptrT(*n as i64))),
+                                                Value::Long(n) => Ok(Some(Value::IntptrT(*n as i64))),
+                                                Value::Uchar(c) => Ok(Some(Value::IntptrT(*c as i64))),
+                                                Value::Ushort(n) => Ok(Some(Value::IntptrT(*n as i64))),
+                                                Value::Uint(n) => Ok(Some(Value::IntptrT(*n as i64))),
+                                                Value::Ulong(n) => Ok(Some(Value::IntptrT(*n as i64))),
+                                                Value::Float(n) => Ok(Some(Value::IntptrT(*n as i64))),
+                                                Value::Double(n) => Ok(Some(Value::IntptrT(*n as i64))),
+                                                Value::SizeT(n) => Ok(Some(Value::IntptrT(*n as i64))),
+                                                Value::PtrdiffT(n) => Ok(Some(Value::IntptrT(*n as i64))),
+                                                Value::IntptrT(n) => Ok(Some(Value::IntptrT(*n as i64))),
+                                                Value::UintptrT(n) => Ok(Some(Value::IntptrT(*n as i64))),
+                                                Value::Object(_, object) => {
+                                                    let object_r = object.borrow();
+                                                    add_error_for_object_and_casting(&*object_r, pos.clone(), errs)?;
+                                                    Ok(None)
+                                                },
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("UintptrT") {
+                                            match value {
+                                                Value::Char(c) => Ok(Some(Value::UintptrT(*c as u64))),
+                                                Value::Short(n) => Ok(Some(Value::UintptrT(*n as u64))),
+                                                Value::Int(n) => Ok(Some(Value::UintptrT(*n as u64))),
+                                                Value::Long(n) => Ok(Some(Value::UintptrT(*n as u64))),
+                                                Value::Uchar(c) => Ok(Some(Value::UintptrT(*c as u64))),
+                                                Value::Ushort(n) => Ok(Some(Value::UintptrT(*n as u64))),
+                                                Value::Uint(n) => Ok(Some(Value::UintptrT(*n as u64))),
+                                                Value::Ulong(n) => Ok(Some(Value::UintptrT(*n as u64))),
+                                                Value::Float(n) => Ok(Some(Value::UintptrT(*n as u64))),
+                                                Value::Double(n) => Ok(Some(Value::UintptrT(*n as u64))),
+                                                Value::SizeT(n) => Ok(Some(Value::UintptrT(*n as u64))),
+                                                Value::PtrdiffT(n) => Ok(Some(Value::UintptrT(*n as u64))),
+                                                Value::IntptrT(n) => Ok(Some(Value::UintptrT(*n as u64))),
+                                                Value::UintptrT(n) => Ok(Some(Value::UintptrT(*n as u64))),
+                                                Value::Object(_, object) => {
+                                                    let object_r = object.borrow();
+                                                    add_error_for_object_and_casting(&*object_r, pos.clone(), errs)?;
+                                                    Ok(None)
+                                                },
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else {
+                                             Ok(None)
+                                        }
+                                    },
+                                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: type variable isn't built-in type"))])),
+                                }
+                            },
+                            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: no type variable"))])),
+                        }
+                    },
+                }
+            },
+            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: no local type entry"))])),
+        }
+    }
 
-    fn convert_pattern_value_for_type_value(&self, pattern_value: &PatternValue, type_value: &Rc<TypeValue>, pos: &Pos, tree: &Tree, local_types: &LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<PatternValue>>
-    { Ok(None) }
+    fn convert_pattern_value_for_type_value(&self, pattern_value: &PatternValue, type_value: &Rc<TypeValue>, pos: &Pos, tree: &Tree, local_types: &LocalTypes, are_half_errs: bool, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<PatternValue>>
+    {
+        match local_types.type_entry_for_type_value(type_value) {
+            Some(LocalTypeEntry::Param(_, _, _, _)) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: local type entry is type parameter"))])),
+            Some(LocalTypeEntry::Type(type_value2)) => {
+                match &*type_value2 {
+                    TypeValue::Param(_, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: type parameter in local type entry"))])),
+                    TypeValue::Type(_, TypeValueName::Tuple, type_values) => {
+                        match pattern_value {
+                            PatternValue::Object(object) => {
+                                let mut object_r = object.borrow_mut();
+                                match &mut *object_r {
+                                    PatternObject::Tuple(field_pattern_values) => {
+                                        for (field_pattern_value, type_value2) in field_pattern_values.iter_mut().zip(type_values.iter()) {
+                                            match self.convert_pattern_value_for_type_value(field_pattern_value, type_value2, pos, tree, local_types, are_half_errs, errs)? {
+                                                Some(field_pattern_value2) => *field_pattern_value = field_pattern_value2,
+                                                None => return Ok(None),
+                                            }
+                                        }
+                                        Ok(Some(PatternValue::Object(object.clone())))
+                                    },
+                                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: object isn't tuple"))])),
+                                }
+                            },
+                            _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: value isn't object"))])),
+                        }
+                    },
+                    TypeValue::Type(_, TypeValueName::Array(_), type_values) => {
+                        match type_values.first() {
+                            Some(type_value2) => {
+                                match pattern_value {
+                                    PatternValue::Object(object) => {
+                                        let mut object_r = object.borrow_mut();
+                                        match &mut *object_r {
+                                            PatternObject::Array(elem_pattern_values) => {
+                                                let mut are_half_errs2 = are_half_errs;
+                                                for elem_pattern_value in elem_pattern_values {
+                                                    match self.convert_pattern_value_for_type_value(elem_pattern_value, type_value2, pos, tree, local_types, are_half_errs2, errs)? {
+                                                        Some(elem_pattern_value2) => *elem_pattern_value = elem_pattern_value2,
+                                                        None => return Ok(None),
+                                                    }
+                                                    are_half_errs2 = false;
+                                                }
+                                                Ok(Some(PatternValue::Object(object.clone())))
+                                            },
+                                            _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: object isn't tuple"))])),
+                                        }
+                                    },
+                                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: value isn't object"))])),
+                                }
+                            },
+                            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: no type value"))])),
+                        }
+                    },
+                    TypeValue::Type(_, TypeValueName::Fun, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: type value is function type"))])),
+                    TypeValue::Type(_, TypeValueName::Name(ident), _) => {
+                        match pattern_value {
+                            PatternValue::Wildcard => return Ok(Some(PatternValue::Wildcard)),
+                            PatternValue::Object(pattern_object) => {
+                                let mut pattern_object_r = pattern_object.borrow_mut();
+                                match &mut *pattern_object_r {
+                                    PatternObject::Alt(pattern_values) => {
+                                        let mut are_half_errs2 = are_half_errs;
+                                        for pattern_value2 in pattern_values {
+                                            match self.convert_pattern_value_for_type_value(pattern_value2, type_value, pos, tree, local_types, are_half_errs2, errs)? {
+                                                Some(pattern_value3) => *pattern_value2 = pattern_value3,
+                                                None => return Ok(None),
+                                            }
+                                            are_half_errs2 = false;
+                                        }
+                                        return Ok(Some(PatternValue::Object(pattern_object.clone())));
+                                    },
+                                    _ => (),
+                                }
+                            },
+                            _ => (),
+                        }
+                        match tree.type_var(ident) {
+                            Some(type_var) => {
+                                let type_var_r = type_var.borrow();
+                                match &*type_var_r {
+                                    TypeVar::Builtin(_, _, _) => {
+                                        if ident == &String::from("Char") {
+                                            match pattern_value {
+                                                PatternValue::Char(c) => Ok(Some(PatternValue::Char(*c as i8))),
+                                                PatternValue::Short(n) => Ok(Some(PatternValue::Char(*n as i8))),
+                                                PatternValue::Int(n) => Ok(Some(PatternValue::Char(*n as i8))),
+                                                PatternValue::Long(n) => Ok(Some(PatternValue::Char(*n as i8))),
+                                                PatternValue::Uchar(c) => Ok(Some(PatternValue::Char(*c as i8))),
+                                                PatternValue::Ushort(n) => Ok(Some(PatternValue::Char(*n as i8))),
+                                                PatternValue::Uint(n) => Ok(Some(PatternValue::Char(*n as i8))),
+                                                PatternValue::Ulong(n) => Ok(Some(PatternValue::Char(*n as i8))),
+                                                PatternValue::Float(n) => Ok(Some(PatternValue::Char(*n as i8))),
+                                                PatternValue::Double(n) => Ok(Some(PatternValue::Char(*n as i8))),
+                                                PatternValue::SizeT(n) => Ok(Some(PatternValue::Char(*n as i8))),
+                                                PatternValue::PtrdiffT(n) => Ok(Some(PatternValue::Char(*n as i8))),
+                                                PatternValue::IntptrT(n) => Ok(Some(PatternValue::Char(*n as i8))),
+                                                PatternValue::UintptrT(n) => Ok(Some(PatternValue::Char(*n as i8))),
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("Short") {
+                                            match pattern_value {
+                                                PatternValue::Char(c) => Ok(Some(PatternValue::Short(*c as i16))),
+                                                PatternValue::Short(n) => Ok(Some(PatternValue::Short(*n as i16))),
+                                                PatternValue::Int(n) => Ok(Some(PatternValue::Short(*n as i16))),
+                                                PatternValue::Long(n) => Ok(Some(PatternValue::Short(*n as i16))),
+                                                PatternValue::Uchar(c) => Ok(Some(PatternValue::Short(*c as i16))),
+                                                PatternValue::Ushort(n) => Ok(Some(PatternValue::Short(*n as i16))),
+                                                PatternValue::Uint(n) => Ok(Some(PatternValue::Short(*n as i16))),
+                                                PatternValue::Ulong(n) => Ok(Some(PatternValue::Short(*n as i16))),
+                                                PatternValue::Float(n) => Ok(Some(PatternValue::Short(*n as i16))),
+                                                PatternValue::Double(n) => Ok(Some(PatternValue::Short(*n as i16))),
+                                                PatternValue::SizeT(n) => Ok(Some(PatternValue::Short(*n as i16))),
+                                                PatternValue::PtrdiffT(n) => Ok(Some(PatternValue::Short(*n as i16))),
+                                                PatternValue::IntptrT(n) => Ok(Some(PatternValue::Short(*n as i16))),
+                                                PatternValue::UintptrT(n) => Ok(Some(PatternValue::Short(*n as i16))),
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("Int") {
+                                            match pattern_value {
+                                                PatternValue::Char(c) => Ok(Some(PatternValue::Int(*c as i32))),
+                                                PatternValue::Short(n) => Ok(Some(PatternValue::Int(*n as i32))),
+                                                PatternValue::Int(n) => Ok(Some(PatternValue::Int(*n as i32))),
+                                                PatternValue::Long(n) => Ok(Some(PatternValue::Int(*n as i32))),
+                                                PatternValue::Uchar(c) => Ok(Some(PatternValue::Int(*c as i32))),
+                                                PatternValue::Ushort(n) => Ok(Some(PatternValue::Int(*n as i32))),
+                                                PatternValue::Uint(n) => Ok(Some(PatternValue::Int(*n as i32))),
+                                                PatternValue::Ulong(n) => Ok(Some(PatternValue::Int(*n as i32))),
+                                                PatternValue::Float(n) => Ok(Some(PatternValue::Int(*n as i32))),
+                                                PatternValue::Double(n) => Ok(Some(PatternValue::Int(*n as i32))),
+                                                PatternValue::SizeT(n) => Ok(Some(PatternValue::Int(*n as i32))),
+                                                PatternValue::PtrdiffT(n) => Ok(Some(PatternValue::Int(*n as i32))),
+                                                PatternValue::IntptrT(n) => Ok(Some(PatternValue::Int(*n as i32))),
+                                                PatternValue::UintptrT(n) => Ok(Some(PatternValue::Int(*n as i32))),
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("Long") {
+                                            match pattern_value {
+                                                PatternValue::Char(c) => Ok(Some(PatternValue::Long(*c as i64))),
+                                                PatternValue::Short(n) => Ok(Some(PatternValue::Long(*n as i64))),
+                                                PatternValue::Int(n) => Ok(Some(PatternValue::Long(*n as i64))),
+                                                PatternValue::Long(n) => Ok(Some(PatternValue::Long(*n as i64))),
+                                                PatternValue::Uchar(c) => Ok(Some(PatternValue::Long(*c as i64))),
+                                                PatternValue::Ushort(n) => Ok(Some(PatternValue::Long(*n as i64))),
+                                                PatternValue::Uint(n) => Ok(Some(PatternValue::Long(*n as i64))),
+                                                PatternValue::Ulong(n) => Ok(Some(PatternValue::Long(*n as i64))),
+                                                PatternValue::Float(n) => Ok(Some(PatternValue::Long(*n as i64))),
+                                                PatternValue::Double(n) => Ok(Some(PatternValue::Long(*n as i64))),
+                                                PatternValue::SizeT(n) => Ok(Some(PatternValue::Long(*n as i64))),
+                                                PatternValue::PtrdiffT(n) => Ok(Some(PatternValue::Long(*n as i64))),
+                                                PatternValue::IntptrT(n) => Ok(Some(PatternValue::Long(*n as i64))),
+                                                PatternValue::UintptrT(n) => Ok(Some(PatternValue::Long(*n as i64))),
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("Uchar") {
+                                            match pattern_value {
+                                                PatternValue::Char(c) => Ok(Some(PatternValue::Uchar(*c as u8))),
+                                                PatternValue::Short(n) => Ok(Some(PatternValue::Uchar(*n as u8))),
+                                                PatternValue::Int(n) => Ok(Some(PatternValue::Uchar(*n as u8))),
+                                                PatternValue::Long(n) => Ok(Some(PatternValue::Uchar(*n as u8))),
+                                                PatternValue::Uchar(c) => Ok(Some(PatternValue::Uchar(*c as u8))),
+                                                PatternValue::Ushort(n) => Ok(Some(PatternValue::Uchar(*n as u8))),
+                                                PatternValue::Uint(n) => Ok(Some(PatternValue::Uchar(*n as u8))),
+                                                PatternValue::Ulong(n) => Ok(Some(PatternValue::Uchar(*n as u8))),
+                                                PatternValue::Float(n) => Ok(Some(PatternValue::Uchar(*n as u8))),
+                                                PatternValue::Double(n) => Ok(Some(PatternValue::Uchar(*n as u8))),
+                                                PatternValue::SizeT(n) => Ok(Some(PatternValue::Uchar(*n as u8))),
+                                                PatternValue::PtrdiffT(n) => Ok(Some(PatternValue::Uchar(*n as u8))),
+                                                PatternValue::IntptrT(n) => Ok(Some(PatternValue::Uchar(*n as u8))),
+                                                PatternValue::UintptrT(n) => Ok(Some(PatternValue::Uchar(*n as u8))),
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("Ushort") {
+                                            match pattern_value {
+                                                PatternValue::Char(c) => Ok(Some(PatternValue::Ushort(*c as u16))),
+                                                PatternValue::Short(n) => Ok(Some(PatternValue::Ushort(*n as u16))),
+                                                PatternValue::Int(n) => Ok(Some(PatternValue::Ushort(*n as u16))),
+                                                PatternValue::Long(n) => Ok(Some(PatternValue::Ushort(*n as u16))),
+                                                PatternValue::Uchar(c) => Ok(Some(PatternValue::Ushort(*c as u16))),
+                                                PatternValue::Ushort(n) => Ok(Some(PatternValue::Ushort(*n as u16))),
+                                                PatternValue::Uint(n) => Ok(Some(PatternValue::Ushort(*n as u16))),
+                                                PatternValue::Ulong(n) => Ok(Some(PatternValue::Ushort(*n as u16))),
+                                                PatternValue::Float(n) => Ok(Some(PatternValue::Ushort(*n as u16))),
+                                                PatternValue::Double(n) => Ok(Some(PatternValue::Ushort(*n as u16))),
+                                                PatternValue::SizeT(n) => Ok(Some(PatternValue::Ushort(*n as u16))),
+                                                PatternValue::PtrdiffT(n) => Ok(Some(PatternValue::Ushort(*n as u16))),
+                                                PatternValue::IntptrT(n) => Ok(Some(PatternValue::Ushort(*n as u16))),
+                                                PatternValue::UintptrT(n) => Ok(Some(PatternValue::Ushort(*n as u16))),
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("Uint") {
+                                            match pattern_value {
+                                                PatternValue::Char(c) => Ok(Some(PatternValue::Uint(*c as u32))),
+                                                PatternValue::Short(n) => Ok(Some(PatternValue::Uint(*n as u32))),
+                                                PatternValue::Int(n) => Ok(Some(PatternValue::Uint(*n as u32))),
+                                                PatternValue::Long(n) => Ok(Some(PatternValue::Uint(*n as u32))),
+                                                PatternValue::Uchar(c) => Ok(Some(PatternValue::Uint(*c as u32))),
+                                                PatternValue::Ushort(n) => Ok(Some(PatternValue::Uint(*n as u32))),
+                                                PatternValue::Uint(n) => Ok(Some(PatternValue::Uint(*n as u32))),
+                                                PatternValue::Ulong(n) => Ok(Some(PatternValue::Uint(*n as u32))),
+                                                PatternValue::Float(n) => Ok(Some(PatternValue::Uint(*n as u32))),
+                                                PatternValue::Double(n) => Ok(Some(PatternValue::Uint(*n as u32))),
+                                                PatternValue::SizeT(n) => Ok(Some(PatternValue::Uint(*n as u32))),
+                                                PatternValue::PtrdiffT(n) => Ok(Some(PatternValue::Uint(*n as u32))),
+                                                PatternValue::IntptrT(n) => Ok(Some(PatternValue::Uint(*n as u32))),
+                                                PatternValue::UintptrT(n) => Ok(Some(PatternValue::Uint(*n as u32))),
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("Ulong") {
+                                            match pattern_value {
+                                                PatternValue::Char(c) => Ok(Some(PatternValue::Ulong(*c as u64))),
+                                                PatternValue::Short(n) => Ok(Some(PatternValue::Ulong(*n as u64))),
+                                                PatternValue::Int(n) => Ok(Some(PatternValue::Ulong(*n as u64))),
+                                                PatternValue::Long(n) => Ok(Some(PatternValue::Ulong(*n as u64))),
+                                                PatternValue::Uchar(c) => Ok(Some(PatternValue::Ulong(*c as u64))),
+                                                PatternValue::Ushort(n) => Ok(Some(PatternValue::Ulong(*n as u64))),
+                                                PatternValue::Uint(n) => Ok(Some(PatternValue::Ulong(*n as u64))),
+                                                PatternValue::Ulong(n) => Ok(Some(PatternValue::Ulong(*n as u64))),
+                                                PatternValue::Float(n) => Ok(Some(PatternValue::Ulong(*n as u64))),
+                                                PatternValue::Double(n) => Ok(Some(PatternValue::Ulong(*n as u64))),
+                                                PatternValue::SizeT(n) => Ok(Some(PatternValue::Ulong(*n as u64))),
+                                                PatternValue::PtrdiffT(n) => Ok(Some(PatternValue::Ulong(*n as u64))),
+                                                PatternValue::IntptrT(n) => Ok(Some(PatternValue::Ulong(*n as u64))),
+                                                PatternValue::UintptrT(n) => Ok(Some(PatternValue::Ulong(*n as u64))),
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: invalid value"))])),
+                                            }
+                                         } else if ident == &String::from("Half") {
+                                             if are_half_errs {
+                                                 errs.push(FrontendError::Message(pos.clone(), String::from("can't cast value to type Half")));
+                                             }
+                                             Ok(None)
+                                        } else if ident == &String::from("Float") {
+                                            match pattern_value {
+                                                PatternValue::Char(c) => Ok(Some(PatternValue::Float(*c as f32))),
+                                                PatternValue::Short(n) => Ok(Some(PatternValue::Float(*n as f32))),
+                                                PatternValue::Int(n) => Ok(Some(PatternValue::Float(*n as f32))),
+                                                PatternValue::Long(n) => Ok(Some(PatternValue::Float(*n as f32))),
+                                                PatternValue::Uchar(c) => Ok(Some(PatternValue::Float(*c as f32))),
+                                                PatternValue::Ushort(n) => Ok(Some(PatternValue::Float(*n as f32))),
+                                                PatternValue::Uint(n) => Ok(Some(PatternValue::Float(*n as f32))),
+                                                PatternValue::Ulong(n) => Ok(Some(PatternValue::Float(*n as f32))),
+                                                PatternValue::Float(n) => Ok(Some(PatternValue::Float(*n as f32))),
+                                                PatternValue::Double(n) => Ok(Some(PatternValue::Float(*n as f32))),
+                                                PatternValue::SizeT(n) => Ok(Some(PatternValue::Float(*n as f32))),
+                                                PatternValue::PtrdiffT(n) => Ok(Some(PatternValue::Float(*n as f32))),
+                                                PatternValue::IntptrT(n) => Ok(Some(PatternValue::Float(*n as f32))),
+                                                PatternValue::UintptrT(n) => Ok(Some(PatternValue::Float(*n as f32))),
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("Double") {
+                                            match pattern_value {
+                                                PatternValue::Char(c) => Ok(Some(PatternValue::Double(*c as f64))),
+                                                PatternValue::Short(n) => Ok(Some(PatternValue::Double(*n as f64))),
+                                                PatternValue::Int(n) => Ok(Some(PatternValue::Double(*n as f64))),
+                                                PatternValue::Long(n) => Ok(Some(PatternValue::Double(*n as f64))),
+                                                PatternValue::Uchar(c) => Ok(Some(PatternValue::Double(*c as f64))),
+                                                PatternValue::Ushort(n) => Ok(Some(PatternValue::Double(*n as f64))),
+                                                PatternValue::Uint(n) => Ok(Some(PatternValue::Double(*n as f64))),
+                                                PatternValue::Ulong(n) => Ok(Some(PatternValue::Double(*n as f64))),
+                                                PatternValue::Float(n) => Ok(Some(PatternValue::Double(*n as f64))),
+                                                PatternValue::Double(n) => Ok(Some(PatternValue::Double(*n as f64))),
+                                                PatternValue::SizeT(n) => Ok(Some(PatternValue::Double(*n as f64))),
+                                                PatternValue::PtrdiffT(n) => Ok(Some(PatternValue::Double(*n as f64))),
+                                                PatternValue::IntptrT(n) => Ok(Some(PatternValue::Double(*n as f64))),
+                                                PatternValue::UintptrT(n) => Ok(Some(PatternValue::Double(*n as f64))),
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("SizeT") {
+                                            match pattern_value {
+                                                PatternValue::Char(c) => Ok(Some(PatternValue::SizeT(*c as u64))),
+                                                PatternValue::Short(n) => Ok(Some(PatternValue::SizeT(*n as u64))),
+                                                PatternValue::Int(n) => Ok(Some(PatternValue::SizeT(*n as u64))),
+                                                PatternValue::Long(n) => Ok(Some(PatternValue::SizeT(*n as u64))),
+                                                PatternValue::Uchar(c) => Ok(Some(PatternValue::SizeT(*c as u64))),
+                                                PatternValue::Ushort(n) => Ok(Some(PatternValue::SizeT(*n as u64))),
+                                                PatternValue::Uint(n) => Ok(Some(PatternValue::SizeT(*n as u64))),
+                                                PatternValue::Ulong(n) => Ok(Some(PatternValue::SizeT(*n as u64))),
+                                                PatternValue::Float(n) => Ok(Some(PatternValue::SizeT(*n as u64))),
+                                                PatternValue::Double(n) => Ok(Some(PatternValue::SizeT(*n as u64))),
+                                                PatternValue::SizeT(n) => Ok(Some(PatternValue::SizeT(*n as u64))),
+                                                PatternValue::PtrdiffT(n) => Ok(Some(PatternValue::SizeT(*n as u64))),
+                                                PatternValue::IntptrT(n) => Ok(Some(PatternValue::SizeT(*n as u64))),
+                                                PatternValue::UintptrT(n) => Ok(Some(PatternValue::SizeT(*n as u64))),
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("PtrdiffT") {
+                                            match pattern_value {
+                                                PatternValue::Char(c) => Ok(Some(PatternValue::PtrdiffT(*c as i64))),
+                                                PatternValue::Short(n) => Ok(Some(PatternValue::PtrdiffT(*n as i64))),
+                                                PatternValue::Int(n) => Ok(Some(PatternValue::PtrdiffT(*n as i64))),
+                                                PatternValue::Long(n) => Ok(Some(PatternValue::PtrdiffT(*n as i64))),
+                                                PatternValue::Uchar(c) => Ok(Some(PatternValue::PtrdiffT(*c as i64))),
+                                                PatternValue::Ushort(n) => Ok(Some(PatternValue::PtrdiffT(*n as i64))),
+                                                PatternValue::Uint(n) => Ok(Some(PatternValue::PtrdiffT(*n as i64))),
+                                                PatternValue::Ulong(n) => Ok(Some(PatternValue::PtrdiffT(*n as i64))),
+                                                PatternValue::Float(n) => Ok(Some(PatternValue::PtrdiffT(*n as i64))),
+                                                PatternValue::Double(n) => Ok(Some(PatternValue::PtrdiffT(*n as i64))),
+                                                PatternValue::SizeT(n) => Ok(Some(PatternValue::PtrdiffT(*n as i64))),
+                                                PatternValue::PtrdiffT(n) => Ok(Some(PatternValue::PtrdiffT(*n as i64))),
+                                                PatternValue::IntptrT(n) => Ok(Some(PatternValue::PtrdiffT(*n as i64))),
+                                                PatternValue::UintptrT(n) => Ok(Some(PatternValue::PtrdiffT(*n as i64))),
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("IntptrT") {
+                                            match pattern_value {
+                                                PatternValue::Char(c) => Ok(Some(PatternValue::IntptrT(*c as i64))),
+                                                PatternValue::Short(n) => Ok(Some(PatternValue::IntptrT(*n as i64))),
+                                                PatternValue::Int(n) => Ok(Some(PatternValue::IntptrT(*n as i64))),
+                                                PatternValue::Long(n) => Ok(Some(PatternValue::IntptrT(*n as i64))),
+                                                PatternValue::Uchar(c) => Ok(Some(PatternValue::IntptrT(*c as i64))),
+                                                PatternValue::Ushort(n) => Ok(Some(PatternValue::IntptrT(*n as i64))),
+                                                PatternValue::Uint(n) => Ok(Some(PatternValue::IntptrT(*n as i64))),
+                                                PatternValue::Ulong(n) => Ok(Some(PatternValue::IntptrT(*n as i64))),
+                                                PatternValue::Float(n) => Ok(Some(PatternValue::IntptrT(*n as i64))),
+                                                PatternValue::Double(n) => Ok(Some(PatternValue::IntptrT(*n as i64))),
+                                                PatternValue::SizeT(n) => Ok(Some(PatternValue::IntptrT(*n as i64))),
+                                                PatternValue::PtrdiffT(n) => Ok(Some(PatternValue::IntptrT(*n as i64))),
+                                                PatternValue::IntptrT(n) => Ok(Some(PatternValue::IntptrT(*n as i64))),
+                                                PatternValue::UintptrT(n) => Ok(Some(PatternValue::IntptrT(*n as i64))),
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else if ident == &String::from("UintptrT") {
+                                            match pattern_value {
+                                                PatternValue::Char(c) => Ok(Some(PatternValue::UintptrT(*c as u64))),
+                                                PatternValue::Short(n) => Ok(Some(PatternValue::UintptrT(*n as u64))),
+                                                PatternValue::Int(n) => Ok(Some(PatternValue::UintptrT(*n as u64))),
+                                                PatternValue::Long(n) => Ok(Some(PatternValue::UintptrT(*n as u64))),
+                                                PatternValue::Uchar(c) => Ok(Some(PatternValue::UintptrT(*c as u64))),
+                                                PatternValue::Ushort(n) => Ok(Some(PatternValue::UintptrT(*n as u64))),
+                                                PatternValue::Uint(n) => Ok(Some(PatternValue::UintptrT(*n as u64))),
+                                                PatternValue::Ulong(n) => Ok(Some(PatternValue::UintptrT(*n as u64))),
+                                                PatternValue::Float(n) => Ok(Some(PatternValue::UintptrT(*n as u64))),
+                                                PatternValue::Double(n) => Ok(Some(PatternValue::UintptrT(*n as u64))),
+                                                PatternValue::SizeT(n) => Ok(Some(PatternValue::UintptrT(*n as u64))),
+                                                PatternValue::PtrdiffT(n) => Ok(Some(PatternValue::UintptrT(*n as u64))),
+                                                PatternValue::IntptrT(n) => Ok(Some(PatternValue::UintptrT(*n as u64))),
+                                                PatternValue::UintptrT(n) => Ok(Some(PatternValue::UintptrT(*n as u64))),
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: invalid value"))])),
+                                            }
+                                        } else {
+                                             Ok(None)
+                                        }
+                                    },
+                                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: type variable isn't built-in type"))])),
+                                }
+                            },
+                            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: no type variable"))])),
+                        }
+                    },
+                }
+            },
+            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: no local type entry"))])),
+        }
+    }
     
     fn value_to_pattern_value(&self, value: &Value, pos: &Pos, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<PatternValue>>
-    { Ok(None) }
+    {
+        match value {
+            Value::Bool(b) => Ok(Some(PatternValue::Bool(*b))),
+            Value::Char(c) => Ok(Some(PatternValue::Char(*c))),
+            Value::Short(n) => Ok(Some(PatternValue::Short(*n))),
+            Value::Int(n) => Ok(Some(PatternValue::Int(*n))),
+            Value::Long(n) => Ok(Some(PatternValue::Long(*n))),
+            Value::Uchar(c) => Ok(Some(PatternValue::Uchar(*c))),
+            Value::Ushort(n) => Ok(Some(PatternValue::Ushort(*n))),
+            Value::Uint(n) => Ok(Some(PatternValue::Uint(*n))),
+            Value::Ulong(n) => Ok(Some(PatternValue::Ulong(*n))),
+            Value::Float(n) => Ok(Some(PatternValue::Float(*n))),
+            Value::Double(n) => Ok(Some(PatternValue::Double(*n))),
+            Value::SizeT(n) => Ok(Some(PatternValue::SizeT(*n))),
+            Value::PtrdiffT(n) => Ok(Some(PatternValue::PtrdiffT(*n))),
+            Value::IntptrT(n) => Ok(Some(PatternValue::IntptrT(*n))),
+            Value::UintptrT(n) => Ok(Some(PatternValue::UintptrT(*n))),
+            Value::Object(_, object) => {
+                let object_r = object.borrow();
+                match &*object_r {
+                    Object::String(bs) => Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::String(bs.clone())))))),
+                    Object::CharN(cs) => Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::CharN(cs.clone())))))),
+                    Object::ShortN(ns) => Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::ShortN(ns.clone())))))),
+                    Object::IntN(ns) => Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::IntN(ns.clone())))))),
+                    Object::LongN(ns) => Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::LongN(ns.clone())))))),
+                    Object::UcharN(cs) => Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::UcharN(cs.clone())))))),
+                    Object::UshortN(ns) => Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::UshortN(ns.clone())))))),
+                    Object::UintN(ns) => Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::UintN(ns.clone())))))),
+                    Object::UlongN(ns) => Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::UlongN(ns.clone())))))),
+                    Object::FloatN(ns) => Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::FloatN(ns.clone())))))),
+                    Object::DoubleN(ns) => Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::DoubleN(ns.clone())))))),
+                    Object::Tuple(field_values) => {
+                        let mut field_pattern_values: Vec<PatternValue> = Vec::new();
+                        for field_value in field_values {
+                            match self.value_to_pattern_value(field_value, pos, errs)? {
+                                Some(field_pattern_value) => field_pattern_values.push(field_pattern_value),
+                                None => return Ok(None),
+                            }
+                        }
+                        Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::Tuple(field_pattern_values))))))
+                    },
+                    Object::Array(elem_values) => {
+                        let mut elem_pattern_values: Vec<PatternValue> = Vec::new();
+                        for elem_value in elem_values {
+                            match self.value_to_pattern_value(elem_value, pos, errs)? {
+                                Some(elem_pattern_value) => elem_pattern_values.push(elem_pattern_value),
+                                None => return Ok(None),
+                            }
+                        }
+                        Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::Array(elem_pattern_values))))))
+                    },
+                    Object::Data(ident, field_values) => {
+                        let mut field_pattern_values: Vec<PatternValue> = Vec::new();
+                        for field_value in field_values {
+                            match self.value_to_pattern_value(field_value, pos, errs)? {
+                                Some(field_pattern_value) => field_pattern_values.push(field_pattern_value),
+                                None => return Ok(None),
+                            }
+                        }
+                        Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::Data(ident.clone(), field_pattern_values))))))
+                    },
+                    Object::Builtin(_, _) | Object::EvalFun(_, _, _) => {
+                        errs.push(FrontendError::Message(pos.clone(), String::from("value of built-in variable mustn't be used in pattern")));
+                        Ok(None)
+                    },
+                    _ => {
+                        errs.push(FrontendError::Message(pos.clone(), String::from("value of function mustn't be used in pattern")));
+                        Ok(None)
+                    },
+                }
+            },
+        }
+    }
     
     fn match_value_with_pattern_value(&self, value: &Value, pattern_value: &PatternValue, var_env: &mut Environment<Value>) -> FrontendResultWithErrors<bool>
-    { Ok(false) }
+    {
+        match (value, pattern_value) {
+            (Value::Bool(b1), PatternValue::Bool(b2)) => Ok(b1 == b2),
+            (Value::Char(c1), PatternValue::Char(c2)) => Ok(c1 == c2),
+            (Value::Short(n1), PatternValue::Short(n2)) => Ok(n1 == n2),
+            (Value::Int(n1), PatternValue::Int(n2)) => Ok(n1 == n2),
+            (Value::Long(n1), PatternValue::Long(n2)) => Ok(n1 == n2),
+            (Value::Uchar(c1), PatternValue::Uchar(c2)) => Ok(c1 == c2),
+            (Value::Ushort(n1), PatternValue::Ushort(n2)) => Ok(n1 == n2),
+            (Value::Uint(n1), PatternValue::Uint(n2)) => Ok(n1 == n2),
+            (Value::Ulong(n1), PatternValue::Ulong(n2)) => Ok(n1 == n2),
+            (Value::Float(n1), PatternValue::Float(n2)) => Ok(n1 == n2),
+            (Value::Double(n1), PatternValue::Double(n2)) => Ok(n1 == n2),
+            (_, PatternValue::Wildcard) => Ok(true),
+            (_, PatternValue::Object(pattern_object)) => {
+                let pattern_object_r = pattern_object.borrow();
+                match &*pattern_object_r {
+                    PatternObject::Var(ident) => {
+                        var_env.add_var(ident.clone(), value.clone());
+                        return Ok(true);
+                    },
+                    PatternObject::At(ident, pattern_value2) => {
+                        if self.match_value_with_pattern_value(value, pattern_value2, var_env)? {
+                            var_env.add_var(ident.clone(), value.clone());
+                            return Ok(true);
+                        } else {
+                            return Ok(false);
+                        }
+                    },
+                    PatternObject::Alt(pattern_values) => {
+                        for pattern_value2 in pattern_values {
+                            if self.match_value_with_pattern_value(value, pattern_value2, var_env)? {
+                                return Ok(true);
+                            }
+                        }
+                        return Ok(false);
+                    },
+                    _ => (),
+                }
+                match value {
+                    Value::Object(_, object) => {
+                        let object_r = object.borrow();
+                        match (&*object_r, &*pattern_object_r) {
+                            (Object::String(bs1), PatternObject::String(bs2)) => Ok(bs1 == bs2),
+                            (Object::CharN(cs1), PatternObject::CharN(cs2)) => Ok(cs1 == cs2),
+                            (Object::ShortN(ns1), PatternObject::ShortN(ns2)) => Ok(ns1 == ns2),
+                            (Object::IntN(ns1), PatternObject::IntN(ns2)) => Ok(ns1 == ns2),
+                            (Object::LongN(ns1), PatternObject::LongN(ns2)) => Ok(ns1 == ns2),
+                            (Object::UcharN(cs1), PatternObject::UcharN(cs2)) => Ok(cs1 == cs2),
+                            (Object::UshortN(ns1), PatternObject::UshortN(ns2)) => Ok(ns1 == ns2),
+                            (Object::UintN(ns1), PatternObject::UintN(ns2)) => Ok(ns1 == ns2),
+                            (Object::UlongN(ns1), PatternObject::UlongN(ns2)) => Ok(ns1 == ns2),
+                            (Object::FloatN(ns1), PatternObject::FloatN(ns2)) => Ok(ns1 == ns2),
+                            (Object::DoubleN(ns1), PatternObject::DoubleN(ns2)) => Ok(ns1 == ns2),
+                            (Object::Tuple(field_values), PatternObject::Tuple(field_pattern_values)) => {
+                                for (field_value, field_pattern_value) in field_values.iter().zip(field_pattern_values.iter()) {
+                                    if !self.match_value_with_pattern_value(field_value, field_pattern_value, var_env)? {
+                                        return Ok(false);
+                                    }
+                                }
+                                Ok(true)
+                            },
+                            (Object::Array(elem_values), PatternObject::Array(elem_pattern_values)) => {
+                                for (elem_value, elem_pattern_value) in elem_values.iter().zip(elem_pattern_values.iter()) {
+                                    if !self.match_value_with_pattern_value(elem_value, elem_pattern_value, var_env)? {
+                                        return Ok(false);
+                                    }
+                                }
+                                Ok(true)
+                            },
+                            (Object::Data(ident1, field_values), PatternObject::Data(ident2, field_pattern_values)) => {
+                                if ident1 != ident2 {
+                                    return Ok(false);
+                                }
+                                for (field_value, field_pattern_value) in field_values.iter().zip(field_pattern_values.iter()) {
+                                    if !self.match_value_with_pattern_value(field_value, field_pattern_value, var_env)? {
+                                        return Ok(false);
+                                    }
+                                }
+                                Ok(true)
+                            },
+                            _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("match_value_with_pattern_value: different object types"))])),
+                        }
+                    },
+                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("match_value_with_pattern_value: value isn't object"))]))
+                }
+            },
+            _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("match_value_with_pattern_value: different value types"))])),
+        }
+    }
     
     fn evaluate_value_for_expr(&self, expr: &Expr, tree: &Tree, var_env: &mut Environment<Value>, type_stack: &mut TypeStack, local_types: &LocalTypes, closures: &mut BTreeMap<LocalFun, Closure>, var_key: &(String, Option<TypeName>), errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<Value>>
     {
@@ -2054,7 +3024,6 @@ impl Evaluator
                     Some(mut value) => {
                         let mut value2: Option<Value> = None;
                         self.value_for_fields_in(&mut value, expr_local_type(&**expr2)?, fields.as_slice(), pos, tree, local_types, false, errs, |value, _| {
-                                let shared_flag = shared_flag_for_local_type(*local_type, tree, type_stack, local_types)?;
                                 value2 = Some(value.clone());
                                 Ok(false)
                         })?;
@@ -2120,7 +3089,7 @@ impl Evaluator
             Expr::Typed(expr2, _, _, _) => self.evaluate_value_for_expr(&**expr2, tree, var_env, type_stack, local_types, closures, var_key, errs),
             Expr::As(expr2, _, Some(local_type), pos) => {
                 match self.evaluate_value_for_expr(&**expr2, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
-                    Some(value) => self.convert_value_for_type_value(&value, &Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), pos, tree, local_types, errs),
+                    Some(value) => self.convert_value_for_type_value(&value, &Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), pos, tree, local_types, true, errs),
                     None => Ok(None),
                 }
             },
@@ -2205,7 +3174,7 @@ impl Evaluator
             Pattern::Literal(literal, _, _) => self.evaluate_pattern_value_for_pattern_literal(&**literal, tree, type_stack, local_types, errs),
             Pattern::As(literal, _, _, Some(local_type), pos) => {
                 match self.evaluate_pattern_value_for_pattern_literal(&**literal, tree, type_stack, local_types, errs)? {
-                    Some(pattern_value) => self.convert_pattern_value_for_type_value(&pattern_value, &Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), pos, tree, local_types, errs),
+                    Some(pattern_value) => self.convert_pattern_value_for_type_value(&pattern_value, &Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), pos, tree, local_types, true, errs),
                     None => Ok(None),
                 }
             },
@@ -2352,10 +3321,120 @@ impl Evaluator
     }
 
     fn add_closure_vars_for_expr(&self, expr: &Expr, closure_var_env: &Environment<Value>, var_env: &mut Environment<()>, closure: &mut Closure)
-    {}
+    {
+        match expr {
+            Expr::Literal(literal, _, _) => self.do_literal_for_closure(&**literal, |evaluator, expr| evaluator.add_closure_vars_for_expr(expr, closure_var_env, var_env, closure)),
+            Expr::Lambda(args, _, body, _, _, _, _, _) => {
+                var_env.push_new_vars();
+                for arg in &*args {
+                    match arg {
+                        LambdaArg(ident, _, _, _) => {
+                            var_env.add_var(ident.clone(), ());
+                        },
+                    }
+                }
+                self.add_closure_vars_for_expr(&**body, closure_var_env, var_env, closure);
+                var_env.pop_vars();
+            },
+            Expr::Var(ident, _, _) => {
+                if var_env.var(ident).is_none() {
+                    match closure_var_env.var(ident) {
+                        Some(value) => closure.add_value(ident.clone(), value.clone()),
+                        None => (),
+                    }
+                }
+            },
+            Expr::NamedFieldConApp(_, expr_named_field_pairs, _, _, _) => {
+                self.do_named_field_pairs_for_closure(expr_named_field_pairs.as_slice(), |evaluator, expr| evaluator.add_closure_vars_for_expr(expr, closure_var_env, var_env, closure));
+            },
+            Expr::PrintfApp(exprs, _, _) => {
+                for expr2 in exprs {
+                    self.add_closure_vars_for_expr(&**expr2, closure_var_env, var_env, closure);
+                }
+            },
+            Expr::App(expr2, exprs, _, _) => {
+                self.add_closure_vars_for_expr(&**expr2, closure_var_env, var_env, closure);
+                for expr3 in exprs {
+                    self.add_closure_vars_for_expr(&**expr3, closure_var_env, var_env, closure);
+                }
+            },
+            Expr::GetField(expr2, _, _, _) => self.add_closure_vars_for_expr(&**expr2, closure_var_env, var_env, closure),
+            Expr::Get2Field(expr2, _, _, _) => self.add_closure_vars_for_expr(&**expr2, closure_var_env, var_env, closure),
+            Expr::SetField(expr2, _, expr3, _, _) => {
+                self.add_closure_vars_for_expr(&**expr2, closure_var_env, var_env, closure);
+                self.add_closure_vars_for_expr(&**expr3, closure_var_env, var_env, closure);
+            },
+            Expr::UpdateField(expr2, _, expr3, _, _) => {
+                self.add_closure_vars_for_expr(&**expr2, closure_var_env, var_env, closure);
+                self.add_closure_vars_for_expr(&**expr3, closure_var_env, var_env, closure);
+            },
+            Expr::UpdateGet2Field(expr2, _, expr3, _, _) => {
+                self.add_closure_vars_for_expr(&**expr2, closure_var_env, var_env, closure);
+                self.add_closure_vars_for_expr(&**expr3, closure_var_env, var_env, closure);
+            },
+            Expr::Uniq(expr2, _, _) => self.add_closure_vars_for_expr(&**expr2, closure_var_env, var_env, closure),
+            Expr::Shared(expr2, _, _) => self.add_closure_vars_for_expr(&**expr2, closure_var_env, var_env, closure),
+            Expr::Typed(expr2, _, _, _) => self.add_closure_vars_for_expr(&**expr2, closure_var_env, var_env, closure),
+            Expr::As(expr2, _, _, _) => self.add_closure_vars_for_expr(&**expr2, closure_var_env, var_env, closure),
+            Expr::If(expr2, expr3, expr4, _, _) => {
+                self.add_closure_vars_for_expr(&**expr2, closure_var_env, var_env, closure);
+                self.add_closure_vars_for_expr(&**expr3, closure_var_env, var_env, closure);
+                self.add_closure_vars_for_expr(&**expr4, closure_var_env, var_env, closure);
+            },
+            Expr::Let(binds, expr2, _, _) => {
+                var_env.push_new_vars();
+                for bind in binds {
+                    match bind {
+                        Bind(pattern, expr3) => {
+                            self.add_closure_vars_for_expr(&**expr3, closure_var_env, var_env, closure);
+                            self.add_vars_for_pattern(&**pattern, var_env);
+                        },
+                    }
+                }
+                self.add_closure_vars_for_expr(&**expr2, closure_var_env, var_env, closure);
+                var_env.pop_vars();
+            },
+            Expr::Match(expr2, cases, _, _) => {
+                self.add_closure_vars_for_expr(&**expr2, closure_var_env, var_env, closure);
+                for case in cases {
+                    match case {
+                        Case(pattern, expr3) => {
+                            var_env.push_new_vars();
+                            self.add_vars_for_pattern(&**pattern, var_env);
+                            self.add_closure_vars_for_expr(&**expr3, closure_var_env, var_env, closure);
+                            var_env.pop_vars();
+                        },
+                    }
+                }
+            },
+        }
+    }
 
-    fn add_vars_for_pattern(&self, expr: &Pattern, var_env: &mut Environment<()>)
-    {}
+    fn add_vars_for_pattern(&self, pattern: &Pattern, var_env: &mut Environment<()>)
+    {
+        match pattern {
+            Pattern::Literal(literal, _, _) => self.do_literal_for_closure(&**literal, |evaluator, pattern| evaluator.add_vars_for_pattern(pattern, var_env)),
+            Pattern::As(literal, _, _, _, _) => (),
+            Pattern::Const(_, _, _) => (),
+            Pattern::UnnamedFieldCon(_, patterns, _, _, _) => {
+                for pattern2 in patterns {
+                    self.add_vars_for_pattern(pattern2, var_env);
+                }
+            },
+            Pattern::NamedFieldCon(_, pattern_named_field_pairs, _, _, _) => {
+                self.do_named_field_pairs_for_closure(pattern_named_field_pairs.as_slice(), |evaluator, pattern| evaluator.add_vars_for_pattern(pattern, var_env))
+            },
+            Pattern::Var(_, ident, _, _) => {
+                var_env.add_var(ident.clone(), ());
+            },
+            Pattern::At(_, ident, pattern2, _, _) => {
+                var_env.add_var(ident.clone(), ());
+                self.add_vars_for_pattern(pattern2, var_env);
+            },
+            Pattern::Wildcard(_, _) => (),
+            Pattern::Alt(_, _, _) => (),
+        }
+    }
     
     fn set_closures_for_expr(&self, expr: &mut Expr, closures: &mut BTreeMap<LocalFun, Closure>) -> FrontendResultWithErrors<()>
     {
