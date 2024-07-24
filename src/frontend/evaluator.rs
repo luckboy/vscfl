@@ -171,6 +171,142 @@ fn add_var_key(ident: &String, type_name: &Option<TypeName>, pos: Pos, tree: &Tr
     }
 }
 
+fn do_var_for_var_key<T, F>(key: &(String, Option<TypeName>), tree: &Tree, z: T, mut f: F) -> FrontendResultWithErrors<T>
+    where F: FnMut(&Expr, &LocalTypes, &Type, &Option<Value>) -> FrontendResultWithErrors<T>
+{
+    match tree.var(&key.0) {
+        Some(var) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, trait_ident, _, Some(local_types), Some(typ), value) => {
+                    match &key.1 {
+                        Some(type_name) => {
+                            match trait_ident {
+                                Some(trait_ident) => {
+                                    match tree.trait1(trait_ident) {
+                                        Some(trait1) => {
+                                            let trait_r = trait1.borrow();
+                                            match &*trait_r {
+                                                Trait(_, _, Some(trait_vars)) => {
+                                                    match trait_vars.impl1(&type_name) {
+                                                        Some(impl1) => {
+                                                            let impl_r = impl1.borrow();
+                                                            let impl_vars = match &*impl_r {
+                                                                Impl::Builtin(_, _, Some(tmp_impl_vars)) => tmp_impl_vars,
+                                                                Impl::Impl(_, _, _, Some(tmp_impl_vars)) => tmp_impl_vars,
+                                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no implementation variables"))])),
+                                                            };
+                                                            match impl_vars.var(&key.0) {
+                                                                Some(impl_var) => {
+                                                                    let impl_var_r = impl_var.borrow();
+                                                                    match &*impl_var_r {
+                                                                        ImplVar::Var(expr2, _, Some(local_types2), Some(type2), value2) => f(&**expr2, &**local_types2, &**type2, value2),
+                                                                        _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: implementation variable isn't variable or no local types no type"))])),
+                                                                    }
+                                                                },
+                                                                None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: implementation variable is function"))])),
+                                                            }
+                                                        },
+                                                        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: no implementation"))])),
+                                                    }
+                                                },
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: no trait variables"))])),
+                                            }
+                                        },
+                                        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: no trait"))])),
+                                    }
+                                },
+                                None => {
+                                    match expr {
+                                        Some(expr) => f(&**expr, &**local_types, &**typ, value),
+                                        None => Ok(z),
+                                    }
+                                },
+                            }
+                        },
+                        None => {
+                            match expr {
+                                Some(expr) => f(&**expr, &**local_types, &**typ, value),
+                                None => Ok(z),
+                            }
+                        },
+                    }
+                },
+                _ => Ok(z),
+            }
+        },
+        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: no variable or no local types or no type"))])),
+    }
+}
+
+fn do_var_mut_for_var_key<T, F>(key: &(String, Option<TypeName>), tree: &Tree, z: T, mut f: F) -> FrontendResultWithErrors<T>
+    where F: FnMut(&mut Expr, &LocalTypes, &Type, &mut Option<Value>) -> FrontendResultWithErrors<T>
+{
+    match tree.var(&key.0) {
+        Some(var) => {
+            let mut var_r = var.borrow_mut();
+            match &mut *var_r {
+                Var::Var(_, _, _, expr, trait_ident, _, Some(local_types), Some(typ), value) => {
+                    match &key.1 {
+                        Some(type_name) => {
+                            match trait_ident {
+                                Some(trait_ident) => {
+                                    match tree.trait1(trait_ident) {
+                                        Some(trait1) => {
+                                            let trait_r = trait1.borrow();
+                                            match &*trait_r {
+                                                Trait(_, _, Some(trait_vars)) => {
+                                                    match trait_vars.impl1(&type_name) {
+                                                        Some(impl1) => {
+                                                            let impl_r = impl1.borrow();
+                                                            let impl_vars = match &*impl_r {
+                                                                Impl::Builtin(_, _, Some(tmp_impl_vars)) => tmp_impl_vars,
+                                                                Impl::Impl(_, _, _, Some(tmp_impl_vars)) => tmp_impl_vars,
+                                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no implementation variables"))])),
+                                                            };
+                                                            match impl_vars.var(&key.0) {
+                                                                Some(impl_var) => {
+                                                                    let mut impl_var_r = impl_var.borrow_mut();
+                                                                    match &mut *impl_var_r {
+                                                                        ImplVar::Var(expr2, _, Some(local_types2), Some(type2), value2) => f(&mut **expr2, &**local_types2,  &**type2, value2),
+                                                                        _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: implementation variable isn't variable or no type"))])),
+                                                                    }
+                                                                },
+                                                                None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: implementation variable is function"))])),
+                                                            }
+                                                        },
+                                                        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: no implementation"))])),
+                                                    }
+                                                },
+                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: no trait variables"))])),
+                                            }
+                                        },
+                                        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: no trait"))])),
+                                    }
+                                },
+                                None => {
+                                    match expr {
+                                        Some(expr) => f(&mut **expr, &**local_types, &**typ, value),
+                                        None => Ok(z),
+                                    }
+                                },
+                            }
+                        },
+                        None => {
+                            match expr {
+                                Some(expr) => f(&mut **expr, &**local_types, &**typ, value),
+                                None => Ok(z),
+                            }
+                        },
+                    }
+                },
+                _ => Ok(z),
+            }
+        },
+        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: no variable no local types or no type"))])),
+    }
+}
+
 fn shared_flag_for_local_type(local_type: LocalType, tree: &Tree, type_stack: &mut TypeStack, local_types: &LocalTypes) -> FrontendResultWithErrors<SharedFlag>
 {
     match type_stack.push_type_entries_for_local_type(local_type, local_types) {
@@ -462,6 +598,30 @@ impl Evaluator
     pub fn new() -> Self
     { Evaluator { evals: Evals::new(), } }
 
+    pub fn new_with_evals(evals: Evals) -> Self
+    { Evaluator { evals, } }
+
+    pub fn evals(&self) -> &Evals
+    { &self.evals }
+    
+    pub fn evals_mut(&mut self) -> &mut Evals
+    { &mut self.evals }
+
+    pub fn set_evals(&mut self, evals: Evals)
+    { self.evals = evals; }
+
+    pub fn evaluate_values(&self, tree: &Tree) -> FrontendResultWithErrors<()>
+    {
+        let mut errs: Vec<FrontendError> = Vec::new();
+        self.evaluate_values_for_defs(tree, &mut errs)?;
+        self.check_pattern_exhaustions_for_defs(tree, &mut errs)?;
+        if errs.is_empty() {
+            Ok(())
+        } else {
+            Err(FrontendErrors::new(errs))
+        }
+    }
+    
     fn value_for_ident_and_type_name(&self, ident: &String, type_name: &Option<TypeName>, pos: Pos, tree: &Tree, are_errs: bool, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<Value>>
     {
         match tree.var(ident) {
@@ -642,7 +802,174 @@ impl Evaluator
             _ => (),
         }
         Ok(())
+    }
+    
+    fn evaluate_values_for_defs(&self, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        let mut visited_keys: BTreeSet<(String, Option<TypeName>)> = BTreeSet::new();
+        for def in tree.defs() {
+            match &**def {
+                Def::Var(ident, var, _) => self.evaluate_values_for_var(ident, var, tree, &mut visited_keys, errs)?,
+                Def::Trait(_, trait1, _) => {
+                    let trait_r = trait1.borrow();
+                    match &*trait_r {
+                        Trait(_, trait_defs, _) => {
+                            for trait_def in trait_defs {
+                                match &**trait_def {
+                                    TraitDef(ident, var, _) => self.evaluate_values_for_var(ident, var, tree, &mut visited_keys, errs)?,
+                                }
+                            }
+                        },
+                    }
+                },
+                Def::Impl(impl1, _) => {
+                    let impl_r = impl1.borrow();
+                    match &*impl_r {
+                        Impl::Builtin(_, _, _) => (),
+                        Impl::Impl(_, type_name, impl_defs, _) => {
+                            for impl_def in impl_defs {
+                                match &**impl_def {
+                                    ImplDef(ident, impl_var, _) => self.evaluate_values_for_impl_var(ident, type_name, impl_var, tree, &mut visited_keys, errs)?,
+                                }
+                            }
+                        },
+                    }
+                },
+                _ => (),
+            }
+        }
+        Ok(())
+    }
+
+    fn check_pattern_exhaustions_for_defs(&self, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        for def in tree.defs() {
+            match &**def {
+                Def::Var(_, var, _) => {
+                    let var_r = var.borrow();
+                    self.check_pattern_exhaustions_for_fun(&*var_r, tree, errs)?;
+                },
+                Def::Trait(_, trait1, _) => {
+                    let trait_r = trait1.borrow();
+                    match &*trait_r {
+                        Trait(_, trait_defs, _) => {
+                            for trait_def in trait_defs {
+                                match &**trait_def {
+                                    TraitDef(_, var, _) => {
+                                        let var_r = var.borrow();
+                                        self.check_pattern_exhaustions_for_fun(&*var_r, tree, errs)?;
+                                    },
+                                }
+                            }
+                        },
+                    }
+                },
+                Def::Impl(impl1, _) => {
+                    let impl_r = impl1.borrow();
+                    match &*impl_r {
+                        Impl::Builtin(_, _, _) => (),
+                        Impl::Impl(_, _, impl_defs, _) => {
+                            for impl_def in impl_defs {
+                                match &**impl_def {
+                                    ImplDef(_, impl_var, _) => {
+                                        let impl_var_r = impl_var.borrow();
+                                        self.check_pattern_exhaustions_for_impl_fun(&*impl_var_r, tree, errs)?;
+                                    },
+                                }
+                            }
+                        },
+                    }
+                },
+                _ => (),
+            }
+        }
+        Ok(())
     }    
+    
+    fn evaluate_values_for_var(&self, ident: &String, var: &Rc<RefCell<Var>>, tree: &Tree, visited_keys: &mut BTreeSet<(String, Option<TypeName>)>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        let is_var = {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, _) => true,
+                _ => false,
+            }
+        };
+        if is_var {
+            self.evaluate_values_for_var_key(&(ident.clone(), None), tree, visited_keys, errs)?;
+        }
+        Ok(())
+    }
+
+    fn check_pattern_exhaustions_for_fun(&self, var: &Var, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        match var {
+            Var::Builtin(_, _) => (),
+            Var::Var(_, _, _, _, _, _, _, _, _) => (),
+            Var::Fun(fun, _, Some(typ)) => {
+                match &**fun {
+                    Fun::Fun(_, _, _, _, Some(body), _, Some(local_types)) => {
+                        let mut type_stack = TypeStack::new();
+                        type_stack.set_first_type_values_for_type(typ);
+                        self.check_pattern_exhaustions_for_expr(&**body, tree, &mut type_stack, local_types, errs)?;
+                    },
+                    Fun::Fun(_, _, _, _, None, _, _) => (),
+                    Fun::Con(_) => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_pattern_exhaustions_for_fun: variable is contructor"))])),
+                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_pattern_exhaustions_for_fun: no local types"))])),
+                }
+            },
+            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_pattern_exhaustions_for_var: no type"))])),
+        }
+        Ok(())
+    }
+    
+    fn evaluate_values_for_var_key(&self, key: &(String, Option<TypeName>), tree: &Tree, visited_keys: &mut BTreeSet<(String, Option<TypeName>)>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        dfs_with_result(key, visited_keys, errs, |key, processed_keys, errs| {
+                self.var_keys_for_key_var(key, tree, processed_keys, errs)
+        }, |key, errs| {
+                self.evaluate_value_for_var_key(key, tree, errs)
+        })
+    }
+    
+    fn var_keys_for_key_var(&self, key: &(String, Option<TypeName>), tree: &Tree, processed_keys: &BTreeSet<(String, Option<TypeName>)>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Vec<(String, Option<TypeName>)>>
+    {
+        do_var_for_var_key(key, tree, Vec::new(), |expr, local_types, typ, _| {
+                let mut keys: Vec<(String, Option<TypeName>)> = Vec::new();
+                let mut var_env: Environment<()> = Environment::new();
+                let mut type_stack = TypeStack::new();
+                type_stack.set_first_type_values_for_type(typ);
+                self.add_var_keys_for_expr(expr, tree, &mut var_env, &mut type_stack, local_types, &mut keys, processed_keys, errs)?;
+                Ok(keys)
+        })
+    }
+    
+    fn evaluate_value_for_var_key(&self, key: &(String, Option<TypeName>), tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        do_var_for_var_key(key, tree, (), |expr, local_types, typ, _| {
+                let mut type_stack = TypeStack::new();
+                type_stack.set_first_type_values_for_type(typ);
+                self.check_pattern_exhaustions_for_expr(expr, tree, &mut type_stack, local_types, errs)
+        })?;
+        do_var_mut_for_var_key(key, tree, (), |expr, _, _, _| {
+                let mut local_fun_counter = 0usize;
+                self.set_local_funs_for_expr(expr, &mut local_fun_counter)
+        })?;
+        let mut new_value: Option<Value> = None;
+        let mut closures: BTreeMap<LocalFun, Closure> = BTreeMap::new();
+        do_var_for_var_key(key, tree, (), |expr, local_types, typ, _| {
+                let mut type_stack = TypeStack::new();
+                let mut var_env: Environment<Value> = Environment::new();
+                type_stack.set_first_type_values_for_type(typ);
+                new_value = self.evaluate_value_for_expr(expr, tree, &mut var_env, &mut type_stack, local_types, &mut closures, key, errs)?;
+                Ok(())
+        })?;
+        do_var_mut_for_var_key(key, tree, (), |expr, _, _, value| {
+                *value = new_value.clone();
+                self.set_closures_for_expr(expr, &mut closures)
+        })?;
+        Ok(())
+    }
     
     fn add_var_keys_for_expr(&self, expr: &Expr, tree: &Tree, var_env: &mut Environment<()>, type_stack: &mut TypeStack, local_types: &LocalTypes, keys: &mut Vec<(String, Option<TypeName>)>, processed_keys: &BTreeSet<(String, Option<TypeName>)>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
@@ -2934,7 +3261,7 @@ impl Evaluator
                     },
                 }
             },
-            Expr::NamedFieldConApp(ident, expr_named_field_pairs, _, Some(local_type), pos) => {
+            Expr::NamedFieldConApp(ident, expr_named_field_pairs, _, Some(local_type), _) => {
                 named_fields_for_con_ident_in(ident, tree, |named_fields| {
                         let mut field_values = vec![Value::Bool(false); expr_named_field_pairs.len()];
                         for expr_named_field_pair in expr_named_field_pairs {
@@ -3414,7 +3741,7 @@ impl Evaluator
     {
         match pattern {
             Pattern::Literal(literal, _, _) => self.do_literal_for_closure(&**literal, |evaluator, pattern| evaluator.add_vars_for_pattern(pattern, var_env)),
-            Pattern::As(literal, _, _, _, _) => (),
+            Pattern::As(_, _, _, _, _) => (),
             Pattern::Const(_, _, _) => (),
             Pattern::UnnamedFieldCon(_, patterns, _, _, _) => {
                 for pattern2 in patterns {
@@ -3501,6 +3828,41 @@ impl Evaluator
                 }
             },
             _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("set_closures_for_expr: no local function"))])),
+        }
+        Ok(())
+    }
+
+    fn evaluate_values_for_impl_var(&self, ident: &String, type_name: &TypeName, impl_var: &Rc<RefCell<ImplVar>>, tree: &Tree, visited_keys: &mut BTreeSet<(String, Option<TypeName>)>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        let is_impl_var = {
+            let impl_var_r = impl_var.borrow();
+            match &*impl_var_r {
+                ImplVar::Var(_, _, _, _, _) => true,
+                _ => false,
+            }
+        };
+        if is_impl_var {
+            self.evaluate_values_for_var_key(&(ident.clone(), Some(type_name.clone())), tree, visited_keys, errs)?;
+        }
+        Ok(())
+    }
+
+    fn check_pattern_exhaustions_for_impl_fun(&self, impl_var: &ImplVar, tree: &Tree, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        match impl_var {
+            ImplVar::Builtin(_) => (),
+            ImplVar::Var(_, _, _, _, _) => (),
+            ImplVar::Fun(impl_fun, Some(typ)) => {
+                match &**impl_fun {
+                    ImplFun(_, body, _, Some(local_types)) => {
+                        let mut type_stack = TypeStack::new();
+                        type_stack.set_first_type_values_for_type(typ);
+                        self.check_pattern_exhaustions_for_expr(&**body, tree, &mut type_stack, local_types, errs)?;
+                    },
+                    _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_pattern_exhaustions_for_impl_fun: no local types"))])),
+                }
+            },
+            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_pattern_exhaustions_for_impl_fun: no type"))])),
         }
         Ok(())
     }
