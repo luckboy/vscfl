@@ -384,7 +384,6 @@ fn type_for_ident_and_type_name_in<T, F>(ident: &String, type_name: &Option<Type
     }
 }
 
-
 fn type_for_fun_ident_in<T, F>(ident: &String, tree: &Tree, mut f: F) -> FrontendResultWithErrors<T>
     where F: FnMut(&Type) -> FrontendResultWithErrors<T>
 {
