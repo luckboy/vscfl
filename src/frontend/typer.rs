@@ -13,6 +13,7 @@ use crate::frontend::builtins::*;
 use crate::frontend::error::*;
 use crate::frontend::namer::*;
 use crate::frontend::parser::*;
+use crate::frontend::private::*;
 use crate::frontend::tree::*;
 use crate::frontend::type_matcher::*;
 use crate::utils::dfs::*;
@@ -52,21 +53,6 @@ fn expr_pos(expr: &Expr) -> &Pos
         Expr::Let(_, _, _, pos) => pos,
         Expr::If(_, _, _, _, pos) => pos,
         Expr::Match(_, _, _, pos) => pos,
-    }
-}
-
-fn pattern_pos(pattern: &Pattern) -> &Pos
-{
-    match pattern {
-        Pattern::Literal(_, _, pos) => pos,
-        Pattern::As(_, _, _, _, pos) => pos,
-        Pattern::Const(_, _, pos) => pos,
-        Pattern::UnnamedFieldCon(_, _, _, _, pos) => pos,
-        Pattern::NamedFieldCon(_, _, _, _, pos) => pos,
-        Pattern::Var(_, _, _, pos) => pos,
-        Pattern::At(_, _, _, _, pos) => pos,
-        Pattern::Wildcard(_, pos) => pos,
-        Pattern::Alt(_, _, pos) => pos,
     }
 }
 
@@ -392,21 +378,6 @@ fn type_for_var_ident_in<T, F>(ident: &String, tree: &Tree, mut f: F) -> Fronten
             }
         },
         None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_for_var_ident_in: no variable"))])),
-    }
-}
-
-fn type_for_fun_ident_in<T, F>(ident: &String, tree: &Tree, mut f: F) -> FrontendResultWithErrors<T>
-    where F: FnMut(&Type) -> FrontendResultWithErrors<T>
-{
-    match tree.var(ident) {
-        Some(var) => {
-            let var_r = var.borrow();
-            match &*var_r {
-                Var::Fun(_, _, Some(typ)) => f(typ),
-                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_for_fun_ident_in: variable isn't function or no type"))])),
-            }
-        },
-        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("type_for_fun_ident_in: no variable"))])),
     }
 }
 

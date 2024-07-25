@@ -14,6 +14,7 @@ pub mod lexer;
 pub mod limiter;
 pub mod namer;
 pub mod parser;
+pub(crate) mod private; 
 pub mod shared_flag;
 pub mod tree;
 pub mod type_matcher;
