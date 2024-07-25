@@ -521,8 +521,8 @@ enum PatternValue
     PtrdiffT(i64),
     IntptrT(i64),
     UintptrT(u64),
-    Wildcard,
     Object(Rc<RefCell<PatternObject>>),
+    Wildcard,
 }
 
 pub struct Evaluator
@@ -2695,7 +2695,6 @@ impl Evaluator
                     TypeValue::Type(_, TypeValueName::Fun, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: type value is function type"))])),
                     TypeValue::Type(_, TypeValueName::Name(ident), _) => {
                         match pattern_value {
-                            PatternValue::Wildcard => return Ok(Some(PatternValue::Wildcard)),
                             PatternValue::Object(pattern_object) => {
                                 let mut pattern_object_r = pattern_object.borrow_mut();
                                 match &mut *pattern_object_r {
@@ -2713,6 +2712,7 @@ impl Evaluator
                                     _ => (),
                                 }
                             },
+                            PatternValue::Wildcard => return Ok(Some(PatternValue::Wildcard)),
                             _ => (),
                         }
                         match tree.type_var(ident) {
@@ -3082,7 +3082,6 @@ impl Evaluator
             (Value::Ulong(n1), PatternValue::Ulong(n2)) => Ok(n1 == n2),
             (Value::Float(n1), PatternValue::Float(n2)) => Ok(n1 == n2),
             (Value::Double(n1), PatternValue::Double(n2)) => Ok(n1 == n2),
-            (_, PatternValue::Wildcard) => Ok(true),
             (_, PatternValue::Object(pattern_object)) => {
                 let pattern_object_r = pattern_object.borrow();
                 match &*pattern_object_r {
@@ -3156,6 +3155,7 @@ impl Evaluator
                     _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("match_value_with_pattern_value: value isn't object"))]))
                 }
             },
+            (_, PatternValue::Wildcard) => Ok(true),
             _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("match_value_with_pattern_value: different value types"))])),
         }
     }
