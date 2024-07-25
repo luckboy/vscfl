@@ -144,8 +144,8 @@ fn add_data_ident(ident: &String, pos: Pos, tree: &Tree, idents: &mut Vec<String
 {
     match tree.type_var(ident) {
         Some(type_var) => {
-            let mut type_var_r = type_var.borrow_mut();
-            match &mut *type_var_r {
+            let type_var_r = type_var.borrow();
+            match &*type_var_r {
                 TypeVar::Builtin(_, _, _) => Ok(()),
                 TypeVar::Data(_, _, _) => {
                     if !processed_idents.contains(ident) {
