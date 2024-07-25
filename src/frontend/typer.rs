@@ -3131,6 +3131,9 @@ impl Typer
                                                                 None
                                                             },
                                                         }
+                                                    } else if cons.len() == 0 {
+                                                        errs.push(FrontendError::Message(pos.clone(), format!("type {} hasn't constructor for fields", LocalTypeWithLocalTypes(current_local_type, local_types))));
+                                                        None
                                                     } else {
                                                         errs.push(FrontendError::Message(pos.clone(), format!("type {} has too many constructors for fields", LocalTypeWithLocalTypes(current_local_type, local_types))));
                                                         None
@@ -3245,6 +3248,9 @@ impl Typer
                                                         if !is_success {
                                                             return Ok(None);
                                                         }
+                                                    } else if cons.len() == 0 {
+                                                        errs.push(FrontendError::Message(pos.clone(), format!("type {} hasn't constructor for fields", LocalTypeWithLocalTypes(current_local_type, local_types))));
+                                                        return Ok(None);
                                                     } else {
                                                         errs.push(FrontendError::Message(pos.clone(), format!("type {} has too many constructors for fields", LocalTypeWithLocalTypes(current_local_type, local_types))));
                                                         return Ok(None);
