@@ -895,8 +895,8 @@ impl Evaluator
     {
         do_var_for_var_key(key, tree, Vec::new(), |expr, local_types, typ, _| {
                 let mut keys: Vec<(String, Option<TypeName>)> = Vec::new();
-                let mut var_env: Environment<()> = Environment::new();
                 let mut type_stack = TypeStack::new();
+                let mut var_env: Environment<()> = Environment::new();
                 type_stack.set_first_type_values_for_type(typ);
                 self.add_var_keys_for_expr(expr, tree, &mut var_env, &mut type_stack, local_types, &mut keys, processed_keys, errs)?;
                 Ok(keys)
