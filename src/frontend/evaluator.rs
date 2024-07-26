@@ -159,7 +159,7 @@ fn do_var_for_var_key<T, F>(key: &(String, Option<TypeName>), tree: &Tree, z: T,
                                                             let impl_var_r = impl_var.borrow();
                                                             match &*impl_var_r {
                                                                 ImplVar::Var(expr2, _, Some(local_types2), Some(type2), value2) => f(&**expr2, &**local_types2, &**type2, value2),
-                                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: implementation variable isn't variable or no local types no type"))])),
+                                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: implementation variable isn't variable or no local types or no type"))])),
                                                             }
                                                         },
                                                         None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: implementation variable is function"))])),
@@ -237,7 +237,7 @@ fn do_var_mut_for_var_key<T, F>(key: &(String, Option<TypeName>), tree: &Tree, z
                                                             let mut impl_var_r = impl_var.borrow_mut();
                                                             match &mut *impl_var_r {
                                                                 ImplVar::Var(expr2, _, Some(local_types2), Some(type2), value2) => f(&mut **expr2, &**local_types2,  &**type2, value2),
-                                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: implementation variable isn't variable or no type"))])),
+                                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: implementation variable isn't variable or no local types or no type"))])),
                                                             }
                                                         },
                                                         None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: implementation variable is function"))])),
