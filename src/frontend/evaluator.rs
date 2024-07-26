@@ -64,61 +64,63 @@ fn add_var_key(ident: &String, type_name: &Option<TypeName>, pos: Pos, tree: &Tr
     match tree.var(ident) {
         Some(var) => {
             let var_r = var.borrow();
-            match &*var_r {
-                Var::Var(_, _, _, _, trait_ident, _, _, _, _) => {
-                    let key_type_name = match type_name {
-                        Some(type_name) => {
-                            match trait_ident {
-                                Some(trait_ident) => {
-                                    match tree.trait1(trait_ident) {
-                                        Some(trait1) => {
-                                            let trait_r = trait1.borrow();
-                                            match &*trait_r {
-                                                Trait(_, _, Some(trait_vars)) => {
-                                                    match trait_vars.impl1(&type_name) {
-                                                        Some(impl1) => {
-                                                            let impl_r = impl1.borrow();
-                                                            let impl_vars = match &*impl_r {
-                                                                Impl::Builtin(_, _, Some(tmp_impl_vars)) => tmp_impl_vars,
-                                                                Impl::Impl(_, _, _, Some(tmp_impl_vars)) => tmp_impl_vars,
-                                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no implementation variables"))])),
-                                                            };
-                                                            match impl_vars.var(ident) {
-                                                                Some(impl_var) => {
-                                                                    let impl_var_r = impl_var.borrow();
-                                                                    match &*impl_var_r {
-                                                                        ImplVar::Builtin(_) => return Ok(()),
-                                                                        ImplVar::Var(_, _, _, _, _) => Some(type_name.clone()),
-                                                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: implementation variable is function"))])),
-                                                                    }
-                                                                },
-                                                                None => None,
+            let (trait_ident, is_builtin_var) = match &*var_r {
+                Var::Builtin(tmp_trait_ident, _) => (tmp_trait_ident, true),
+                Var::Var(_, _, _, _, tmp_trait_ident, _, _, _, _) => (tmp_trait_ident, true),
+                Var::Fun(_, _, _) => return Ok(()),
+            };
+            let key_type_name = match type_name {
+                Some(type_name) => {
+                    match trait_ident {
+                        Some(trait_ident) => {
+                            match tree.trait1(trait_ident) {
+                                Some(trait1) => {
+                                    let trait_r = trait1.borrow();
+                                    match &*trait_r {
+                                        Trait(_, _, Some(trait_vars)) => {
+                                            match trait_vars.impl1(&type_name) {
+                                                Some(impl1) => {
+                                                    let impl_r = impl1.borrow();
+                                                    let impl_vars = match &*impl_r {
+                                                        Impl::Builtin(_, _, Some(tmp_impl_vars)) => tmp_impl_vars,
+                                                        Impl::Impl(_, _, _, Some(tmp_impl_vars)) => tmp_impl_vars,
+                                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no implementation variables"))])),
+                                                    };
+                                                    match impl_vars.var(ident) {
+                                                        Some(impl_var) => {
+                                                            let impl_var_r = impl_var.borrow();
+                                                            match &*impl_var_r {
+                                                                ImplVar::Builtin(_) => return Ok(()),
+                                                                ImplVar::Var(_, _, _, _, _) => Some(type_name.clone()),
+                                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: implementation variable is function"))])),
                                                             }
                                                         },
-                                                        None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no implementation"))])),
+                                                        None => None,
                                                     }
                                                 },
-                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no trait variables"))])),
+                                                None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no implementation"))])),
                                             }
                                         },
-                                        None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no trait"))])),
+                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no trait variables"))])),
                                     }
                                 },
-                                None => None,
+                                None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no trait"))])),
                             }
                         },
                         None => None,
-                    };
-                    let key = (ident.clone(), key_type_name);
-                    if !processed_keys.contains(&key) {
-                        keys.push(key);
-                    } else {
-                        errs.push(FrontendError::Message(pos, format!("definition of variable {} is recursive", ident)));
                     }
-                    Ok(())
                 },
-                _ => Ok(()),
+                None => None,
+            };
+            if !is_builtin_var || key_type_name.is_some() {
+                let key = (ident.clone(), key_type_name);
+                if !processed_keys.contains(&key) {
+                    keys.push(key);
+                } else {
+                    errs.push(FrontendError::Message(pos, format!("definition of variable {} is recursive", ident)));
+                }
             }
+            Ok(())
         },
         None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no variable"))])),
     }
@@ -130,62 +132,72 @@ fn do_var_for_var_key<T, F>(key: &(String, Option<TypeName>), tree: &Tree, z: T,
     match tree.var(&key.0) {
         Some(var) => {
             let var_r = var.borrow();
-            match &*var_r {
-                Var::Var(_, _, _, expr, trait_ident, _, Some(local_types), Some(typ), value) => {
-                    match &key.1 {
-                        Some(type_name) => {
-                            match trait_ident {
-                                Some(trait_ident) => {
-                                    match tree.trait1(trait_ident) {
-                                        Some(trait1) => {
-                                            let trait_r = trait1.borrow();
-                                            match &*trait_r {
-                                                Trait(_, _, Some(trait_vars)) => {
-                                                    match trait_vars.impl1(&type_name) {
-                                                        Some(impl1) => {
-                                                            let impl_r = impl1.borrow();
-                                                            let impl_vars = match &*impl_r {
-                                                                Impl::Builtin(_, _, Some(tmp_impl_vars)) => tmp_impl_vars,
-                                                                Impl::Impl(_, _, _, Some(tmp_impl_vars)) => tmp_impl_vars,
-                                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no implementation variables"))])),
-                                                            };
-                                                            match impl_vars.var(&key.0) {
-                                                                Some(impl_var) => {
-                                                                    let impl_var_r = impl_var.borrow();
-                                                                    match &*impl_var_r {
-                                                                        ImplVar::Var(expr2, _, Some(local_types2), Some(type2), value2) => f(&**expr2, &**local_types2, &**type2, value2),
-                                                                        _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: implementation variable isn't variable or no local types no type"))])),
-                                                                    }
-                                                                },
-                                                                None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: implementation variable is function"))])),
+            let (trait_ident, var_tuple) = match &*var_r {
+                Var::Builtin(tmp_trait_ident, _) => (tmp_trait_ident, None),
+                Var::Var(_, _, _, tmp_expr, tmp_trait_ident, _, Some(tmp_local_types), Some(tmp_typ), tmp_value) => (tmp_trait_ident, Some((tmp_expr, tmp_local_types, tmp_typ, tmp_value))),
+                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: variable is function or no local types or no type"))])),
+            };
+            match &key.1 {
+                Some(type_name) => {
+                    match trait_ident {
+                        Some(trait_ident) => {
+                            match tree.trait1(trait_ident) {
+                                Some(trait1) => {
+                                    let trait_r = trait1.borrow();
+                                    match &*trait_r {
+                                        Trait(_, _, Some(trait_vars)) => {
+                                            match trait_vars.impl1(&type_name) {
+                                                Some(impl1) => {
+                                                    let impl_r = impl1.borrow();
+                                                    let impl_vars = match &*impl_r {
+                                                        Impl::Builtin(_, _, Some(tmp_impl_vars)) => tmp_impl_vars,
+                                                        Impl::Impl(_, _, _, Some(tmp_impl_vars)) => tmp_impl_vars,
+                                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no implementation variables"))])),
+                                                    };
+                                                    match impl_vars.var(&key.0) {
+                                                        Some(impl_var) => {
+                                                            let impl_var_r = impl_var.borrow();
+                                                            match &*impl_var_r {
+                                                                ImplVar::Var(expr2, _, Some(local_types2), Some(type2), value2) => f(&**expr2, &**local_types2, &**type2, value2),
+                                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: implementation variable isn't variable or no local types no type"))])),
                                                             }
                                                         },
-                                                        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: no implementation"))])),
+                                                        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: implementation variable is function"))])),
                                                     }
                                                 },
-                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: no trait variables"))])),
+                                                None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: no implementation"))])),
                                             }
                                         },
-                                        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: no trait"))])),
+                                        _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: no trait variables"))])),
                                     }
                                 },
-                                None => {
+                                None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: no trait"))])),
+                            }
+                        },
+                        None => {
+                            match var_tuple {
+                                Some((expr, local_types, typ, value)) => {
                                     match expr {
                                         Some(expr) => f(&**expr, &**local_types, &**typ, value),
                                         None => Ok(z),
                                     }
                                 },
+                                None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: variable is built-in variable"))])),
                             }
                         },
-                        None => {
+                    }
+                },
+                None => {
+                    match var_tuple {
+                        Some((expr, local_types, typ, value)) => {
                             match expr {
                                 Some(expr) => f(&**expr, &**local_types, &**typ, value),
                                 None => Ok(z),
                             }
                         },
+                        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: variable is built-in variable"))])),
                     }
                 },
-                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: variable isn't variable or no local types or no type"))])),
             }
         },
         None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: no variable"))])),
@@ -198,62 +210,72 @@ fn do_var_mut_for_var_key<T, F>(key: &(String, Option<TypeName>), tree: &Tree, z
     match tree.var(&key.0) {
         Some(var) => {
             let mut var_r = var.borrow_mut();
-            match &mut *var_r {
-                Var::Var(_, _, _, expr, trait_ident, _, Some(local_types), Some(typ), value) => {
-                    match &key.1 {
-                        Some(type_name) => {
-                            match trait_ident {
-                                Some(trait_ident) => {
-                                    match tree.trait1(trait_ident) {
-                                        Some(trait1) => {
-                                            let trait_r = trait1.borrow();
-                                            match &*trait_r {
-                                                Trait(_, _, Some(trait_vars)) => {
-                                                    match trait_vars.impl1(&type_name) {
-                                                        Some(impl1) => {
-                                                            let impl_r = impl1.borrow();
-                                                            let impl_vars = match &*impl_r {
-                                                                Impl::Builtin(_, _, Some(tmp_impl_vars)) => tmp_impl_vars,
-                                                                Impl::Impl(_, _, _, Some(tmp_impl_vars)) => tmp_impl_vars,
-                                                                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no implementation variables"))])),
-                                                            };
-                                                            match impl_vars.var(&key.0) {
-                                                                Some(impl_var) => {
-                                                                    let mut impl_var_r = impl_var.borrow_mut();
-                                                                    match &mut *impl_var_r {
-                                                                        ImplVar::Var(expr2, _, Some(local_types2), Some(type2), value2) => f(&mut **expr2, &**local_types2,  &**type2, value2),
-                                                                        _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: implementation variable isn't variable or no type"))])),
-                                                                    }
-                                                                },
-                                                                None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: implementation variable is function"))])),
+            let (trait_ident, var_tuple) = match &mut *var_r {
+                Var::Builtin(tmp_trait_ident, _) => (tmp_trait_ident, None),
+                Var::Var(_, _, _, tmp_expr, tmp_trait_ident, _, Some(tmp_local_types), Some(tmp_typ), tmp_value) => (tmp_trait_ident, Some((tmp_expr, tmp_local_types, tmp_typ, tmp_value))),
+                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: variable is function or no local types or no type"))])),
+            };
+            match &key.1 {
+                Some(type_name) => {
+                    match trait_ident {
+                        Some(trait_ident) => {
+                            match tree.trait1(trait_ident) {
+                                Some(trait1) => {
+                                    let trait_r = trait1.borrow();
+                                    match &*trait_r {
+                                        Trait(_, _, Some(trait_vars)) => {
+                                            match trait_vars.impl1(&type_name) {
+                                                Some(impl1) => {
+                                                    let impl_r = impl1.borrow();
+                                                    let impl_vars = match &*impl_r {
+                                                        Impl::Builtin(_, _, Some(tmp_impl_vars)) => tmp_impl_vars,
+                                                        Impl::Impl(_, _, _, Some(tmp_impl_vars)) => tmp_impl_vars,
+                                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no implementation variables"))])),
+                                                    };
+                                                    match impl_vars.var(&key.0) {
+                                                        Some(impl_var) => {
+                                                            let mut impl_var_r = impl_var.borrow_mut();
+                                                            match &mut *impl_var_r {
+                                                                ImplVar::Var(expr2, _, Some(local_types2), Some(type2), value2) => f(&mut **expr2, &**local_types2,  &**type2, value2),
+                                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: implementation variable isn't variable or no type"))])),
                                                             }
                                                         },
-                                                        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: no implementation"))])),
+                                                        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: implementation variable is function"))])),
                                                     }
                                                 },
-                                                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: no trait variables"))])),
+                                                None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: no implementation"))])),
                                             }
                                         },
-                                        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: no trait"))])),
+                                        _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: no trait variables"))])),
                                     }
                                 },
-                                None => {
+                                None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: no trait"))])),
+                            }
+                        },
+                        None => {
+                            match var_tuple {
+                                Some((expr, local_types, typ, value)) => {
                                     match expr {
                                         Some(expr) => f(&mut **expr, &**local_types, &**typ, value),
                                         None => Ok(z),
                                     }
                                 },
+                                None =>  Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: variable is built-in variable"))])),
                             }
                         },
-                        None => {
+                    }
+                },
+                None => {
+                    match var_tuple {
+                        Some((expr, local_types, typ, value)) => {
                             match expr {
                                 Some(expr) => f(&mut **expr, &**local_types, &**typ, value),
                                 None => Ok(z),
                             }
                         },
+                        None =>  Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: variable is built-in variable"))])),
                     }
                 },
-                _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: variable isn't variable or no local types or no type"))])),
             }
         },
         None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: no variable"))])),
