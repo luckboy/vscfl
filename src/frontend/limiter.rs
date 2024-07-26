@@ -270,7 +270,6 @@ impl Limiter
         Ok(())
     }
 
-
     fn check_limits_for_impl_var(&self, impl_var: &ImplVar, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         match impl_var {
