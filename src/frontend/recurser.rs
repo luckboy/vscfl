@@ -466,7 +466,7 @@ impl Recurser
                 _ => false,
             }
         };
-        if is_impl_fun{
+        if is_impl_fun {
             self.check_recursions_for_fun_key(&(ident.clone(), Some(type_name.clone())), tree, visited_keys, errs)?;
         }
         Ok(())
