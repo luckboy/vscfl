@@ -677,7 +677,7 @@ impl Evaluator
     {
         for named_field_pair in named_field_pairs {
             match named_field_pair {
-                NamedFieldPair(_, other, _) => f(self, other, errs)?,
+                NamedFieldPair(_, other, _) => f(self, &**other, errs)?,
             }
         }
         Ok(())
@@ -708,7 +708,7 @@ impl Evaluator
     {
         for named_field_pair in named_field_pairs {
             match named_field_pair {
-                NamedFieldPair(_, other, _) => f(self, other),
+                NamedFieldPair(_, other, _) => f(self, &**other),
             }
         }
     }    
@@ -737,7 +737,7 @@ impl Evaluator
     {
         for named_field_pair in named_field_pairs {
             match named_field_pair {
-                NamedFieldPair(_, other, _) => f(self, other)?,
+                NamedFieldPair(_, other, _) => f(self, &mut **other)?,
             }
         }
         Ok(())

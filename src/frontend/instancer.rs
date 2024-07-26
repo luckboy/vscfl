@@ -134,7 +134,7 @@ impl Instancer
     {
         for named_field_pair in named_field_pairs {
             match named_field_pair {
-                NamedFieldPair(_, other, _) => f(self, other, tree, var_env, local_types, errs)?,
+                NamedFieldPair(_, other, _) => f(self, &**other, tree, var_env, local_types, errs)?,
             }
         }
         Ok(())

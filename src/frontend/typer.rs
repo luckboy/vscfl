@@ -2942,7 +2942,7 @@ impl Typer
                                     match named_fields.field_index(field_ident) {
                                         Some(field_idx) => {
                                             let mut is_var = false;
-                                            let field_local_type = f(self, other, tree, var_env, &mut is_var, local_types, errs)?;
+                                            let field_local_type = f(self, &mut **other, tree, var_env, &mut is_var, local_types, errs)?;
                                             if !is_pattern {
                                                 self.match_type_values(&Rc::new(TypeValue::Param(UniqFlag::None, field_local_type)), &type_values[field_idx], field_pos, tree, local_types, errs)?;
                                             } else {
