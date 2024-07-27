@@ -2201,6 +2201,17 @@ impl Typer
         }
     }
 
+    fn evaluate_types_for_named_field_pairs<T, F>(&self, named_field_pairs: &mut [NamedFieldPair<T>], tree: &Tree, var_env: &mut Environment<LocalType>, type_param_env: &mut Environment<LocalType>, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>, mut f: F) -> FrontendResultWithErrors<()>
+        where F: FnMut(&Self, &mut T, &Tree, &mut Environment<LocalType>, &mut Environment<LocalType>, &mut LocalTypes, &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        for named_field_pair in named_field_pairs {
+            match named_field_pair {
+                NamedFieldPair(_, other, _) => f(self, &mut **other, tree, var_env, type_param_env, local_types, errs)?,
+            }
+        }
+        Ok(())
+    }
+    
     fn evaluate_types_for_expr(&self, expr: &mut Expr, tree: &Tree, var_env: &mut Environment<LocalType>, type_param_env: &mut Environment<LocalType>, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         match expr {
@@ -2247,13 +2258,7 @@ impl Typer
                 }
             },
             Expr::NamedFieldConApp(_, expr_named_field_pairs, con_local_type, local_type, _) => {
-                for expr_named_field_pair in expr_named_field_pairs {
-                    match expr_named_field_pair {
-                        NamedFieldPair(_, field_expr, _) => {
-                            self.evaluate_types_for_expr(&mut **field_expr, tree, var_env, type_param_env, local_types, errs)?;
-                        }
-                    }
-                }
+                self.evaluate_types_for_named_field_pairs(expr_named_field_pairs.as_mut_slice(), tree, var_env, type_param_env, local_types, errs, Self::evaluate_types_for_expr)?;
                 *con_local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
                 *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
             },
@@ -2377,11 +2382,7 @@ impl Typer
                 *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
             },
             Pattern::NamedFieldCon(_, pattern_named_field_pairs, con_local_type, local_type, _) => {
-                for pattern_named_field_pair in pattern_named_field_pairs {
-                    match pattern_named_field_pair {
-                        NamedFieldPair(_, pattern2, _) => self.evaluate_types_for_pattern(&mut **pattern2, tree, var_env, type_param_env, local_types, errs)?,
-                    }
-                }
+                self.evaluate_types_for_named_field_pairs(pattern_named_field_pairs.as_mut_slice(), tree, var_env, type_param_env, local_types, errs, Self::evaluate_types_for_pattern)?;
                 *con_local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
                 *local_type = Some(local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
             },
@@ -2407,7 +2408,6 @@ impl Typer
         Ok(())
     }
 
-
     fn evaluate_types_for_literal<T, F>(&self, literal: &mut Literal<T>, tree: &Tree, var_env: &mut Environment<LocalType>, type_param_env: &mut Environment<LocalType>, local_types: &mut LocalTypes, errs: &mut Vec<FrontendError>, mut f: F) -> FrontendResultWithErrors<()>
         where F: FnMut(&Self, &mut T, &Tree, &mut Environment<LocalType>, &mut Environment<LocalType>, &mut LocalTypes, &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
@@ -2432,6 +2432,17 @@ impl Typer
     {
         if tuple.1 > 1 {
             self.set_shared_for_local_type_and_var(ident.as_str(), tuple.0, &tuple.2, tree, local_types, errs)?;
+        }
+        Ok(())
+    }
+
+    fn set_shareds_for_names_field_pairs<T, F>(&self, named_field_pairs: &[NamedFieldPair<T>], tree: &Tree, var_env: &mut Environment<(LocalType, usize, Pos)>, local_types: &LocalTypes, errs: &mut Vec<FrontendError>, mut f: F) -> FrontendResultWithErrors<()>
+        where F: FnMut(&Self, &T, &Tree, &mut Environment<(LocalType, usize, Pos)>, &LocalTypes, &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    {
+        for named_field_pair in named_field_pairs {
+            match named_field_pair {
+                NamedFieldPair(_, other, _) => f(self, &**other, tree, var_env, local_types, errs)?,
+            }
         }
         Ok(())
     }
@@ -2464,11 +2475,7 @@ impl Typer
                 }
             },
             Expr::NamedFieldConApp(_, expr_named_field_pairs, _, _, _) => {
-                for expr_named_field_pair in expr_named_field_pairs {
-                    match expr_named_field_pair {
-                        NamedFieldPair(_, field_expr, _) => self.set_shareds_for_expr(&**field_expr, tree, var_env, local_types, errs)?,
-                    }
-                }
+                self.set_shareds_for_names_field_pairs(expr_named_field_pairs.as_slice(), tree, var_env, local_types, errs, Self::set_shareds_for_expr)?;
             },
             Expr::PrintfApp(exprs, _, _) => {
                 for expr2 in exprs {
@@ -2558,11 +2565,7 @@ impl Typer
                 }
             },
             Pattern::NamedFieldCon(_, pattern_named_field_pairs, _, _, _) => {
-                for pattern_named_field_pair in pattern_named_field_pairs {
-                    match pattern_named_field_pair {
-                        NamedFieldPair(_, pattern2, _) => self.set_shareds_for_pattern(&**pattern2, tree, var_env, local_types, errs)?,
-                    }
-                }
+                self.set_shareds_for_names_field_pairs(pattern_named_field_pairs.as_slice(), tree, var_env, local_types, errs, Self::set_shareds_for_pattern)?;
             },
             Pattern::Var(_, ident, Some(local_type), pos) => {
                 var_env.add_var(ident.clone(), (*local_type, 0, pos.clone()));
