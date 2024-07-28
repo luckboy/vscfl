@@ -1054,6 +1054,7 @@ impl Evaluator
             Some(LocalTypeEntry::Type(type_value)) => {
                 match &*type_value {
                     TypeValue::Param(_, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_one_for_type_value: type parameter in local type entry"))])),
+                    TypeValue::Type(_, TypeValueName::Array(Some(0)), _) => Ok(true),
                     TypeValue::Type(_, TypeValueName::Tuple | TypeValueName::Array(_), type_values) => {
                         let mut is_one = true;
                         for type_value2 in type_values {
