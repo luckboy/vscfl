@@ -3106,42 +3106,46 @@ impl Evaluator
         }
     }
     
-    fn match_value_with_pattern_value(&self, value: &Value, pattern_value: &PatternValue, var_env: &mut Environment<Value>) -> FrontendResultWithErrors<bool>
+    fn match_value_with_pattern_value(&self, value: &Value, pattern_value: &PatternValue, pos: &Pos, var_env: &mut Environment<Value>, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<bool>>
     {
         match (value, pattern_value) {
-            (Value::Bool(b1), PatternValue::Bool(b2)) => Ok(b1 == b2),
-            (Value::Char(c1), PatternValue::Char(c2)) => Ok(c1 == c2),
-            (Value::Short(n1), PatternValue::Short(n2)) => Ok(n1 == n2),
-            (Value::Int(n1), PatternValue::Int(n2)) => Ok(n1 == n2),
-            (Value::Long(n1), PatternValue::Long(n2)) => Ok(n1 == n2),
-            (Value::Uchar(c1), PatternValue::Uchar(c2)) => Ok(c1 == c2),
-            (Value::Ushort(n1), PatternValue::Ushort(n2)) => Ok(n1 == n2),
-            (Value::Uint(n1), PatternValue::Uint(n2)) => Ok(n1 == n2),
-            (Value::Ulong(n1), PatternValue::Ulong(n2)) => Ok(n1 == n2),
-            (Value::Float(n1), PatternValue::Float(n2)) => Ok(n1 == n2),
-            (Value::Double(n1), PatternValue::Double(n2)) => Ok(n1 == n2),
+            (Value::Bool(b1), PatternValue::Bool(b2)) => Ok(Some(b1 == b2)),
+            (Value::Char(c1), PatternValue::Char(c2)) => Ok(Some(c1 == c2)),
+            (Value::Short(n1), PatternValue::Short(n2)) => Ok(Some(n1 == n2)),
+            (Value::Int(n1), PatternValue::Int(n2)) => Ok(Some(n1 == n2)),
+            (Value::Long(n1), PatternValue::Long(n2)) => Ok(Some(n1 == n2)),
+            (Value::Uchar(c1), PatternValue::Uchar(c2)) => Ok(Some(c1 == c2)),
+            (Value::Ushort(n1), PatternValue::Ushort(n2)) => Ok(Some(n1 == n2)),
+            (Value::Uint(n1), PatternValue::Uint(n2)) => Ok(Some(n1 == n2)),
+            (Value::Ulong(n1), PatternValue::Ulong(n2)) => Ok(Some(n1 == n2)),
+            (Value::Float(n1), PatternValue::Float(n2)) => Ok(Some(n1 == n2)),
+            (Value::Double(n1), PatternValue::Double(n2)) => Ok(Some(n1 == n2)),
             (_, PatternValue::Object(pattern_object)) => {
                 let pattern_object_r = pattern_object.borrow();
                 match &*pattern_object_r {
                     PatternObject::Var(ident) => {
                         var_env.add_var(ident.clone(), value.clone());
-                        return Ok(true);
+                        return Ok(Some(true));
                     },
                     PatternObject::At(ident, pattern_value2) => {
-                        if self.match_value_with_pattern_value(value, pattern_value2, var_env)? {
-                            var_env.add_var(ident.clone(), value.clone());
-                            return Ok(true);
-                        } else {
-                            return Ok(false);
+                        match self.match_value_with_pattern_value(value, pattern_value2, pos, var_env, errs)? {
+                            Some(true) => {
+                                var_env.add_var(ident.clone(), value.clone());
+                                return Ok(Some(true));
+                            },
+                            Some(false) => return Ok(Some(false)),
+                            None => return Ok(None),
                         }
                     },
                     PatternObject::Alt(pattern_values) => {
                         for pattern_value2 in pattern_values {
-                            if self.match_value_with_pattern_value(value, pattern_value2, var_env)? {
-                                return Ok(true);
+                            match self.match_value_with_pattern_value(value, pattern_value2, pos, var_env, errs)? {
+                                Some(true) => return Ok(Some(true)),
+                                Some(false) => (),
+                                None => return Ok(None),
                             }
                         }
-                        return Ok(false);
+                        return Ok(Some(false));
                     },
                     _ => (),
                 }
@@ -3149,43 +3153,57 @@ impl Evaluator
                     Value::Object(_, object) => {
                         let object_r = object.borrow();
                         match (&*object_r, &*pattern_object_r) {
-                            (Object::String(bs1), PatternObject::String(bs2)) => Ok(bs1 == bs2),
-                            (Object::CharN(cs1), PatternObject::CharN(cs2)) => Ok(cs1 == cs2),
-                            (Object::ShortN(ns1), PatternObject::ShortN(ns2)) => Ok(ns1 == ns2),
-                            (Object::IntN(ns1), PatternObject::IntN(ns2)) => Ok(ns1 == ns2),
-                            (Object::LongN(ns1), PatternObject::LongN(ns2)) => Ok(ns1 == ns2),
-                            (Object::UcharN(cs1), PatternObject::UcharN(cs2)) => Ok(cs1 == cs2),
-                            (Object::UshortN(ns1), PatternObject::UshortN(ns2)) => Ok(ns1 == ns2),
-                            (Object::UintN(ns1), PatternObject::UintN(ns2)) => Ok(ns1 == ns2),
-                            (Object::UlongN(ns1), PatternObject::UlongN(ns2)) => Ok(ns1 == ns2),
-                            (Object::FloatN(ns1), PatternObject::FloatN(ns2)) => Ok(ns1 == ns2),
-                            (Object::DoubleN(ns1), PatternObject::DoubleN(ns2)) => Ok(ns1 == ns2),
+                            (Object::String(bs1), PatternObject::String(bs2)) => Ok(Some(bs1 == bs2)),
+                            (Object::CharN(cs1), PatternObject::CharN(cs2)) => Ok(Some(cs1 == cs2)),
+                            (Object::ShortN(ns1), PatternObject::ShortN(ns2)) => Ok(Some(ns1 == ns2)),
+                            (Object::IntN(ns1), PatternObject::IntN(ns2)) => Ok(Some(ns1 == ns2)),
+                            (Object::LongN(ns1), PatternObject::LongN(ns2)) => Ok(Some(ns1 == ns2)),
+                            (Object::UcharN(cs1), PatternObject::UcharN(cs2)) => Ok(Some(cs1 == cs2)),
+                            (Object::UshortN(ns1), PatternObject::UshortN(ns2)) => Ok(Some(ns1 == ns2)),
+                            (Object::UintN(ns1), PatternObject::UintN(ns2)) => Ok(Some(ns1 == ns2)),
+                            (Object::UlongN(ns1), PatternObject::UlongN(ns2)) => Ok(Some(ns1 == ns2)),
+                            (Object::FloatN(ns1), PatternObject::FloatN(ns2)) => Ok(Some(ns1 == ns2)),
+                            (Object::DoubleN(ns1), PatternObject::DoubleN(ns2)) => Ok(Some(ns1 == ns2)),
                             (Object::Tuple(field_values), PatternObject::Tuple(field_pattern_values)) => {
                                 for (field_value, field_pattern_value) in field_values.iter().zip(field_pattern_values.iter()) {
-                                    if !self.match_value_with_pattern_value(field_value, field_pattern_value, var_env)? {
-                                        return Ok(false);
+                                    match self.match_value_with_pattern_value(field_value, field_pattern_value, pos, var_env, errs)? {
+                                        Some(true) => (),
+                                        Some(false) => return Ok(Some(false)),
+                                        None => return Ok(None),
                                     }
                                 }
-                                Ok(true)
+                                Ok(Some(true))
                             },
                             (Object::Array(elem_values), PatternObject::Array(elem_pattern_values)) => {
                                 for (elem_value, elem_pattern_value) in elem_values.iter().zip(elem_pattern_values.iter()) {
-                                    if !self.match_value_with_pattern_value(elem_value, elem_pattern_value, var_env)? {
-                                        return Ok(false);
+                                    match self.match_value_with_pattern_value(elem_value, elem_pattern_value, pos, var_env, errs)? {
+                                        Some(true) => (),
+                                        Some(false) => return Ok(Some(false)),
+                                        None => return Ok(None),
                                     }
                                 }
-                                Ok(true)
+                                Ok(Some(true))
                             },
                             (Object::Data(ident1, field_values), PatternObject::Data(ident2, field_pattern_values)) => {
                                 if ident1 != ident2 {
-                                    return Ok(false);
+                                    return Ok(Some(false));
                                 }
                                 for (field_value, field_pattern_value) in field_values.iter().zip(field_pattern_values.iter()) {
-                                    if !self.match_value_with_pattern_value(field_value, field_pattern_value, var_env)? {
-                                        return Ok(false);
+                                    match self.match_value_with_pattern_value(field_value, field_pattern_value, pos, var_env, errs)? {
+                                        Some(true) => (),
+                                        Some(false) => return Ok(Some(false)),
+                                        None => return Ok(None),
                                     }
                                 }
-                                Ok(true)
+                                Ok(Some(true))
+                            },
+                            (Object::Slice(_, _), _) => {
+                                errs.push(FrontendError::Message(pos.clone(), String::from("slice value mustn't match to pattern for evaluation of variable values")));
+                                Ok(None)
+                            },
+                            (Object::Builtin(_, _), _) => {
+                                errs.push(FrontendError::Message(pos.clone(), String::from("value of built-in variable mustn't match to pattern for evaluation of variable values")));
+                                Ok(None)
                             },
                             _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("match_value_with_pattern_value: different object types"))])),
                         }
@@ -3193,7 +3211,7 @@ impl Evaluator
                     _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("match_value_with_pattern_value: value isn't object"))]))
                 }
             },
-            (_, PatternValue::Wildcard) => Ok(true),
+            (_, PatternValue::Wildcard) => Ok(Some(true)),
             _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("match_value_with_pattern_value: different value types"))])),
         }
     }
@@ -3422,8 +3440,10 @@ impl Evaluator
                                 Some(value) => {
                                     match self.evaluate_pattern_value_for_pattern(pattern, tree, type_stack, local_types, errs)? {
                                         Some(pattern_value) => {
-                                            if !self.match_value_with_pattern_value(&value, &pattern_value, var_env)? {
-                                                return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_value_for_expr: can't match value with pattern value"))]));
+                                            match self.match_value_with_pattern_value(&value, &pattern_value, pattern_pos(pattern), var_env, errs)? {
+                                                Some(true) => (),
+                                                Some(false) => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_value_for_expr: can't match value with pattern value"))])),
+                                                None => return Ok(None),
                                             }
                                         },
                                         None => return Ok(None),
@@ -3442,7 +3462,7 @@ impl Evaluator
                     None => Ok(None),
                 }
             },
-            Expr::Match(expr2, cases, _, _) => {
+            Expr::Match(expr2, cases, _, pos) => {
                 match self.evaluate_value_for_expr(&**expr2, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
                     Some(value) => {
                         for case in cases {
@@ -3451,8 +3471,18 @@ impl Evaluator
                                     var_env.push_new_vars();
                                     match self.evaluate_pattern_value_for_pattern(pattern, tree, type_stack, local_types, errs)? {
                                         Some(pattern_value) => {
-                                            if self.match_value_with_pattern_value(&value, &pattern_value, var_env)? {
-                                                return self.evaluate_value_for_expr(&**expr3, tree, var_env, type_stack, local_types, closures, var_key, errs);
+                                            match self.match_value_with_pattern_value(&value, &pattern_value, pos, var_env, errs)? {
+                                                Some(true) => {
+                                                    match self.evaluate_value_for_expr(&**expr3, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
+                                                        Some(value) => {
+                                                           var_env.pop_vars();
+                                                           return Ok(Some(value));
+                                                        },
+                                                        None => return Ok(None),
+                                                    }
+                                                },
+                                                Some(false) => (),
+                                                None => return Ok(None),
                                             }
                                         },
                                         None => return Ok(None),
