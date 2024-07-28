@@ -1453,10 +1453,6 @@ pub enum Value
     Ulong(u64),
     Float(f32),
     Double(f64),
-    SizeT(u64),
-    PtrdiffT(i64),
-    IntptrT(i64),
-    UintptrT(u64),
     Object(SharedFlag, Rc<RefCell<Object>>),
 }
 
