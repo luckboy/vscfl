@@ -1430,6 +1430,8 @@ pub enum Object
     Tuple(Vec<Value>),
     Array(Vec<Value>),
     Data(String, Vec<Value>),
+    Ref(VarModifier, Value),
+    Slice(VarModifier, Vec<Value>),
     Builtin(String, Option<TypeName>),
     Fun(String, Option<TypeName>),
     Con(String),

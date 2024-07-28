@@ -1961,6 +1961,10 @@ impl Evaluator
                                                 let type_var_r = type_var.borrow();
                                                 match &*type_var_r {
                                                     TypeVar::Builtin(_, Some(fields2), _) => {
+                                                        if type_ident == &String::from("Ref") || type_ident == &String::from("GlobalRef") || type_ident == &String::from("ConstantRef") {
+                                                            errs.push(FrontendError::Message(pos.clone(), String::from("reference fields are unsupported for evaluation of variable values")));
+                                                            return Ok(false);
+                                                        }
                                                         match fields2.field_index(field_ident) {
                                                             Some(tmp_field_idx) => tmp_field_idx,
                                                             None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: type variable hasn't field"))])),
@@ -3077,12 +3081,20 @@ impl Evaluator
                         }
                         Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::Data(ident.clone(), field_pattern_values))))))
                     },
+                    Object::Ref(_, _) => {
+                        errs.push(FrontendError::Message(pos.clone(), String::from("reference value mustn't be used in pattern")));
+                        Ok(None)
+                    },
+                    Object::Slice(_, _) => {
+                        errs.push(FrontendError::Message(pos.clone(), String::from("slice value mustn't be used in pattern")));
+                        Ok(None)
+                    },
                     Object::Builtin(_, _) | Object::EvalFun(_, _, _) => {
                         errs.push(FrontendError::Message(pos.clone(), String::from("value of built-in variable mustn't be used in pattern")));
                         Ok(None)
                     },
                     _ => {
-                        errs.push(FrontendError::Message(pos.clone(), String::from("value of function mustn't be used in pattern")));
+                        errs.push(FrontendError::Message(pos.clone(), String::from("function value mustn't be used in pattern")));
                         Ok(None)
                     },
                 }
@@ -3346,11 +3358,11 @@ impl Evaluator
                 }
             },
             Expr::UpdateField(_, _, _, _, pos) => {
-                errs.push(FrontendError::Message(pos.clone(), String::from("opterator <-> is unsupported for evaluation of variable values")));
+                errs.push(FrontendError::Message(pos.clone(), String::from("operator <-> is unsupported for evaluation of variable values")));
                 Ok(None)
             },
             Expr::UpdateGet2Field(_, _, _, _, pos) => {
-                errs.push(FrontendError::Message(pos.clone(), String::from("opterator <-> -> is unsupported for evaluation of variable values")));
+                errs.push(FrontendError::Message(pos.clone(), String::from("operator <-> -> is unsupported for evaluation of variable values")));
                 Ok(None)
             },
             Expr::Uniq(expr2, _, _) => {
