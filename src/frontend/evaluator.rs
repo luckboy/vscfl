@@ -2232,6 +2232,10 @@ impl Evaluator
                                     None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: value hasn't field value"))])),
                                 }
                             },
+                            Object::Ref(_, _) => {
+                                errs.push(FrontendError::Message(pos.clone(), String::from("reference fields are unsupported for evaluation of variable values")));
+                                Ok(false)
+                            },
                             _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("value_for_fields_with_ref_fun_in: object hasn't fields"))])),
                         }
                     },
