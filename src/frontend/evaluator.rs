@@ -2107,7 +2107,7 @@ impl Evaluator
         where F: FnMut(&mut Value, &mut Vec<FrontendError>) -> FrontendResultWithErrors<bool>
     { self.value_for_fields_with_ref_fun_in(value, local_type, fields, pos, tree, local_types, are_settings, errs, &mut f) }
 
-    fn convert_value_for_type_value(&self, value: &Value, type_value: &Rc<TypeValue>, pos: &Pos, tree: &Tree, local_types: &LocalTypes, are_half_errs: bool, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<Value>>
+    fn convert_value_for_type_value(&self, value: &Value, type_value: &Rc<TypeValue>, pos: &Pos, tree: &Tree, local_types: &LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<Value>>
     {
         match local_types.type_entry_for_type_value(type_value) {
             Some(LocalTypeEntry::Param(_, _, _, _)) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: local type entry is type parameter"))])),
@@ -2128,7 +2128,7 @@ impl Evaluator
                                 match &mut *object2_r {
                                     Object::Tuple(field_values) => {
                                         for (field_value, type_value2) in field_values.iter_mut().zip(type_values.iter()) {
-                                            match self.convert_value_for_type_value(field_value, type_value2, pos, tree, local_types, are_half_errs, errs)? {
+                                            match self.convert_value_for_type_value(field_value, type_value2, pos, tree, local_types, errs)? {
                                                 Some(field_value2) => *field_value = field_value2,
                                                 None => return Ok(None),
                                             }
@@ -2156,13 +2156,11 @@ impl Evaluator
                                         let mut object2_r = object2.borrow_mut();
                                         match &mut *object2_r {
                                             Object::Array(elem_values) => {
-                                                let mut are_half_errs2 = are_half_errs;
                                                 for elem_value in elem_values {
-                                                    match self.convert_value_for_type_value(elem_value, type_value2, pos, tree, local_types, are_half_errs2, errs)? {
+                                                    match self.convert_value_for_type_value(elem_value, type_value2, pos, tree, local_types, errs)? {
                                                         Some(elem_value2) => *elem_value = elem_value2,
                                                         None => return Ok(None),
                                                     }
-                                                    are_half_errs2 = false;
                                                 }
                                                 Ok(Some(Value::Object(*shared_flag, object2.clone())))
                                             },
@@ -2335,9 +2333,7 @@ impl Evaluator
                                                 _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: invalid value"))])),
                                             }
                                          } else if ident == &String::from("Half") {
-                                             if are_half_errs {
-                                                 errs.push(FrontendError::Message(pos.clone(), String::from("can't cast value to type Half for evaluation of variable values")));
-                                             }
+                                             errs.push(FrontendError::Message(pos.clone(), String::from("can't cast value to type Half for evaluation of variable values")));
                                              Ok(None)
                                         } else if ident == &String::from("Float") {
                                             match value {
@@ -2393,7 +2389,7 @@ impl Evaluator
         }
     }
 
-    fn convert_pattern_value_for_type_value(&self, pattern_value: &PatternValue, type_value: &Rc<TypeValue>, pos: &Pos, tree: &Tree, local_types: &LocalTypes, are_half_errs: bool, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<PatternValue>>
+    fn convert_pattern_value_for_type_value(&self, pattern_value: &PatternValue, type_value: &Rc<TypeValue>, pos: &Pos, tree: &Tree, local_types: &LocalTypes, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<Option<PatternValue>>
     {
         match local_types.type_entry_for_type_value(type_value) {
             Some(LocalTypeEntry::Param(_, _, _, _)) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_value_for_type_value: local type entry is type parameter"))])),
@@ -2407,7 +2403,7 @@ impl Evaluator
                                 match &mut *object_r {
                                     PatternObject::Tuple(field_pattern_values) => {
                                         for (field_pattern_value, type_value2) in field_pattern_values.iter_mut().zip(type_values.iter()) {
-                                            match self.convert_pattern_value_for_type_value(field_pattern_value, type_value2, pos, tree, local_types, are_half_errs, errs)? {
+                                            match self.convert_pattern_value_for_type_value(field_pattern_value, type_value2, pos, tree, local_types, errs)? {
                                                 Some(field_pattern_value2) => *field_pattern_value = field_pattern_value2,
                                                 None => return Ok(None),
                                             }
@@ -2428,13 +2424,11 @@ impl Evaluator
                                         let mut object_r = object.borrow_mut();
                                         match &mut *object_r {
                                             PatternObject::Array(elem_pattern_values) => {
-                                                let mut are_half_errs2 = are_half_errs;
                                                 for elem_pattern_value in elem_pattern_values {
-                                                    match self.convert_pattern_value_for_type_value(elem_pattern_value, type_value2, pos, tree, local_types, are_half_errs2, errs)? {
+                                                    match self.convert_pattern_value_for_type_value(elem_pattern_value, type_value2, pos, tree, local_types, errs)? {
                                                         Some(elem_pattern_value2) => *elem_pattern_value = elem_pattern_value2,
                                                         None => return Ok(None),
                                                     }
-                                                    are_half_errs2 = false;
                                                 }
                                                 Ok(Some(PatternValue::Object(object.clone())))
                                             },
@@ -2454,13 +2448,11 @@ impl Evaluator
                                 let mut pattern_object_r = pattern_object.borrow_mut();
                                 match &mut *pattern_object_r {
                                     PatternObject::Alt(pattern_values) => {
-                                        let mut are_half_errs2 = are_half_errs;
                                         for pattern_value2 in pattern_values {
-                                            match self.convert_pattern_value_for_type_value(pattern_value2, type_value, pos, tree, local_types, are_half_errs2, errs)? {
+                                            match self.convert_pattern_value_for_type_value(pattern_value2, type_value, pos, tree, local_types, errs)? {
                                                 Some(pattern_value3) => *pattern_value2 = pattern_value3,
                                                 None => return Ok(None),
                                             }
-                                            are_half_errs2 = false;
                                         }
                                         return Ok(Some(PatternValue::Object(pattern_object.clone())));
                                     },
@@ -2588,9 +2580,7 @@ impl Evaluator
                                                 _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: invalid value"))])),
                                             }
                                          } else if ident == &String::from("Half") {
-                                             if are_half_errs {
-                                                 errs.push(FrontendError::Message(pos.clone(), String::from("can't cast pattern to type Half for evaluation of variable values")));
-                                             }
+                                             errs.push(FrontendError::Message(pos.clone(), String::from("can't cast pattern to type Half for evaluation of variable values")));
                                              Ok(None)
                                         } else if ident == &String::from("Float") {
                                             match pattern_value {
@@ -3018,7 +3008,7 @@ impl Evaluator
             Expr::Typed(expr2, _, _, _) => self.evaluate_value_for_expr(&**expr2, tree, var_env, type_stack, local_types, closures, var_key, errs),
             Expr::As(expr2, _, Some(local_type), pos) => {
                 match self.evaluate_value_for_expr(&**expr2, tree, var_env, type_stack, local_types, closures, var_key, errs)? {
-                    Some(value) => self.convert_value_for_type_value(&value, &Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), pos, tree, local_types, true, errs),
+                    Some(value) => self.convert_value_for_type_value(&value, &Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), pos, tree, local_types, errs),
                     None => Ok(None),
                 }
             },
@@ -3115,7 +3105,7 @@ impl Evaluator
             Pattern::Literal(literal, _, _) => self.evaluate_pattern_value_for_pattern_literal(&**literal, tree, type_stack, local_types, errs),
             Pattern::As(literal, _, _, Some(local_type), pos) => {
                 match self.evaluate_pattern_value_for_pattern_literal(&**literal, tree, type_stack, local_types, errs)? {
-                    Some(pattern_value) => self.convert_pattern_value_for_type_value(&pattern_value, &Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), pos, tree, local_types, true, errs),
+                    Some(pattern_value) => self.convert_pattern_value_for_type_value(&pattern_value, &Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), pos, tree, local_types, errs),
                     None => Ok(None),
                 }
             },
