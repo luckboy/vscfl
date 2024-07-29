@@ -1413,6 +1413,14 @@ impl LocalFun
     { self.index }
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub enum RefObjectFlag
+{
+    None,
+    Global,
+    Constant,
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub enum Object
 {
@@ -1430,8 +1438,8 @@ pub enum Object
     Tuple(Vec<Value>),
     Array(Vec<Value>),
     Data(String, Vec<Value>),
-    Ref(VarModifier, Value),
-    Slice(VarModifier, Vec<Value>),
+    Ref(RefObjectFlag, Value),
+    Slice(RefObjectFlag, Vec<Value>),
     Builtin(String, Option<TypeName>),
     Fun(String, Option<TypeName>),
     Con(String),
