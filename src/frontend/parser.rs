@@ -1003,7 +1003,7 @@ impl<'a> Parser<'a>
                     },
                     (Token::DArrow, _) => {
                         // expr12, "<->", expr12
-                        // expr12, "<->", expr12, "<-"
+                        // expr12, "<->", expr12, "->"
                         let expr2 = self.parse_expr12(true)?;
                         match self.lexer.next_token()? {
                             (Token::RArrow, _) => AccessFun::UpdateGet2(expr2),
