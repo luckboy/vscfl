@@ -2814,6 +2814,68 @@ trait V<t1> {};
 }
 
 #[test]
+fn test_typer_evaluate_type_with_where_complains_on_type_parameter_has_not_same_number_of_type_arguments_as_type_parameter()
+{
+    let s = "
+builtin type Int;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types_for_type_vars(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let s3 = "(t, Int) -> u";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "t: shared <Int, v>, u: shared <v>, v: shared, t == u";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Err(errs) => {
+                            println!("{}", errs);
+                            assert_eq!(1, errs.errors().len());
+                            match &errs.errors()[0] {
+                                FrontendError::Message(pos, msg) => {
+                                    assert_eq!(1, pos.line);
+                                    assert_eq!(52, pos.column);
+                                    assert_eq!(String::from("type parameter u hasn't same number of type arguments as type parameter t"), *msg);
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
 fn test_typer_evaluate_type_with_where_complains_on_type_of_variable_has_type_parameters_with_trait_which_are_not_equal()
 {
     let s = "

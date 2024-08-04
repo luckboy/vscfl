@@ -2128,11 +2128,19 @@ impl Typer
                                                                             let cloned_type_param_entry2 = type_param_entry2.clone();
                                                                             let type_param_entry_r = cloned_type_param_entry.borrow();
                                                                             let type_param_entry2_r = cloned_type_param_entry2.borrow();
-                                                                            if type_param_entry_r.trait_names == type_param_entry2_r.trait_names {
+                                                                            let mut tmp_is_success = true;
+                                                                            if type_param_entry_r.type_values.len() != type_param_entry2_r.type_values.len() {
+                                                                                errs.push(FrontendError::Message(type_param_pos2.clone(), format!("type parameter {} hasn't same number of type arguments as type parameter {}", type_param_ident2, type_param_ident)));
+                                                                                tmp_is_success = false;
+                                                                            }
+                                                                            if type_param_entry_r.trait_names != type_param_entry2_r.trait_names {
+                                                                                errs.push(FrontendError::Message(type_param_pos2.clone(), format!("type parameter {} hasn't same traits as type parameter {}", type_param_ident2, type_param_ident)));
+                                                                                tmp_is_success = false;
+                                                                            }
+                                                                            if tmp_is_success {
                                                                                 typ.set_eq_type_params(*local_type, *local_type2);
                                                                             } else {
-                                                                                errs.push(FrontendError::Message(type_param_pos2.clone(), format!("type parameter {} hasn't same traits as type parameter {}", type_param_ident2, type_param_ident)));
-                                                                                is_success = false;
+                                                                                is_success = tmp_is_success;
                                                                             }
                                                                         },
                                                                         None => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("evaluate_types_for_where_tuples: no type parameter entry"))]))
