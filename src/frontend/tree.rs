@@ -1418,7 +1418,6 @@ pub enum RefObjectFlag
 {
     None,
     Global,
-    Constant,
 }
 
 #[derive(Clone, PartialEq, Debug)]
