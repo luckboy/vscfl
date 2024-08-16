@@ -2905,7 +2905,10 @@ impl Evaluator
                                 }
                                 let mut ref_values = tree.ref_values().borrow_mut();
                                 match fun(arg_values.as_slice(), &mut *ref_values, pos) {
-                                    Ok(value) => Ok(Some(value)),
+                                    Ok(mut value) => {
+                                        value.set_shared_flag(shared_flag_for_local_type(*local_type, tree, type_stack, local_types)?);
+                                        Ok(Some(value))
+                                    },
                                     Err(err @ FrontendError::Internal(_)) => Err(FrontendErrors::new(vec![err])),
                                     Err(err) => {
                                         errs.push(err);
