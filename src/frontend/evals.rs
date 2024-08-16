@@ -1514,7 +1514,7 @@ fn slice(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> Fronten
     }
 }
 
-fn slice_from_ref(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+fn slice_from_ref2(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos, s: &str) -> FrontendResult<Value>
 {
     if arg_values.len() == 1 {
         match &arg_values[0] {
@@ -1534,13 +1534,13 @@ fn slice_from_ref(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -
                                                     if *off < elem_values.len() {
                                                         elem_values[*off].clone()
                                                     } else {
-                                                        return Err(FrontendError::Internal(String::from("slice_from_ref: index out of bounds")));
+                                                        return Err(FrontendError::Internal(String::from("slice_from_ref2: index out of bounds")));
                                                     }
                                                 },
-                                                _ => return Err(FrontendError::Internal(String::from("slice_from_ref: invalid object"))),
+                                                _ => return Err(FrontendError::Internal(String::from("slice_from_ref2: invalid object"))),
                                             }
                                         },
-                                        _ => return Err(FrontendError::Internal(String::from("slice_from_ref: invalid value"))),
+                                        _ => return Err(FrontendError::Internal(String::from("slice_from_ref2: invalid value"))),
                                     };
                                     tmp_value = new_tmp_value;
                                 }
@@ -1553,25 +1553,28 @@ fn slice_from_ref(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -
                                                 new_offs.push(0);
                                                 Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Slice(*idx, new_offs, elem_values.len())))))
                                             },
-                                            _ => Err(FrontendError::Internal(String::from("slice_from_ref: invalid object"))),
+                                            _ => Err(FrontendError::Internal(String::from("slice_from_ref2: invalid object"))),
                                         }
                                     },
-                                    _ => Err(FrontendError::Internal(String::from("slice_from_ref: invalid value"))),
+                                    _ => Err(FrontendError::Internal(String::from("slice_from_ref2: invalid value"))),
                                 }  
                             },
-                            _ => Err(FrontendError::Internal(String::from("slice_from_ref: no reference values"))),
+                            _ => Err(FrontendError::Internal(String::from("slice_from_ref2: no reference values"))),
                         }
                     },
-                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function *slice_from_ref for value of built-in variable"))),
-                    _ => Err(FrontendError::Internal(String::from("slice_from_ref: invalid object"))),
+                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), format!("can't evaluate function {} for value of built-in variable", s))),
+                    _ => Err(FrontendError::Internal(String::from("slice_from_ref2: invalid object"))),
                 }
             },
-            _ => Err(FrontendError::Internal(String::from("slice_from_ref: invalid value"))),
+            _ => Err(FrontendError::Internal(String::from("slice_from_ref2: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("slice_from_ref: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("slice_from_ref2: too few or many arguments")))
     }
 }
+
+fn slice_from_ref(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+{ slice_from_ref2(arg_values, ref_values, pos, "slice_from_ref") }
 
 fn global_slice(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
@@ -1596,9 +1599,9 @@ fn global_slice(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> 
 }
 
 fn global_slice_from_ref(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
-{ slice_from_ref(arg_values, ref_values, pos) }
+{ slice_from_ref2(arg_values, ref_values, pos, "global_slice_from_ref") }
 
-fn shl_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+fn shl_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos, n: u32) -> FrontendResult<Value>
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
@@ -1622,7 +1625,7 @@ fn shl_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Fronte
                         (Object::UshortN(ns1), Object::UintN(ns2)) => Object::UshortN(ns1.iter().zip(ns2.iter()).map(|p| *p.0 << (*p.1 & (u16::BITS - 1))).collect()),
                         (Object::UintN(ns1), Object::UintN(ns2)) => Object::UintN(ns1.iter().zip(ns2.iter()).map(|p| *p.0 << (*p.1 & (u32::BITS - 1))).collect()),
                         (Object::UlongN(ns1), Object::UintN(ns2)) => Object::UlongN(ns1.iter().zip(ns2.iter()).map(|p| *p.0 << (*p.1 & (u64::BITS - 1))).collect()),
-                        (Object::Builtin(_, _), Object::Builtin(_, _)) => return Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function shlN for value of built-in variable"))),
+                        (Object::Builtin(_, _), Object::Builtin(_, _)) => return Err(FrontendError::Message(pos.clone(), format!("can't evaluate function shl{} for value of built-in variable", n))),
                         _ => return Err(FrontendError::Internal(String::from("shl_n: invalid object"))),
                     };
                     *new_object_r = tmp_object;
@@ -1632,14 +1635,14 @@ fn shl_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Fronte
             (Value::Object(_, object1), _) => {
                 let object1_r = object1.borrow();
                 match &*object1_r {
-                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function shlN for value of built-in variable"))),
+                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), format!("can't evaluate function shl{} for value of built-in variable", n))),
                     _ => Err(FrontendError::Internal(String::from("shl_n: invalid object"))),
                 }
             },
             (_, Value::Object(_, object2)) => {
                 let object2_r = object2.borrow();
                 match &*object2_r {
-                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function shlN for value of built-in variable"))),
+                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), format!("can't evaluate function shl{} for value of built-in variable", n))),
                     _ => Err(FrontendError::Internal(String::from("shl_n: invalid object"))),
                 }
             },
@@ -1650,7 +1653,22 @@ fn shl_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Fronte
     }
 }
 
-fn shr_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+fn shl2(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+{ shl_n(arg_values, ref_values, pos, 2) }
+
+fn shl3(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+{ shl_n(arg_values, ref_values, pos, 3) }
+
+fn shl4(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+{ shl_n(arg_values, ref_values, pos, 4) }
+
+fn shl8(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+{ shl_n(arg_values, ref_values, pos, 8) }
+
+fn shl16(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+{ shl_n(arg_values, ref_values, pos, 16) }
+
+fn shr_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos, n: u32) -> FrontendResult<Value>
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
@@ -1674,7 +1692,7 @@ fn shr_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Fronte
                         (Object::UshortN(ns1), Object::UintN(ns2)) => Object::UshortN(ns1.iter().zip(ns2.iter()).map(|p| *p.0 >> (*p.1 & (u16::BITS - 1))).collect()),
                         (Object::UintN(ns1), Object::UintN(ns2)) => Object::UintN(ns1.iter().zip(ns2.iter()).map(|p| *p.0 >> (*p.1 & (u32::BITS - 1))).collect()),
                         (Object::UlongN(ns1), Object::UintN(ns2)) => Object::UlongN(ns1.iter().zip(ns2.iter()).map(|p| *p.0 >> (*p.1 & (u64::BITS - 1))).collect()),
-                        (Object::Builtin(_, _), Object::Builtin(_, _)) => return Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function shrN for value of built-in variable"))),
+                        (Object::Builtin(_, _), Object::Builtin(_, _)) => return Err(FrontendError::Message(pos.clone(), format!("can't evaluate function shr{} for value of built-in variable", n))),
                         _ => return Err(FrontendError::Internal(String::from("shr_n: invalid object"))),
                     };
                     *new_object_r = tmp_object;
@@ -1684,14 +1702,14 @@ fn shr_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Fronte
             (Value::Object(_, object1), _) => {
                 let object1_r = object1.borrow();
                 match &*object1_r {
-                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function shrN for value of built-in variable"))),
+                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), format!("can't evaluate function shr{} for value of built-in variable", n))),
                     _ => Err(FrontendError::Internal(String::from("shr_n: invalid object"))),
                 }
             },
             (_, Value::Object(_, object2)) => {
                 let object2_r = object2.borrow();
                 match &*object2_r {
-                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function shrN for value of built-in variable"))),
+                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), format!("can't evaluate function shr{} for value of built-in variable", n))),
                     _ => Err(FrontendError::Internal(String::from("shr_n: invalid object"))),
                 }
             },
@@ -1701,6 +1719,21 @@ fn shr_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Fronte
         Err(FrontendError::Internal(String::from("shr_n: too few or many arguments")))
     }
 }
+
+fn shr2(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+{ shr_n(arg_values, ref_values, pos, 2) }
+
+fn shr3(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+{ shr_n(arg_values, ref_values, pos, 3) }
+
+fn shr4(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+{ shr_n(arg_values, ref_values, pos, 4) }
+
+fn shr8(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+{ shr_n(arg_values, ref_values, pos, 8) }
+
+fn shr16(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+{ shr_n(arg_values, ref_values, pos, 16) }
 
 fn len(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
@@ -1721,7 +1754,7 @@ fn len(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Frontend
     }
 }
 
-fn get_ref(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+fn get_ref2(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos, s: &str) -> FrontendResult<Value>
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
@@ -1738,32 +1771,35 @@ fn get_ref(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Fron
                                     return Err(FrontendError::Message(pos.clone(), String::from("index out of bounds")))
                                 }
                             },
-                            None => return Err(FrontendError::Internal(String::from("get_ref: no last offset"))),
+                            None => return Err(FrontendError::Internal(String::from("get_ref2: no last offset"))),
                         }
                         Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Ref(*idx, new_offs)))))
                     },
-                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function get_*ref for value of built-in variable"))),
-                    _ => Err(FrontendError::Internal(String::from("get_ref: invalid object"))),
+                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), format!("can't evaluate function {} for value of built-in variable", s))),
+                    _ => Err(FrontendError::Internal(String::from("get_ref2: invalid object"))),
                 }
             },
             (_, Value::Object(_, object2)) => {
                 let object2_r = object2.borrow();
                 match &*object2_r {
-                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function get_*ref for value of built-in variable"))),
-                    _ => Err(FrontendError::Internal(String::from("get_ref: invalid object"))),
+                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), format!("can't evaluate function {} for value of built-in variable", s))),
+                    _ => Err(FrontendError::Internal(String::from("get_ref2: invalid object"))),
                 }
             },
-            _ => Err(FrontendError::Internal(String::from("get_ref: invalid value"))),
+            _ => Err(FrontendError::Internal(String::from("get_ref2: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("get_ref: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("get_ref2: too few or many arguments")))
     }
 }
 
-fn get_global_ref(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
-{ get_ref(arg_values, ref_values, pos) }
+fn get_ref(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+{ get_ref2(arg_values, ref_values, pos, "get_ref") }
 
-fn get_slice(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+fn get_global_ref(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+{ get_ref2(arg_values, ref_values, pos, "get_global_ref") }
+
+fn get_slice2(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos, s: &str) -> FrontendResult<Value>
 {
     if arg_values.len() == 3 {
         match (&arg_values[0], &arg_values[1], &arg_values[2]) {
@@ -1778,37 +1814,40 @@ fn get_slice(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Fr
                                 *new_off += tmp_off as usize;
                                 (min(max(*n3, tmp_off), *len as u64) - tmp_off) as usize
                             },
-                            None => return Err(FrontendError::Internal(String::from("get_slice: no last offset"))),
+                            None => return Err(FrontendError::Internal(String::from("get_slice2: no last offset"))),
                         };
                         Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Slice(*idx, new_offs, new_len)))))
                     },
-                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function get_*slice for value of built-in variable"))),
-                    _ => Err(FrontendError::Internal(String::from("get_slice: invalid object"))),
+                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), format!("can't evaluate function {} for value of built-in variable", s))),
+                    _ => Err(FrontendError::Internal(String::from("get_slice2: invalid object"))),
                 }
             },
             (_, Value::Object(_, object2), _) => {
                 let object2_r = object2.borrow();
                 match &*object2_r {
-                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function get_*slice for value of built-in variable"))),
-                    _ => Err(FrontendError::Internal(String::from("get_slice: invalid object"))),
+                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), format!("can't evaluate function {} for value of built-in variable", s))),
+                    _ => Err(FrontendError::Internal(String::from("get_slice2: invalid object"))),
                 }
             },
             (_, _, Value::Object(_, object3)) => {
                 let object3_r = object3.borrow();
                 match &*object3_r {
                     Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function get_*slice for value of built-in variable"))),
-                    _ => Err(FrontendError::Internal(String::from("get_slice: invalid object"))),
+                    _ => Err(FrontendError::Internal(String::from("get_slice2: invalid object"))),
                 }
             },
-            _ => Err(FrontendError::Internal(String::from("get_slice: invalid value"))),
+            _ => Err(FrontendError::Internal(String::from("get_slice2: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("get_slice: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("get_slice2: too few or many arguments")))
     }
 }
 
+fn get_slice(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+{ get_slice2(arg_values, ref_values, pos, "get_slice") }
+
 fn get_global_slice(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
-{ get_slice(arg_values, ref_values, pos) }
+{ get_slice2(arg_values, ref_values, pos, "get_global_slice") }
 
 #[derive(Clone, Debug)]
 pub struct Evals
@@ -2021,17 +2060,45 @@ impl Evals
         funs.insert((String::from("global_slice"), Some(TypeName::Array(None))), global_slice);
         // global_slice_from_ref
         funs.insert((String::from("global_slice_from_ref"), Some(TypeName::Array(None))), global_slice_from_ref);
-        // shlN
+        // shl2
         for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
-            for n in [2, 3, 4, 8, 16] {
-                funs.insert((format!("shl{}", n), Some(TypeName::Name(format!("{}{}", s, n)))), shl_n);
-            }
+            funs.insert((String::from("shl2"), Some(TypeName::Name(format!("{}2", s)))), shl2);
         }
-        // shrN
+        // shl3
         for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
-            for n in [2, 3, 4, 8, 16] {
-                funs.insert((format!("shr{}", n), Some(TypeName::Name(format!("{}{}", s, n)))), shr_n);
-            }
+            funs.insert((String::from("shl3"), Some(TypeName::Name(format!("{}3", s)))), shl3);
+        }
+        // shl4
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+            funs.insert((String::from("shl4"), Some(TypeName::Name(format!("{}4", s)))), shl4);
+        }
+        // shl8
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+            funs.insert((String::from("shl8"), Some(TypeName::Name(format!("{}8", s)))), shl8);
+        }
+        // shl16
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+            funs.insert((String::from("shl16"), Some(TypeName::Name(format!("{}16", s)))), shl16);
+        }
+        // shr2
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+            funs.insert((String::from("shr2"), Some(TypeName::Name(format!("{}2", s)))), shr2);
+        }
+        // shr3
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+            funs.insert((String::from("shr3"), Some(TypeName::Name(format!("{}3", s)))), shr3);
+        }
+        // shr4
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+            funs.insert((String::from("shr4"), Some(TypeName::Name(format!("{}4", s)))), shr4);
+        }
+        // shr8
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+            funs.insert((String::from("shr8"), Some(TypeName::Name(format!("{}8", s)))), shr8);
+        }
+        // shr16
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+            funs.insert((String::from("shr16"), Some(TypeName::Name(format!("{}16", s)))), shr16);
         }
         // len
         funs.insert((String::from("len"), Some(TypeName::Array(None))), len);
