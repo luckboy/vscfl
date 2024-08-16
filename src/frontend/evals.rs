@@ -1758,26 +1758,37 @@ fn get_ref2(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos, s: &st
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
-            (Value::Object(_, object1), Value::Ulong(n2)) => {
-                let object1_r = object1.borrow();
-                match &*object1_r {
-                    Object::Slice(idx, offs, len) => {
-                        let mut new_offs = offs.clone();
-                        match new_offs.last_mut() {
-                            Some(new_off) => {
-                                if *n2 < (*len as u64) {
-                                    *new_off = *n2 as usize;
-                                } else {
-                                    return Err(FrontendError::Message(pos.clone(), String::from("index out of bounds")))
-                                }
-                            },
-                            None => return Err(FrontendError::Internal(String::from("get_ref2: no last offset"))),
-                        }
-                        Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Ref(*idx, new_offs)))))
-                    },
-                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), format!("can't evaluate function {} for value of built-in variable", s))),
-                    _ => Err(FrontendError::Internal(String::from("get_ref2: invalid object"))),
+            (Value::Object(shared_flag1, object1), Value::Ulong(n2)) => {
+                let new_object = if *shared_flag1 == SharedFlag::Shared {
+                    let tmp_object1 = object1.clone();
+                    let tmp_object1_r = tmp_object1.borrow();
+                    Rc::new(RefCell::new(tmp_object1_r.clone()))
+                } else {
+                    object1.clone()
+                };
+                {
+                    let mut new_object_r = new_object.borrow_mut();
+                    let tmp_object = match &*new_object_r {
+                        Object::Slice(idx, offs, len) => {
+                            let mut new_offs = offs.clone();
+                            match new_offs.last_mut() {
+                                Some(new_off) => {
+                                    if *n2 < (*len as u64) {
+                                        *new_off = *n2 as usize;
+                                    } else {
+                                        return Err(FrontendError::Message(pos.clone(), String::from("index out of bounds")))
+                                    }
+                                },
+                                None => return Err(FrontendError::Internal(String::from("get_ref2: no last offset"))),
+                            }
+                            Object::Ref(*idx, new_offs)
+                        },
+                        Object::Builtin(_, _) => return Err(FrontendError::Message(pos.clone(), format!("can't evaluate function {} for value of built-in variable", s))),
+                        _ => return Err(FrontendError::Internal(String::from("get_ref2: invalid object"))),
+                    };
+                    *new_object_r = tmp_object;
                 }
+                Ok(Value::Object(*shared_flag1, new_object))
             },
             (_, Value::Object(_, object2)) => {
                 let object2_r = object2.borrow();
@@ -1803,24 +1814,35 @@ fn get_slice2(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos, s: &
 {
     if arg_values.len() == 3 {
         match (&arg_values[0], &arg_values[1], &arg_values[2]) {
-            (Value::Object(_, object1), Value::Ulong(n2), Value::Ulong(n3)) => {
-                let object1_r = object1.borrow();
-                match &*object1_r {
-                    Object::Slice(idx, offs, len) => {
-                        let mut new_offs = offs.clone();
-                        let new_len = match new_offs.last_mut() {
-                            Some(new_off) => {
-                                let tmp_off = min(*n2, *len as u64);
-                                *new_off += tmp_off as usize;
-                                (min(max(*n3, tmp_off), *len as u64) - tmp_off) as usize
-                            },
-                            None => return Err(FrontendError::Internal(String::from("get_slice2: no last offset"))),
-                        };
-                        Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Slice(*idx, new_offs, new_len)))))
-                    },
-                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), format!("can't evaluate function {} for value of built-in variable", s))),
-                    _ => Err(FrontendError::Internal(String::from("get_slice2: invalid object"))),
+            (Value::Object(shared_flag1, object1), Value::Ulong(n2), Value::Ulong(n3)) => {
+                let new_object = if *shared_flag1 == SharedFlag::Shared {
+                    let tmp_object1 = object1.clone();
+                    let tmp_object1_r = tmp_object1.borrow();
+                    Rc::new(RefCell::new(tmp_object1_r.clone()))
+                } else {
+                    object1.clone()
+                };
+                {
+                    let mut new_object_r = new_object.borrow_mut();
+                    let tmp_object = match &*new_object_r {
+                        Object::Slice(idx, offs, len) => {
+                            let mut new_offs = offs.clone();
+                            let new_len = match new_offs.last_mut() {
+                                Some(new_off) => {
+                                    let tmp_off = min(*n2, *len as u64);
+                                    *new_off += tmp_off as usize;
+                                    (min(max(*n3, tmp_off), *len as u64) - tmp_off) as usize
+                                },
+                                None => return Err(FrontendError::Internal(String::from("get_slice2: no last offset"))),
+                            };
+                            Object::Slice(*idx, new_offs, new_len)
+                        },
+                        Object::Builtin(_, _) => return Err(FrontendError::Message(pos.clone(), format!("can't evaluate function {} for value of built-in variable", s))),
+                        _ => return Err(FrontendError::Internal(String::from("get_slice2: invalid object"))),
+                    };
+                    *new_object_r = tmp_object;
                 }
+                Ok(Value::Object(*shared_flag1, new_object))
             },
             (_, Value::Object(_, object2), _) => {
                 let object2_r = object2.borrow();
