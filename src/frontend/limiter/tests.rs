@@ -1038,6 +1038,105 @@ trait T
 }
 
 #[test]
+fn test_limiter_check_limits_complains_on_variable_must_not_have_type_parameters()
+{
+    let s = "
+builtin type Int;
+data T<t1> = C() | D(t1);
+a: T<t> where t: shared = C();
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(3, pos.line);
+                    assert_eq!(1, pos.column);
+                    assert_eq!(String::from("variable a mustn't have type parameters"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_limiter_check_limits_complains_on_variable_must_not_have_type_parameters_without_trait()
+{
+    let s = "
+builtin type Int;
+data U<t1, t2> = C() | D(t1, t2);
+trait T<t1>
+{
+    a: U<t, u> where t: shared + T <Int>, u: shared;
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(5, pos.line);
+                    assert_eq!(5, pos.column);
+                    assert_eq!(String::from("variable a mustn't have type parameters without trait T"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
 fn test_limiter_check_limits_complains_on_kernel_must_not_have_type_parameters()
 {
     let s = "

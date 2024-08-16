@@ -30,25 +30,41 @@ fn check_global_var_modifier(var_modifier: VarModifier, ident: &String, pos: Pos
     }
 }
 
+fn check_type(ident: &String, trait_ident: &Option<String>, typ: &Type, pos: Pos, is_var: bool, errs: &mut Vec<FrontendError>)
+{
+    match trait_ident {
+        Some(trait_ident) => {
+            let are_only_type_params_with_trait = typ.type_param_entries().iter().all(|tpe| {
+                    let type_param_entry_r = tpe.borrow();
+                    type_param_entry_r.trait_names.contains(&TraitName::Name(trait_ident.clone()))
+            });
+            if !are_only_type_params_with_trait {
+                if is_var {
+                    errs.push(FrontendError::Message(pos, format!("variable {} mustn't have type parameters without trait {}", ident, trait_ident)));
+                } else {
+                    errs.push(FrontendError::Message(pos, format!("kernel {} mustn't have type parameters without trait {}", ident, trait_ident)));
+                }
+            }
+        },
+        None => {
+            if !typ.type_param_entries().is_empty() {
+                if is_var {
+                    errs.push(FrontendError::Message(pos, format!("variable {} mustn't have type parameters", ident)));
+                } else {
+                    errs.push(FrontendError::Message(pos, format!("kernel {} mustn't have type parameters", ident)));
+                }
+            }
+        },
+    }
+}
+
+fn check_var_type(ident: &String, trait_ident: &Option<String>, typ: &Type, pos: Pos, errs: &mut Vec<FrontendError>)
+{ check_type(ident, trait_ident, typ, pos, true, errs); }
+
 fn check_fun_modifier(fun_modifier: FunModifier, ident: &String, trait_ident: &Option<String>, typ: &Type, pos: Pos, errs: &mut Vec<FrontendError>)
 {
     if fun_modifier == FunModifier::Kernel {
-        match trait_ident {
-            Some(trait_ident) => {
-                let are_only_type_params_with_trait = typ.type_param_entries().iter().all(|tpe| {
-                        let type_param_entry_r = tpe.borrow();
-                        type_param_entry_r.trait_names.contains(&TraitName::Name(trait_ident.clone()))
-                });
-                if !are_only_type_params_with_trait {
-                    errs.push(FrontendError::Message(pos, format!("kernel {} mustn't have type parameters without trait {}", ident, trait_ident)));
-                }
-            },
-            None => {
-                if !typ.type_param_entries().is_empty() {
-                    errs.push(FrontendError::Message(pos, format!("kernel {} mustn't have type parameters", ident)));
-                }
-            },
-        }
+        check_type(ident, trait_ident, typ, pos, false, errs);
     }
 }
 
@@ -77,7 +93,7 @@ impl Limiter
             match &**def {
                 Def::Var(ident, var, pos) => {
                     let var_r = var.borrow();
-                    self.check_limits_for_var(ident, &*var_r, pos.clone(), errs)?;
+                    self.check_limits_for_var(ident, &*var_r, pos, errs)?;
                 },
                 Def::Trait(_, trait1, _) => {
                     let trait_r = trait1.borrow();
@@ -87,7 +103,7 @@ impl Limiter
                                 match &**trait_def {
                                     TraitDef(ident, var, pos) => {
                                         let var_r = var.borrow();
-                                        self.check_limits_for_var(ident, &*var_r, pos.clone(), errs)?;
+                                        self.check_limits_for_var(ident, &*var_r, pos, errs)?;
                                     },
                                 }
                             }
@@ -127,22 +143,26 @@ impl Limiter
         Ok(())
     }
 
-    fn check_limits_for_var(&self, ident: &String, var: &Var, pos: Pos, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
+    fn check_limits_for_var(&self, ident: &String, var: &Var, pos: &Pos, errs: &mut Vec<FrontendError>) -> FrontendResultWithErrors<()>
     {
         match var {
             Var::Builtin(_, _) => (),
-            Var::Var(var_modifier, _, _, Some(expr), _, _, _, _, _) => {
-                check_global_var_modifier(*var_modifier, ident, pos, errs);
+            Var::Var(var_modifier, _, _, Some(expr), trait_name, _, _, Some(typ), _) => {
+                check_global_var_modifier(*var_modifier, ident, pos.clone(), errs);
+                check_var_type(ident, trait_name, &**typ, pos.clone(), errs);
                 self.check_limits_for_expr(&**expr, true, errs)?;
             }
-            Var::Var(var_modifier, _, _, None, _, _, _, _, _) => check_global_var_modifier(*var_modifier, ident, pos, errs),
+            Var::Var(var_modifier, _, _, None, trait_name, _, _, Some(typ), _) => {
+                check_global_var_modifier(*var_modifier, ident, pos.clone(), errs);
+                check_var_type(ident, trait_name, &**typ, pos.clone(), errs);
+            },
             Var::Fun(fun, trait_name, Some(typ)) => {
                 match &**fun {
                     Fun::Fun(fun_modifier, _, _, _, Some(body), _, _) => {
-                        check_fun_modifier(*fun_modifier, ident, trait_name, &**typ, pos, errs);
+                        check_fun_modifier(*fun_modifier, ident, trait_name, &**typ, pos.clone(), errs);
                         self.check_limits_for_expr(&**body, false, errs)?;
                     },
-                    Fun::Fun(fun_modifier, _, _, _, None, _, _) => check_fun_modifier(*fun_modifier, ident, trait_name, &**typ, pos, errs),
+                    Fun::Fun(fun_modifier, _, _, _, None, _, _) => check_fun_modifier(*fun_modifier, ident, trait_name, &**typ, pos.clone(), errs),
                     Fun::Con(_) => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_limits_for_var: variable is contructor"))])),
                 }
             },
