@@ -6,12 +6,14 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 //
 use std::cell::*;
+use std::cmp::max;
+use std::cmp::min;
 use std::collections::HashMap;
 use std::rc::*;
 use crate::frontend::error::*;
 use crate::frontend::tree::*;
 
-fn char_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn char_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     let mut cs: Vec<i8> = Vec::new();
     for arg_value in arg_values {
@@ -30,7 +32,7 @@ fn char_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::CharN(cs)))))
 }
 
-fn short_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn short_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     let mut ns: Vec<i16> = Vec::new();
     for arg_value in arg_values {
@@ -49,7 +51,7 @@ fn short_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::ShortN(ns)))))
 }
 
-fn int_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn int_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     let mut ns: Vec<i32> = Vec::new();
     for arg_value in arg_values {
@@ -68,7 +70,7 @@ fn int_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::IntN(ns)))))
 }
 
-fn long_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn long_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     let mut ns: Vec<i64> = Vec::new();
     for arg_value in arg_values {
@@ -87,7 +89,7 @@ fn long_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::LongN(ns)))))
 }
 
-fn uchar_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn uchar_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     let mut cs: Vec<u8> = Vec::new();
     for arg_value in arg_values {
@@ -106,7 +108,7 @@ fn uchar_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::UcharN(cs)))))
 }
 
-fn ushort_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn ushort_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     let mut ns: Vec<u16> = Vec::new();
     for arg_value in arg_values {
@@ -125,7 +127,7 @@ fn ushort_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::UshortN(ns)))))
 }
 
-fn uint_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn uint_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     let mut ns: Vec<u32> = Vec::new();
     for arg_value in arg_values {
@@ -144,7 +146,7 @@ fn uint_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::UintN(ns)))))
 }
 
-fn ulong_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn ulong_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     let mut ns: Vec<u64> = Vec::new();
     for arg_value in arg_values {
@@ -163,7 +165,7 @@ fn ulong_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::UlongN(ns)))))
 }
 
-fn float_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn float_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     let mut ns: Vec<f32> = Vec::new();
     for arg_value in arg_values {
@@ -182,7 +184,7 @@ fn float_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::FloatN(ns)))))
 }
 
-fn double_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn double_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     let mut ns: Vec<f64> = Vec::new();
     for arg_value in arg_values {
@@ -201,25 +203,27 @@ fn double_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::DoubleN(ns)))))
 }
 
-fn reference(arg_values: &[Value], _pos: &Pos) -> FrontendResult<Value>
+fn reference(arg_values: &[Value], ref_values: &mut RefValues, _pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 1 {
-        Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Ref(RefObjectFlag::None, arg_values[0].clone())))))
+        let idx = ref_values.add_value(RefValue(RefValueFlag::None, arg_values[0].clone()));
+        Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Ref(idx, Vec::new())))))
     } else {
         Err(FrontendError::Internal(String::from("reference: too few or many arguments")))
     }
 }
 
-fn global_ref(arg_values: &[Value], _pos: &Pos) -> FrontendResult<Value>
+fn global_ref(arg_values: &[Value], ref_values: &mut RefValues, _pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 1 {
-        Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Ref(RefObjectFlag::Global, arg_values[0].clone())))))
+        let idx = ref_values.add_value(RefValue(RefValueFlag::Global, arg_values[0].clone()));
+        Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Ref(idx, Vec::new())))))
     } else {
         Err(FrontendError::Internal(String::from("global_ref: too few or many arguments")))
     }
 }
 
-fn op_neg(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn op_neg(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 1 {
         match &arg_values[0] {
@@ -260,7 +264,7 @@ fn op_neg(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn op_not(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn op_not(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 1 {
         match &arg_values[0] {
@@ -306,7 +310,7 @@ fn op_not(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn op_mul(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn op_mul(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
@@ -370,7 +374,7 @@ fn op_mul(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn op_div(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn op_div(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
@@ -562,7 +566,7 @@ fn op_div(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn op_rem(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn op_rem(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
@@ -750,7 +754,7 @@ fn op_rem(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn op_add(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn op_add(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
@@ -814,7 +818,7 @@ fn op_add(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn op_sub(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn op_sub(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
@@ -878,7 +882,7 @@ fn op_sub(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn op_shl(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn op_shl(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
@@ -923,7 +927,7 @@ fn op_shl(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn op_shr(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn op_shr(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
@@ -968,7 +972,7 @@ fn op_shr(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn op_eq(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn op_eq(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
@@ -1022,7 +1026,7 @@ fn op_eq(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn op_ne(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn op_ne(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
@@ -1076,7 +1080,7 @@ fn op_ne(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn op_lt(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn op_lt(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
@@ -1112,7 +1116,7 @@ fn op_lt(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn op_ge(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn op_ge(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
@@ -1148,7 +1152,7 @@ fn op_ge(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn op_gt(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn op_gt(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
@@ -1184,7 +1188,7 @@ fn op_gt(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn op_le(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn op_le(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
@@ -1220,7 +1224,7 @@ fn op_le(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn op_and(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn op_and(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
@@ -1281,7 +1285,7 @@ fn op_and(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn op_xor(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn op_xor(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
@@ -1342,7 +1346,7 @@ fn op_xor(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn op_or(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn op_or(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
@@ -1403,7 +1407,7 @@ fn op_or(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn op_get_nth(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn op_get_nth(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
@@ -1417,6 +1421,7 @@ fn op_get_nth(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
                             Err(FrontendError::Message(pos.clone(), String::from("index out of bounds")))
                         }
                     },
+                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function op_get_nth for value of built-in variable"))),
                     _ => Err(FrontendError::Internal(String::from("op_get_nth: invalid object"))),
                 }
             },
@@ -1427,7 +1432,7 @@ fn op_get_nth(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn op_get2_nth(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn op_get2_nth(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
@@ -1441,6 +1446,7 @@ fn op_get2_nth(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
                             Err(FrontendError::Message(pos.clone(), String::from("index out of bounds")))
                         }
                     },
+                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function op_get2_nth for value of built-in variable"))),
                     _ => Err(FrontendError::Internal(String::from("op_get2_nth: invalid object"))),
                 }
             },
@@ -1451,7 +1457,7 @@ fn op_get2_nth(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn op_set_nth(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn op_set_nth(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 3 {
         match (&arg_values[0], &arg_values[1]) {
@@ -1473,6 +1479,7 @@ fn op_set_nth(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
                                 return Err(FrontendError::Message(pos.clone(), String::from("index out of bounds")))
                             }
                         },
+                        Object::Builtin(_, _) => return Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function op_set_nth for value of built-in variable"))),
                         _ => return Err(FrontendError::Internal(String::from("op_set_nth: invalid object"))),
                     }
                 }
@@ -1485,14 +1492,18 @@ fn op_set_nth(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn slice(arg_values: &[Value], _pos: &Pos) -> FrontendResult<Value>
+fn slice(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 1 {
-        match &arg_values[0] {
+       match &arg_values[0] {
             Value::Object(_, object) => {
                 let object_r = object.borrow();
                 match &*object_r {
-                    Object::Array(elem_values) => Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Slice(RefObjectFlag::None, elem_values.clone()))))),
+                    Object::Array(elem_values) => {
+                        let idx = ref_values.add_value(RefValue(RefValueFlag::None, arg_values[0].clone()));
+                        Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Slice(idx, vec![0], elem_values.len())))))
+                    },
+                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function slice for value of built-in variable"))),
                     _ => Err(FrontendError::Internal(String::from("slice: invalid object"))),
                 }
             },
@@ -1503,14 +1514,77 @@ fn slice(arg_values: &[Value], _pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn global_slice(arg_values: &[Value], _pos: &Pos) -> FrontendResult<Value>
+fn slice_from_ref(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 1 {
         match &arg_values[0] {
             Value::Object(_, object) => {
                 let object_r = object.borrow();
                 match &*object_r {
-                    Object::Array(elem_values) => Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Slice(RefObjectFlag::Global, elem_values.clone()))))),
+                    Object::Ref(idx, offs) => {
+                        match ref_values.value(*idx) {
+                            Some(RefValue(_, value)) => {
+                                let mut tmp_value = value.clone();
+                                for off in offs {
+                                    let new_tmp_value = match tmp_value {
+                                        Value::Object(_, object) => {
+                                            let object_r = object.borrow();
+                                            match &*object_r {
+                                                Object::Array(elem_values) => {
+                                                    if *off < elem_values.len() {
+                                                        elem_values[*off].clone()
+                                                    } else {
+                                                        return Err(FrontendError::Internal(String::from("slice_from_ref: index out of bounds")));
+                                                    }
+                                                },
+                                                _ => return Err(FrontendError::Internal(String::from("slice_from_ref: invalid object"))),
+                                            }
+                                        },
+                                        _ => return Err(FrontendError::Internal(String::from("slice_from_ref: invalid value"))),
+                                    };
+                                    tmp_value = new_tmp_value;
+                                }
+                                match &tmp_value {
+                                    Value::Object(_, object) => {
+                                        let object_r = object.borrow();
+                                        match &*object_r {
+                                            Object::Array(elem_values) => {
+                                                let mut new_offs = offs.clone();
+                                                new_offs.push(0);
+                                                Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Slice(*idx, new_offs, elem_values.len())))))
+                                            },
+                                            _ => Err(FrontendError::Internal(String::from("slice_from_ref: invalid object"))),
+                                        }
+                                    },
+                                    _ => Err(FrontendError::Internal(String::from("slice_from_ref: invalid value"))),
+                                }  
+                            },
+                            _ => Err(FrontendError::Internal(String::from("slice_from_ref: no reference values"))),
+                        }
+                    },
+                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function *slice_from_ref for value of built-in variable"))),
+                    _ => Err(FrontendError::Internal(String::from("slice_from_ref: invalid object"))),
+                }
+            },
+            _ => Err(FrontendError::Internal(String::from("slice_from_ref: invalid value"))),
+        }
+    } else {
+        Err(FrontendError::Internal(String::from("slice_from_ref: too few or many arguments")))
+    }
+}
+
+fn global_slice(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+{
+    if arg_values.len() == 1 {
+        match &arg_values[0] {
+            Value::Object(_, object) => {
+                let object_r = object.borrow();
+                match &*object_r {
+                    Object::Array(elem_values) => {
+                        let idx = ref_values.add_value(RefValue(RefValueFlag::None, arg_values[0].clone()));
+                        Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Slice(idx, vec![0], elem_values.len())))))
+                    },
+                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function global_slice for value of built-in variable"))),
                     _ => Err(FrontendError::Internal(String::from("global_slice: invalid object"))),
                 }
             },
@@ -1521,7 +1595,10 @@ fn global_slice(arg_values: &[Value], _pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn shl_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn global_slice_from_ref(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+{ slice_from_ref(arg_values, ref_values, pos) }
+
+fn shl_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
@@ -1573,7 +1650,7 @@ fn shl_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     }
 }
 
-fn shr_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
+fn shr_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 2 {
         match (&arg_values[0], &arg_values[1]) {
@@ -1625,17 +1702,125 @@ fn shr_n(arg_values: &[Value], pos: &Pos) -> FrontendResult<Value>
     }
 }
 
+fn len(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+{
+    if arg_values.len() == 1 {
+        match &arg_values[0] {
+            Value::Object(_, object1) => {
+                let object1_r = object1.borrow();
+                match &*object1_r {
+                    Object::Array(elem_values) => Ok(Value::Ulong(elem_values.len() as u64)),
+                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function len for value of built-in variable"))),
+                    _ => Err(FrontendError::Internal(String::from("len: invalid object"))),
+                }
+            },
+            _ => Err(FrontendError::Internal(String::from("len: invalid value"))),
+        }
+    } else {
+        Err(FrontendError::Internal(String::from("len: too few or many arguments")))
+    }
+}
+
+fn get_ref(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+{
+    if arg_values.len() == 2 {
+        match (&arg_values[0], &arg_values[1]) {
+            (Value::Object(_, object1), Value::Ulong(n2)) => {
+                let object1_r = object1.borrow();
+                match &*object1_r {
+                    Object::Slice(idx, offs, len) => {
+                        let mut new_offs = offs.clone();
+                        match new_offs.last_mut() {
+                            Some(new_off) => {
+                                if *n2 < (*len as u64) {
+                                    *new_off = *n2 as usize;
+                                } else {
+                                    return Err(FrontendError::Message(pos.clone(), String::from("index out of bounds")))
+                                }
+                            },
+                            None => return Err(FrontendError::Internal(String::from("get_ref: no last offset"))),
+                        }
+                        Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Ref(*idx, new_offs)))))
+                    },
+                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function get_*ref for value of built-in variable"))),
+                    _ => Err(FrontendError::Internal(String::from("get_ref: invalid object"))),
+                }
+            },
+            (_, Value::Object(_, object2)) => {
+                let object2_r = object2.borrow();
+                match &*object2_r {
+                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function get_*ref for value of built-in variable"))),
+                    _ => Err(FrontendError::Internal(String::from("get_ref: invalid object"))),
+                }
+            },
+            _ => Err(FrontendError::Internal(String::from("get_ref: invalid value"))),
+        }
+    } else {
+        Err(FrontendError::Internal(String::from("get_ref: too few or many arguments")))
+    }
+}
+
+fn get_global_ref(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+{ get_ref(arg_values, ref_values, pos) }
+
+fn get_slice(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+{
+    if arg_values.len() == 3 {
+        match (&arg_values[0], &arg_values[1], &arg_values[2]) {
+            (Value::Object(_, object1), Value::Ulong(n2), Value::Ulong(n3)) => {
+                let object1_r = object1.borrow();
+                match &*object1_r {
+                    Object::Slice(idx, offs, len) => {
+                        let mut new_offs = offs.clone();
+                        let new_len = match new_offs.last_mut() {
+                            Some(new_off) => {
+                                let tmp_off = min(*n2, *len as u64);
+                                *new_off += tmp_off as usize;
+                                (min(max(*n3, tmp_off), *len as u64) - tmp_off) as usize
+                            },
+                            None => return Err(FrontendError::Internal(String::from("get_slice: no last offset"))),
+                        };
+                        Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Slice(*idx, new_offs, new_len)))))
+                    },
+                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function get_*slice for value of built-in variable"))),
+                    _ => Err(FrontendError::Internal(String::from("get_slice: invalid object"))),
+                }
+            },
+            (_, Value::Object(_, object2), _) => {
+                let object2_r = object2.borrow();
+                match &*object2_r {
+                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function get_*slice for value of built-in variable"))),
+                    _ => Err(FrontendError::Internal(String::from("get_slice: invalid object"))),
+                }
+            },
+            (_, _, Value::Object(_, object3)) => {
+                let object3_r = object3.borrow();
+                match &*object3_r {
+                    Object::Builtin(_, _) => Err(FrontendError::Message(pos.clone(), String::from("can't evaluate function get_*slice for value of built-in variable"))),
+                    _ => Err(FrontendError::Internal(String::from("get_slice: invalid object"))),
+                }
+            },
+            _ => Err(FrontendError::Internal(String::from("get_slice: invalid value"))),
+        }
+    } else {
+        Err(FrontendError::Internal(String::from("get_slice: too few or many arguments")))
+    }
+}
+
+fn get_global_slice(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
+{ get_slice(arg_values, ref_values, pos) }
+
 #[derive(Clone, Debug)]
 pub struct Evals
 {
-    funs: HashMap<(String, Option<TypeName>), fn(&[Value], &Pos) -> FrontendResult<Value>>,
+    funs: HashMap<(String, Option<TypeName>), fn(&[Value], &mut RefValues, &Pos) -> FrontendResult<Value>>,
 }
 
 impl Evals
 {
     pub fn new() -> Self
     {
-        let mut funs: HashMap<(String, Option<TypeName>), fn(&[Value], &Pos) -> FrontendResult<Value>> = HashMap::new();
+        let mut funs: HashMap<(String, Option<TypeName>), fn(&[Value], &mut RefValues, &Pos) -> FrontendResult<Value>> = HashMap::new();
         // charN
         for n in [2, 3, 4, 8, 16] {
             funs.insert((format!("char{}", n), None), char_n);
@@ -1830,8 +2015,12 @@ impl Evals
         funs.insert((String::from("op_set_nth"), Some(TypeName::Array(None))), op_set_nth);
         // slice
         funs.insert((String::from("slice"), Some(TypeName::Array(None))), slice);
+        // slice_from_ref
+        funs.insert((String::from("slice_from_ref"), Some(TypeName::Array(None))), slice_from_ref);
         // global_slice
         funs.insert((String::from("global_slice"), Some(TypeName::Array(None))), global_slice);
+        // global_slice_from_ref
+        funs.insert((String::from("global_slice_from_ref"), Some(TypeName::Array(None))), global_slice_from_ref);
         // shlN
         for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
             for n in [2, 3, 4, 8, 16] {
@@ -1844,16 +2033,26 @@ impl Evals
                 funs.insert((format!("shr{}", n), Some(TypeName::Name(format!("{}{}", s, n)))), shr_n);
             }
         }
+        // len
+        funs.insert((String::from("len"), Some(TypeName::Array(None))), len);
+        // get_ref
+        funs.insert((String::from("get_ref"), Some(TypeName::Name(String::from("Slice")))), get_ref);
+        // get_global_ref
+        funs.insert((String::from("get_global_ref"), Some(TypeName::Name(String::from("GlobalSlice")))), get_global_ref);
+        // get_slice
+        funs.insert((String::from("get_slice"), Some(TypeName::Name(String::from("Slice")))), get_slice);
+        // get_global_slice
+        funs.insert((String::from("get_global_slice"), Some(TypeName::Name(String::from("GlobalSlice")))), get_global_slice);
         Evals { funs, }
     }
 
     pub fn new_empty() -> Self
     { Evals { funs: HashMap::new(), } }
     
-    pub fn funs(&self) -> &HashMap<(String, Option<TypeName>), fn(&[Value], &Pos) -> FrontendResult<Value>>
+    pub fn funs(&self) -> &HashMap<(String, Option<TypeName>), fn(&[Value], &mut RefValues, &Pos) -> FrontendResult<Value>>
     { &self.funs }
 
-    pub fn fun(&self, key: &(String, Option<TypeName>)) -> Option<fn(&[Value], &Pos) -> FrontendResult<Value>>
+    pub fn fun(&self, key: &(String, Option<TypeName>)) -> Option<fn(&[Value], &mut RefValues, &Pos) -> FrontendResult<Value>>
     {
         match self.funs.get(key) {
             Some(fun) => Some(*fun),
@@ -1861,7 +2060,7 @@ impl Evals
         }
     }
     
-    pub fn add_fun(&mut self, key: (String, Option<TypeName>), fun: fn(&[Value], &Pos) -> FrontendResult<Value>)
+    pub fn add_fun(&mut self, key: (String, Option<TypeName>), fun: fn(&[Value], &mut RefValues, &Pos) -> FrontendResult<Value>)
     { self.funs.insert(key, fun); }
 
     pub fn remove_fun(&mut self, key: &(String, Option<TypeName>)) -> bool

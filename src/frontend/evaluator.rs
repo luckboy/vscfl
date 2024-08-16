@@ -2688,7 +2688,7 @@ impl Evaluator
                         errs.push(FrontendError::Message(pos.clone(), String::from("reference value mustn't be used in pattern")));
                         Ok(None)
                     },
-                    Object::Slice(_, _) => {
+                    Object::Slice(_, _, _) => {
                         errs.push(FrontendError::Message(pos.clone(), String::from("slice value mustn't be used in pattern")));
                         Ok(None)
                     },
@@ -2796,7 +2796,7 @@ impl Evaluator
                                 }
                                 Ok(Some(true))
                             },
-                            (Object::Slice(_, _), _) => {
+                            (Object::Slice(_, _, _), _) => {
                                 errs.push(FrontendError::Message(pos.clone(), String::from("slice value mustn't match to pattern for evaluation of variable values")));
                                 Ok(None)
                             },
@@ -2903,7 +2903,8 @@ impl Evaluator
                                         None => return Ok(None),
                                     }
                                 }
-                                match fun(arg_values.as_slice(), pos) {
+                                let mut ref_values = tree.ref_values().borrow_mut();
+                                match fun(arg_values.as_slice(), &mut *ref_values, pos) {
                                     Ok(value) => Ok(Some(value)),
                                     Err(err @ FrontendError::Internal(_)) => Err(FrontendErrors::new(vec![err])),
                                     Err(err) => {

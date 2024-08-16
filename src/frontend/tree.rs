@@ -43,6 +43,7 @@ pub struct Tree
     pub(crate) type_vars: HashMap<String, Rc<RefCell<TypeVar>>>,
     pub(crate) vars: HashMap<String, Rc<RefCell<Var>>>,
     pub(crate) traits: HashMap<String, Rc<RefCell<Trait>>>,
+    pub(crate) ref_values: RefCell<RefValues>,
 }
 
 impl Tree
@@ -54,6 +55,7 @@ impl Tree
             type_vars: HashMap::new(),
             vars: HashMap::new(),
             traits: HashMap::new(),
+            ref_values: RefCell::new(RefValues::new()),
         }
     }
     
@@ -89,6 +91,9 @@ impl Tree
 
     pub fn add_trait(&mut self, ident: String, trait1: Rc<RefCell<Trait>>)
     { self.traits.insert(ident, trait1); }
+    
+    pub fn ref_values(&self) -> &RefCell<RefValues>
+    { &self.ref_values }
 }
 
 #[derive(Clone, Debug)]
@@ -1413,13 +1418,6 @@ impl LocalFun
     { self.index }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub enum RefObjectFlag
-{
-    None,
-    Global,
-}
-
 #[derive(Clone, PartialEq, Debug)]
 pub enum Object
 {
@@ -1437,13 +1435,13 @@ pub enum Object
     Tuple(Vec<Value>),
     Array(Vec<Value>),
     Data(String, Vec<Value>),
-    Ref(RefObjectFlag, Value),
-    Slice(RefObjectFlag, Vec<Value>),
+    Ref(usize, Vec<usize>),
+    Slice(usize, Vec<usize>, usize),
     Builtin(String, Option<TypeName>),
     Fun(String, Option<TypeName>),
     Con(String),
     Lambda(String, Option<TypeName>, LocalFun),
-    EvalFun(String, Option<TypeName>, fn(&[Value], &Pos) -> FrontendResult<Value>),
+    EvalFun(String, Option<TypeName>, fn(&[Value], &mut RefValues, &Pos) -> FrontendResult<Value>),
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -1549,6 +1547,41 @@ impl ImplVars
     pub fn add_var(&mut self, ident: String, var: Rc<RefCell<ImplVar>>)
     { self.vars.insert(ident, var); }
 }
+
+#[derive(Clone, Debug)]
+pub struct RefValues
+{
+    values: Vec<RefValue>,
+}
+
+impl RefValues
+{
+    pub fn new() -> Self
+    { RefValues { values: Vec::new(), } }
+
+    pub fn values(&self) -> &[RefValue]
+    { self.values.as_slice() }
+    
+    pub fn value(&self, idx: usize) -> Option<&RefValue>
+    { self.values.get(idx) }
+
+    pub fn add_value(&mut self, value: RefValue) -> usize
+    {
+        let new_idx = self.values.len();
+        self.values.push(value);
+        new_idx
+    }
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub enum RefValueFlag
+{
+    None,
+    Global,
+}
+
+#[derive(Clone, Debug)]
+pub struct RefValue(pub RefValueFlag, pub Value);
 
 #[cfg(test)]
 mod tests;
