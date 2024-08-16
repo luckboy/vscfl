@@ -1690,7 +1690,7 @@ impl Evals
             }
         }
         // op_not
-        for s in ["Bool", "Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "SizeT", "PtrdiffT", "IntptrT", "UintptrT", "ClMemFenceFlags"] {
+        for s in ["Bool", "Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "SizeT", "PtrdiffT", "IntptrT", "UintptrT"] {
             funs.insert((String::from("op_not"), Some(TypeName::Name(String::from(s)))), op_not);
         }
         for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
