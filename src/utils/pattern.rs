@@ -500,7 +500,7 @@ impl<T: Clone + Eq + Ord> PatternForest<T>
                         r.is_empty()
                 })
             },
-            PatternForest::All(_) => true,
+            PatternForest::All(_) => false,
         }
     }
 }
