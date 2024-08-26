@@ -31,12 +31,12 @@ fn test_pattern_forest_add_node_adds_pattern_nodes()
 #[test]
 fn test_pattern_forest_add_node_does_not_adds_pattern_nodes()
 {
-    let mut forest: PatternForest<i32> = PatternForest::All(false);
+    let mut forest: PatternForest<i32> = PatternForest::All;
     assert_eq!(false, forest.add_node(PatternNode::new(1, PatternForests::Unfilled(Vec::new()))));
     assert_eq!(false, forest.add_node(PatternNode::new(2, PatternForests::Unfilled(Vec::new()))));
     assert_eq!(false, forest.add_node(PatternNode::new(4, PatternForests::Unfilled(Vec::new()))));
     match forest {
-        PatternForest::All(false) => assert!(true),
+        PatternForest::All => assert!(true),
         _ => assert!(false),
     }
 }
@@ -80,7 +80,7 @@ fn test_pattern_forest_normalize_normalizes_pattern_forest_to_all()
         Err(_) => assert!(false),
     }
     match forest {
-        PatternForest::All(false) => assert!(true),
+        PatternForest::All => assert!(true),
         _ => assert!(false),
     }
 }
@@ -126,7 +126,7 @@ fn test_pattern_forest_normalize_normalizes_pattern_forest_with_nested_pattern_n
                         _ => assert!(false),
                     }
                     match &forests[1] {
-                        PatternForest::All(false) => assert!(true),
+                        PatternForest::All => assert!(true),
                         _ => assert!(false),
                     }
                     match &forests[2] {
@@ -685,7 +685,7 @@ fn test_pattern_forest_union_return_new_forest_for_nested_pattern_node()
                                     match node2_r.forests() {
                                         PatternForests::Unfilled(forests) => {
                                             match &forests[0] {
-                                                PatternForest::All(false) => assert!(true),
+                                                PatternForest::All => assert!(true),
                                                 _ => assert!(false),
                                             }
                                         },
@@ -775,7 +775,7 @@ fn test_pattern_forest_union_return_new_mixed_forest()
                     match node2_r.forests() {
                         PatternForests::Unfilled(forests) => {
                             match &forests[0] {
-                                PatternForest::All(false) => assert!(true),
+                                PatternForest::All => assert!(true),
                                 _ => assert!(false),
                             }
                             match &forests[1] {

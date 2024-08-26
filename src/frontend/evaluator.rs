@@ -1047,75 +1047,6 @@ impl Evaluator
         Ok(())
     }
 
-    fn has_one_for_type_value(&self, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<bool>
-    {
-        match local_types.type_entry_for_type_value(type_value) {
-            Some(LocalTypeEntry::Param(_, _, _, _)) => Ok(false),
-            Some(LocalTypeEntry::Type(type_value)) => {
-                match &*type_value {
-                    TypeValue::Param(_, _) => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_one_for_type_value: type parameter in local type entry"))])),
-                    TypeValue::Type(_, TypeValueName::Array(Some(0)), _) => Ok(true),
-                    TypeValue::Type(_, TypeValueName::Tuple | TypeValueName::Array(_), type_values) => {
-                        let mut is_one = true;
-                        for type_value2 in type_values {
-                            is_one &= self.has_one_for_type_value(type_value2, tree, local_types)?;
-                        }
-                        Ok(is_one)
-                    },
-                    TypeValue::Type(_, TypeValueName::Fun, _) => Ok(false),
-                    TypeValue::Type(_, TypeValueName::Name(ident), type_values) => {
-                        match tree.type_var(ident) {
-                            Some(type_var) => {
-                                let type_var_r = type_var.borrow();
-                                match &*type_var_r {
-                                    TypeVar::Builtin(_, _, _) => Ok(false),
-                                    TypeVar::Data(_, cons, _) => {
-                                        if cons.len() == 0 {
-                                            Ok(true)
-                                        } else if cons.len() == 1 {
-                                            let con_r = cons[0].borrow();
-                                            let con_ident = match &*con_r {
-                                                Con::UnnamedField(tmp_con_ident, _, _, _) => tmp_con_ident,
-                                                Con::NamedField(tmp_con_ident, _, _, _, _) => tmp_con_ident,
-                                            };
-                                            type_for_fun_ident_in(con_ident, tree, |typ| {
-                                                    match &**typ.type_value() {
-                                                        TypeValue::Type(_, TypeValueName::Fun, type_values2) => {
-                                                            if type_values2.len() >= 1 {
-                                                                let mut is_one = true;
-                                                                for type_value2 in type_values2 {
-                                                                    let new_type_value = match type_value2.substitute(type_values) {
-                                                                        Ok(Some(tmp_type_value)) => tmp_type_value,
-                                                                        Ok(None) => type_value2.clone(),
-                                                                        Err(err) => return Err(FrontendErrors::new(vec![FrontendError::Internal(format!("has_one_for_type_value: {}", err))])),
-                                                                    };
-                                                                    is_one &= self.has_one_for_type_value(&new_type_value, tree, local_types)?;
-                                                                }
-                                                                Ok(is_one)
-                                                            } else {
-                                                                Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_one_for_type_value: too few argument type values"))]))
-                                                            }
-                                                        },
-                                                        _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_one_for_type_value: type value isn't function type"))]))
-                                                    }
-                                            })?;
-                                            Ok(true)
-                                        } else {
-                                            Ok(false)
-                                        }
-                                    },
-                                    _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_one_for_type_value: type variable is type synonym"))])),
-                                }
-                            },
-                            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_one_for_type_value: no type variable"))])),
-                        }
-                    },
-                }
-            },
-            None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("has_one_for_type_value: no local type entry"))])),
-        }
-    }
-
     fn convert_pattern_ids_for_type_value(&self, node: &mut PatternNode<PatternId>, max: &mut Option<usize>, type_value: &Rc<TypeValue>, tree: &Tree, local_types: &LocalTypes) -> FrontendResultWithErrors<()>
     {
         match local_types.type_entry_for_type_value(type_value) {
@@ -1134,7 +1065,7 @@ impl Evaluator
                                                 self.convert_pattern_ids_for_type_value(&mut *node2_r, max2, type_value2, tree, local_types)?
                                             }
                                         },
-                                        PatternForest::All(_) => (),
+                                        PatternForest::All => (),
                                     }
                                 }
                                 Ok(())
@@ -1155,7 +1086,7 @@ impl Evaluator
                                                         self.convert_pattern_ids_for_type_value(&mut *node2_r, max2, type_value2, tree, local_types)?
                                                     }
                                                 },
-                                                PatternForest::All(_) => (),
+                                                PatternForest::All => (),
                                             }
                                         }
                                         Ok(())
@@ -1168,7 +1099,7 @@ impl Evaluator
                                                     self.convert_pattern_ids_for_type_value(&mut *node2_r, max2, type_value2, tree, local_types)?
                                                 }
                                             },
-                                            PatternForest::All(_) => (),
+                                            PatternForest::All => (),
                                         }
                                         Ok(())
                                     },
@@ -1574,7 +1505,7 @@ impl Evaluator
                             self.add_pattern_nodes_for_pattern(&**pattern, tree, type_stack, local_types, &mut forest, errs)?;
                             self.normalize_pattern_forest(&mut forest)?;
                             match forest {
-                                PatternForest::All(_) => (),
+                                PatternForest::All => (),
                                 _ => errs.push(FrontendError::Message(pattern_pos(&**pattern).clone(), String::from("non-exhaustive patterns"))),
                             }
                         },
@@ -1595,7 +1526,7 @@ impl Evaluator
                 }
                 self.normalize_pattern_forest(&mut forest)?;
                 match forest {
-                    PatternForest::All(_) => (),
+                    PatternForest::All => (),
                     _ => errs.push(FrontendError::Message(pos.clone(), String::from("non-exhaustive patterns"))),
                 }
             },
@@ -1660,9 +1591,9 @@ impl Evaluator
                         Ok(())
                 })?;
             },
-            Pattern::Var(_, _, Some(local_type), _) => forest.set_all(self.has_one_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), tree, local_types)?),
+            Pattern::Var(_, _, _, _) => forest.set_all(),
             Pattern::At(_, _, pattern2, _, _) => self.add_pattern_nodes_for_pattern(&**pattern2, tree, type_stack, local_types, forest, errs)?,
-            Pattern::Wildcard(Some(local_type), _) => forest.set_all(self.has_one_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, *local_type)), tree, local_types)?),
+            Pattern::Wildcard(_, _) => forest.set_all(),
             Pattern::Alt(patterns, _, _) => {
                 for pattern2 in patterns {
                     self.add_pattern_nodes_for_pattern(&**pattern2, tree, type_stack, local_types, forest, errs)?;
