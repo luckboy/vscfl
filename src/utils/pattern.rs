@@ -135,7 +135,7 @@ fn union_pattern_nodes_without_normalization<T: Clone + Eq + Ord>(node1: &Rc<Ref
                 } else if left_count == 0 && right_count == 0 && new_count == 1 {
                     let mut new_node = PatternNode::new(id, PatternForests::Unfilled(new_forests));
                     new_node.is_normalized = true;
-                    return Ok(vec![(PatternKind::Right, Rc::new(RefCell::new(new_node)))]);
+                    return Ok(vec![(PatternKind::New, Rc::new(RefCell::new(new_node)))]);
                 } else {
                     return Ok(vec![(PatternKind::Left, node1.clone()), (PatternKind::Right, node2.clone())]);
                 }
@@ -276,16 +276,21 @@ fn union_pattern_nodes_without_normalization<T: Clone + Eq + Ord>(node1: &Rc<Ref
 pub fn union_pattern_nodes<T: Clone + Eq + Ord>(node1: &Rc<RefCell<PatternNode<T>>>, node2: &Rc<RefCell<PatternNode<T>>>) -> Result<Vec<(PatternKind, Rc<RefCell<PatternNode<T>>>)>, PatternError>
 {
     {
-        let mut node1_r = node1.borrow_mut();
-        let mut node2_r = node2.borrow_mut();
-        if node1_r.id != node2_r.id {
-            return Ok(vec![(PatternKind::Left, node1.clone()), (PatternKind::Right, node2.clone())]);
+        if !Rc::ptr_eq(node1, node2) {
+            let mut node1_r = node1.borrow_mut();
+            let mut node2_r = node2.borrow_mut();
+            if node1_r.id != node2_r.id {
+                return Ok(vec![(PatternKind::Left, node1.clone()), (PatternKind::Right, node2.clone())]);
+            }
+            if node1_r.forests.len() != node2_r.forests.len() {
+                return Err(PatternError::Count);
+            }
+            node1_r.normalize()?;
+            node2_r.normalize()?;
+        } else {
+            let mut node1_r = node1.borrow_mut();
+            node1_r.normalize()?;
         }
-        if node1_r.forests.len() != node2_r.forests.len() {
-            return Err(PatternError::Count);
-        }
-        node1_r.normalize()?;
-        node2_r.normalize()?;
     }
     union_pattern_nodes_without_normalization(node1, node2)
 }
@@ -347,8 +352,11 @@ impl<T: Clone + Eq + Ord> PatternForest<T>
                 loop {
                     match pairs2.pop() {
                         Some((kind2, node2)) => {
-                            let node2_r = node2.borrow();
-                            match pair_vec_map1.get_mut(&node2_r.id) {
+                            let id = {
+                                let node2_r = node2.borrow();
+                                node2_r.id.clone()
+                            };
+                            match pair_vec_map1.get_mut(&id) {
                                 Some(pairs1) => {
                                     let mut new_pairs1: Vec<(PatternKind, Rc<RefCell<PatternNode<T>>>)> = Vec::new();
                                     let mut new_pairs3: Vec<(PatternKind, Rc<RefCell<PatternNode<T>>>)> = Vec::new();
@@ -360,7 +368,6 @@ impl<T: Clone + Eq + Ord> PatternForest<T>
                                             match (*kind1, kind2, res_pair) {
                                                 (tmp_kind1, _, (PatternKind::Left, new_node)) => new_pairs1.push((tmp_kind1, new_node)),
                                                 (_, _, (PatternKind::Right, _)) => is_node2 = true,
-                                                (PatternKind::New, PatternKind::New, (PatternKind::Both, new_node)) => new_pairs3.push((PatternKind::New, new_node)),
                                                 (tmp_kind1, PatternKind::New, (PatternKind::Both, new_node)) => new_pairs1.push((tmp_kind1, new_node)),
                                                 (PatternKind::New, _, (PatternKind::Both, _)) => is_node2 = true,
                                                 (_, _, (PatternKind::Both, new_node)) => new_pairs1.push((PatternKind::Both, new_node)),
@@ -379,7 +386,7 @@ impl<T: Clone + Eq + Ord> PatternForest<T>
                                     pairs2.append(&mut new_pairs3);
                                 },
                                 None => {
-                                    pair_vec_map1.insert(node2_r.id.clone(), vec![(PatternKind::Left, node2.clone())]);
+                                    pair_vec_map1.insert(id, vec![(kind2, node2.clone())]);
                                 },
                             }
                         },
@@ -527,3 +534,6 @@ impl fmt::Display for PatternError
         }
     }
 }
+
+#[cfg(test)]
+mod tests;
