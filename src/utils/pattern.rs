@@ -219,7 +219,6 @@ pub fn union_pattern_nodes<T: Clone + Eq + Ord>(node1: &Rc<RefCell<PatternNode<T
     union_pattern_nodes_without_normalization(node1, node2)
 }
 
-
 fn intersection_pattern_nodes_without_normalization<T: Clone + Eq + Ord>(node1: &Rc<RefCell<PatternNode<T>>>, node2: &Rc<RefCell<PatternNode<T>>>) -> Result<Option<Rc<RefCell<PatternNode<T>>>>, PatternError>
 {
     {
