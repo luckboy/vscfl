@@ -144,7 +144,7 @@ fn union_pattern_nodes_without_normalization<T: Clone + Eq + Ord>(node1: &Rc<Ref
                                     new_forests.push(new_forest2);
                                 }
                                 if is_empty {
-                                    break;
+                                    continue;
                                 }
                                 let mut new_node = PatternNode::new(id.clone(), PatternForests::Unfilled(new_forests));
                                 new_node.is_normalized = true;
