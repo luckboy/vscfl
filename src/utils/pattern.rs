@@ -202,14 +202,14 @@ pub fn union_pattern_nodes<T: Clone + Eq + Ord>(node1: &Rc<RefCell<PatternNode<T
         if !Rc::ptr_eq(node1, node2) {
             let mut node1_r = node1.borrow_mut();
             let mut node2_r = node2.borrow_mut();
+            node1_r.normalize()?;
+            node2_r.normalize()?;
             if node1_r.id != node2_r.id {
                 return Ok(vec![(PatternKind::Left, node1.clone()), (PatternKind::Right, node2.clone())]);
             }
             if node1_r.forests.len() != node2_r.forests.len() {
                 return Err(PatternError::Count);
             }
-            node1_r.normalize()?;
-            node2_r.normalize()?;
         } else {
             let mut node1_r = node1.borrow_mut();
             node1_r.normalize()?;
@@ -281,14 +281,14 @@ pub fn intersection_pattern_nodes<T: Clone + Eq + Ord>(node1: &Rc<RefCell<Patter
         if !Rc::ptr_eq(node1, node2) {
             let mut node1_r = node1.borrow_mut();
             let mut node2_r = node2.borrow_mut();
+            node1_r.normalize()?;
+            node2_r.normalize()?;
             if node1_r.id != node2_r.id {
                 return Ok(None);
             }
             if node1_r.forests.len() != node2_r.forests.len() {
                 return Err(PatternError::Count);
             }
-            node1_r.normalize()?;
-            node2_r.normalize()?;
         } else {
             let mut node1_r = node1.borrow_mut();
             node1_r.normalize()?;
