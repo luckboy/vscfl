@@ -1518,7 +1518,7 @@ trait T<t> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
                             assert_eq!(String::from("(t, Float)"), typ.to_string());
                             assert_eq!(1, typ.type_param_entries().len());
@@ -1588,7 +1588,7 @@ trait T<t1, t2> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
                             assert_eq!(String::from("(t, Float)"), typ.to_string());
                             assert_eq!(1, typ.type_param_entries().len());
@@ -1663,7 +1663,7 @@ trait U<t1> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
                             assert_eq!(String::from("(t, Float)"), typ.to_string());
                             assert_eq!(3, typ.type_param_entries().len());
@@ -1765,7 +1765,7 @@ trait V<t1> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
                             assert_eq!(String::from("(t, u, v) -> w"), typ.to_string());
                             assert_eq!(4, typ.type_param_entries().len());
@@ -1888,7 +1888,7 @@ trait V {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
                             assert_eq!(String::from("(t, Int) -> u"), typ.to_string());
                             assert_eq!(3, typ.type_param_entries().len());
@@ -1992,7 +1992,7 @@ trait T<t1, t2> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
                             assert_eq!(String::from("(t, Int)"), typ.to_string());
                             assert_eq!(1, typ.type_param_entries().len());
@@ -2064,7 +2064,7 @@ trait T<t1, t2> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
                             assert_eq!(String::from("(t, Int)"), typ.to_string());
                             assert_eq!(1, typ.type_param_entries().len());
@@ -2135,7 +2135,7 @@ builtin type Int;
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
                             assert_eq!(String::from("Int"), typ.to_string());
                             assert_eq!(true, typ.type_param_entries().is_empty());
@@ -2191,7 +2191,7 @@ trait T<t1> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &Some(String::from("T")), &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &Some(String::from("T")), &pos, &tree) {
                         Ok(typ) => {
                             assert_eq!(String::from("(t1, Int)"), typ.to_string());
                             assert_eq!(3, typ.type_param_entries().len());
@@ -2289,7 +2289,7 @@ trait T<t1, t2> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Err(errs) => {
                             assert_eq!(1, errs.errors().len());
                             match &errs.errors()[0] {
@@ -2351,7 +2351,7 @@ trait T {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Err(errs) => {
                             assert_eq!(1, errs.errors().len());
                             match &errs.errors()[0] {
@@ -2415,7 +2415,7 @@ trait U<t1> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Err(errs) => {
                             assert_eq!(1, errs.errors().len());
                             match &errs.errors()[0] {
@@ -2477,7 +2477,7 @@ trait T<t1> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Err(errs) => {
                             assert_eq!(1, errs.errors().len());
                             match &errs.errors()[0] {
@@ -2539,7 +2539,7 @@ trait T<t1, t2> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Err(errs) => {
                             assert_eq!(1, errs.errors().len());
                             match &errs.errors()[0] {
@@ -2602,7 +2602,7 @@ trait T<t1, t2> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Err(errs) => {
                             assert_eq!(1, errs.errors().len());
                             match &errs.errors()[0] {
@@ -2664,7 +2664,7 @@ trait T<t1, t2> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Err(errs) => {
                             assert_eq!(1, errs.errors().len());
                             match &errs.errors()[0] {
@@ -2727,7 +2727,7 @@ trait T<t1, t2> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Err(errs) => {
                             assert_eq!(1, errs.errors().len());
                             match &errs.errors()[0] {
@@ -2791,7 +2791,7 @@ trait V<t1> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &Some(String::from("T")), &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &Some(String::from("T")), &pos, &tree) {
                         Err(errs) => {
                             assert_eq!(1, errs.errors().len());
                             match &errs.errors()[0] {
@@ -2852,7 +2852,7 @@ builtin type Int;
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Err(errs) => {
                             println!("{}", errs);
                             assert_eq!(1, errs.errors().len());
@@ -2915,7 +2915,7 @@ trait T<t1> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &Some(String::from("T")), &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &Some(String::from("T")), &pos, &tree) {
                         Err(errs) => {
                             assert_eq!(1, errs.errors().len());
                             match &errs.errors()[0] {
@@ -2978,7 +2978,7 @@ trait U<t1> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &Some(String::from("T")), &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &Some(String::from("T")), &pos, &tree) {
                         Err(errs) => {
                             assert_eq!(1, errs.errors().len());
                             match &errs.errors()[0] {
@@ -3040,7 +3040,7 @@ trait T {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &Some(String::from("T")), &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &Some(String::from("T")), &pos, &tree) {
                         Err(errs) => {
                             assert_eq!(1, errs.errors().len());
                             match &errs.errors()[0] {

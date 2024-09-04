@@ -559,7 +559,7 @@ impl Typer
         Ok(())
     }
     
-    pub fn evalute_type_with_where(&self, ident: &str, type_expr: &TypeExpr, where_tuples: &[WhereTuple], trait_ident: &Option<String>, pos: &Pos, tree: &Tree) -> FrontendResultWithErrors<Type>
+    pub fn evaluate_type_with_where(&self, ident: &str, type_expr: &TypeExpr, where_tuples: &[WhereTuple], trait_ident: &Option<String>, pos: &Pos, tree: &Tree) -> FrontendResultWithErrors<Type>
     {
         let mut errs: Vec<FrontendError> = Vec::new();
         let mut type_param_env: Environment<LocalType> = Environment::new();

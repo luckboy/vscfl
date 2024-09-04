@@ -298,7 +298,7 @@ trait U<t1> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
                             assert_eq!(LocalType::new(2), local_types.set_defined_type(&typ));
                             assert_eq!(3, local_types.type_entries().len());
@@ -408,7 +408,7 @@ trait T<t1> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
                             assert_eq!(LocalType::new(3), local_types.set_defined_type(&typ));
                             assert_eq!(4, local_types.type_entries().len());
@@ -538,7 +538,7 @@ trait U<t1> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
                             match local_types.set_defined_fun_types(&typ) {
                                 Some(fun_local_types) => {
@@ -693,7 +693,7 @@ trait T<t1> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
                             match local_types.set_defined_fun_types(&typ) {
                                 Some(fun_local_types) => {
@@ -890,7 +890,7 @@ trait U<t1> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
                             assert_eq!(LocalType::new(2), local_types.set_defined_type(&typ));
                             assert_eq!(3, local_types.type_entries().len());
@@ -1237,7 +1237,7 @@ trait U<t1> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
                             match local_types.set_type(LocalType::new(1), &typ) {
                                 Ok(true) => assert!(true),
@@ -1415,7 +1415,7 @@ trait T<t1> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
                             match local_types.set_type(LocalType::new(0), &typ) {
                                 Ok(true) => assert!(true),
@@ -2315,7 +2315,7 @@ trait T<t1> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
                             match local_types.set_type(LocalType::new(0), &typ) {
                                 Ok(true) => assert!(true),
@@ -2472,7 +2472,7 @@ trait U<t1> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
                             assert_eq!(LocalType::new(2), local_types.set_defined_type(&typ));
                             match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(0)))) {
@@ -2692,7 +2692,7 @@ trait T<t1, t2> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
                             match local_types.set_type(LocalType::new(0), &typ) {
                                 Ok(true) => assert!(true),
@@ -2779,7 +2779,7 @@ trait U<t1> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => assert_eq!(LocalType::new(2), local_types.set_defined_type(&typ)),
                         Err(_) => assert!(false),
                     }
@@ -2844,7 +2844,7 @@ trait U<t1> {};
                         Err(_) => assert!(false),
                     }
                     let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
-                    match typer.evalute_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => assert_eq!(LocalType::new(2), local_types.set_defined_type(&typ)),
                         Err(_) => assert!(false),
                     }
