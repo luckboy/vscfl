@@ -39,6 +39,9 @@ impl TypeStack
         }
     }
     
+    pub fn type_value_stack_len(&self) -> usize
+    { self.type_values.len() }
+    
     pub fn type_values_and_type_entry_index(&self) -> Option<(&[Rc<TypeValue>], usize)>
     {
         match self.type_values.last() {
@@ -103,8 +106,25 @@ impl TypeStack
             Some(LocalTypeEntry::Param(_, uniq_flag, _, local_type)) => {
                 match self.type_values.last() {
                     Some((type_values, _)) => {
-                        match type_values.get(local_type.index()) {
-                            Some(type_value) => Ok(type_value.clone()),
+                        let mut j: Option<usize> = None;
+                        for i in 0..type_values.len() {
+                            match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(i)))) {
+                                Some(LocalTypeEntry::Param(_, _, _, local_type2)) => {
+                                    if local_type == local_type2 {
+                                        j = Some(i);
+                                        break;
+                                    }
+                                },
+                                _ => return Err(FrontendInternalError(String::from("real_type_value_from_type_value: no local type entry or local type entry is type"))),
+                            }
+                        }
+                        match j {
+                            Some(j) => {
+                                match type_values.get(j) {
+                                    Some(type_value) => Ok(type_value.clone()),
+                                    None => Ok(Rc::new(TypeValue::Param(uniq_flag, self.add_type_entry(local_type, new_local_types, added_local_types, processed_local_types)?))),
+                                }
+                            },
                             None => Ok(Rc::new(TypeValue::Param(uniq_flag, self.add_type_entry(local_type, new_local_types, added_local_types, processed_local_types)?))),
                         }
                     },
@@ -266,8 +286,12 @@ impl TypeStack
                         let mut type_param_entry1_r = type_param_entry1.borrow_mut();
                         let type_param_entry2_r = type_param_entry2.borrow();
                         let mut new_type_values: Vec<Rc<TypeValue>> = Vec::new();
-                        for (type_value3, type_value4) in type_param_entry1_r.type_values.iter().zip(type_param_entry2_r.type_values.iter()) {
-                            new_type_values.push(self.set_type_values_for_type_value(type_value3, type_value4, typ, type_values)?);
+                        if !type_param_entry2_r.type_values.is_empty() {
+                            for (type_value3, type_value4) in type_param_entry1_r.type_values.iter().zip(type_param_entry2_r.type_values.iter()) {
+                                new_type_values.push(self.set_type_values_for_type_value(type_value3, type_value4, typ, type_values)?);
+                            }
+                        } else {
+                            new_type_values.extend_from_slice(type_param_entry1_r.type_values.as_slice());
                         }
                         type_param_entry1_r.type_values = new_type_values;
                         let new_type_value = Rc::new(TypeValue::Param(*uniq_flag2, *local_type1));
@@ -281,14 +305,24 @@ impl TypeStack
                     _ => Err(FrontendInternalError(String::from("set_type_values_for_type_value: no type stack entry or type parameter entry"))),
                 }
             },
-            (TypeValue::Param(_, _), TypeValue::Type(_, _, _)) => Err(FrontendInternalError(String::from("set_type_values_for_type_value: can't match type parameter with type"))),
+            (TypeValue::Param(_, local_type1), TypeValue::Type(_, _, _)) => {
+                match self.type_entries.get(local_type1.index()) {
+                    Some(TypeStackEntry::Type(type_value3)) => self.set_type_values_for_type_value(type_value3, type_value2, typ, type_values),
+                    Some(TypeStackEntry::Param(_)) => Err(FrontendInternalError(String::from("set_type_values_for_type_value: can't match type parameter with type"))),
+                    None => Err(FrontendInternalError(String::from("set_type_values_for_type_value: no type stack entry"))),
+                }
+            },
             (TypeValue::Type(_, type_value_name1, type_values1), TypeValue::Param(uniq_flag2, local_type2)) => {
                 match typ.type_param_entry(*local_type2) {
                     Some(type_param_entry2) => {
                         let type_param_entry2_r = type_param_entry2.borrow();
                         let mut new_type_values: Vec<Rc<TypeValue>> = Vec::new();
-                        for (type_value3, type_value4) in type_values1.iter().zip(type_param_entry2_r.type_values.iter()) {
-                            new_type_values.push(self.set_type_values_for_type_value(type_value3, type_value4, typ, type_values)?);
+                        if !type_param_entry2_r.type_values.is_empty() {
+                            for (type_value3, type_value4) in type_values1.iter().zip(type_param_entry2_r.type_values.iter()) {
+                                new_type_values.push(self.set_type_values_for_type_value(type_value3, type_value4, typ, type_values)?);
+                            }
+                        } else {
+                            new_type_values.extend_from_slice(type_values1.as_slice());
                         }
                         let new_type_value = Rc::new(TypeValue::Type(*uniq_flag2, type_value_name1.clone(), new_type_values));
                         match type_values.get_mut(local_type2.index()) {
@@ -533,3 +567,6 @@ impl TypeStack
         }
     }
 }
+
+#[cfg(test)]
+mod tests;
