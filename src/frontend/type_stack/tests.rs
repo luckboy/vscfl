@@ -478,17 +478,6 @@ trait T<t1> {};
         },
         Err(_) => assert!(false),
     }
-    assert_eq!(1, type_stack.type_value_stack_len());
-    match type_stack.type_values_and_type_entry_index() {
-        Some((type_values, idx)) => {
-            assert_eq!(2, idx);
-            assert_eq!(2, type_values.len());
-            assert_eq!(String::from("t1"), type_values[0].to_string_without_fun());
-            assert_eq!(String::from("t2"), type_values[1].to_string_without_fun());
-        },
-        None => assert!(false),
-    }
-    assert_eq!(2, type_stack.type_entries().len());
     let type_matcher = TypeMatcher::new();
     assert_eq!(LocalType::new(3), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
     let s5 = "(t, Float, u)";
@@ -531,7 +520,36 @@ trait T<t1> {};
     }
     type_stack.pop_type_entries();
     assert_eq!(1, type_stack.type_value_stack_len());
+    match type_stack.type_values_and_type_entry_index() {
+        Some((type_values, idx)) => {
+            assert_eq!(2, idx);
+            assert_eq!(2, type_values.len());
+            assert_eq!(String::from("t1"), type_values[0].to_string_without_fun());
+            assert_eq!(String::from("t2"), type_values[1].to_string_without_fun());
+        },
+        None => assert!(false),
+    }
     assert_eq!(2, type_stack.type_entries().len());
+    match type_stack.type_entry(LocalType::new(0)) {
+        Some(TypeStackEntry::Param(type_param_entry)) => {
+            let type_param_entry_r = type_param_entry.borrow();
+            assert_eq!(1, type_param_entry_r.trait_names.len()); 
+            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Shared)); 
+            assert_eq!(true, type_param_entry_r.type_values.is_empty());
+            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+        },
+        _ => assert!(false),
+    }
+    match type_stack.type_entry(LocalType::new(1)) {
+        Some(TypeStackEntry::Param(type_param_entry)) => {
+            let type_param_entry_r = type_param_entry.borrow();
+            assert_eq!(1, type_param_entry_r.trait_names.len()); 
+            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+            assert_eq!(true, type_param_entry_r.type_values.is_empty());
+            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+        },
+        _ => assert!(false),
+    }
 }
 
 #[test]
@@ -1099,37 +1117,6 @@ data T<t1> = C(t1);
         },
         Err(_) => assert!(false),
     }
-    assert_eq!(1, type_stack.type_value_stack_len());
-    match type_stack.type_values_and_type_entry_index() {
-        Some((type_values, idx)) => {
-            assert_eq!(2, idx);
-            assert_eq!(2, type_values.len());
-            assert_eq!(String::from("t1"), type_values[0].to_string_without_fun());
-            assert_eq!(String::from("t2"), type_values[1].to_string_without_fun());
-        },
-        None => assert!(false),
-    }
-    assert_eq!(2, type_stack.type_entries().len());
-    match type_stack.type_entry(LocalType::new(0)) {
-        Some(TypeStackEntry::Param(type_param_entry)) => {
-            let type_param_entry_r = type_param_entry.borrow();
-            assert_eq!(1, type_param_entry_r.trait_names.len()); 
-            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Shared)); 
-            assert_eq!(true, type_param_entry_r.type_values.is_empty());
-            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
-        },
-        _ => assert!(false),
-    }
-    match type_stack.type_entry(LocalType::new(1)) {
-        Some(TypeStackEntry::Param(type_param_entry)) => {
-            let type_param_entry_r = type_param_entry.borrow();
-            assert_eq!(1, type_param_entry_r.trait_names.len()); 
-            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Shared));
-            assert_eq!(true, type_param_entry_r.type_values.is_empty());
-            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
-        },
-        _ => assert!(false),
-    }
     let type_matcher = TypeMatcher::new();
     assert_eq!(LocalType::new(3), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
     let s5 = "(T<t>, Float, T<u>)";
@@ -1174,14 +1161,6 @@ data T<t1> = C(t1);
         },
         Err(_) => assert!(false),
     }
-    assert_eq!(1, type_stack.type_value_stack_len());
-    assert_eq!(3, type_stack.type_entries().len());
-    match type_stack.type_entry(LocalType::new(2)) {
-        Some(TypeStackEntry::Type(type_value)) => {
-            assert_eq!(String::from("(T<t1>, Float, T<t2>)"), type_value.to_string_without_fun());
-        },
-        _ => assert!(false),
-    }
     let s7 = "(t, u, v)";
     let mut cursor6 = Cursor::new(s7.as_bytes());
     let mut parser6 = Parser::new(Lexer::new(String::from("test6.vscfl"), &mut cursor6));
@@ -1218,10 +1197,35 @@ data T<t1> = C(t1);
     type_stack.pop_type_values();
     assert_eq!(1, type_stack.type_value_stack_len());
     match type_stack.type_values_and_type_entry_index() {
-        Some((_, idx)) => assert_eq!(2, idx),
+        Some((type_values, idx)) => {
+            assert_eq!(2, idx);
+            assert_eq!(2, type_values.len());
+            assert_eq!(String::from("t1"), type_values[0].to_string_without_fun());
+            assert_eq!(String::from("t2"), type_values[1].to_string_without_fun());
+        },
         None => assert!(false),
     }
     assert_eq!(2, type_stack.type_entries().len());
+    match type_stack.type_entry(LocalType::new(0)) {
+        Some(TypeStackEntry::Param(type_param_entry)) => {
+            let type_param_entry_r = type_param_entry.borrow();
+            assert_eq!(1, type_param_entry_r.trait_names.len()); 
+            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Shared)); 
+            assert_eq!(true, type_param_entry_r.type_values.is_empty());
+            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+        },
+        _ => assert!(false),
+    }
+    match type_stack.type_entry(LocalType::new(1)) {
+        Some(TypeStackEntry::Param(type_param_entry)) => {
+            let type_param_entry_r = type_param_entry.borrow();
+            assert_eq!(1, type_param_entry_r.trait_names.len()); 
+            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+            assert_eq!(true, type_param_entry_r.type_values.is_empty());
+            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+        },
+        _ => assert!(false),
+    }
 }
 
 #[test]
@@ -1281,37 +1285,6 @@ data U<t2> = D(t2);
         },
         Err(_) => assert!(false),
     }
-    assert_eq!(1, type_stack.type_value_stack_len());
-    match type_stack.type_values_and_type_entry_index() {
-        Some((type_values, idx)) => {
-            assert_eq!(2, idx);
-            assert_eq!(2, type_values.len());
-            assert_eq!(String::from("t1"), type_values[0].to_string_without_fun());
-            assert_eq!(String::from("t2"), type_values[1].to_string_without_fun());
-        },
-        None => assert!(false),
-    }
-    assert_eq!(2, type_stack.type_entries().len());
-    match type_stack.type_entry(LocalType::new(0)) {
-        Some(TypeStackEntry::Param(type_param_entry)) => {
-            let type_param_entry_r = type_param_entry.borrow();
-            assert_eq!(1, type_param_entry_r.trait_names.len()); 
-            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Shared)); 
-            assert_eq!(true, type_param_entry_r.type_values.is_empty());
-            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
-        },
-        _ => assert!(false),
-    }
-    match type_stack.type_entry(LocalType::new(1)) {
-        Some(TypeStackEntry::Param(type_param_entry)) => {
-            let type_param_entry_r = type_param_entry.borrow();
-            assert_eq!(1, type_param_entry_r.trait_names.len()); 
-            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Shared));
-            assert_eq!(true, type_param_entry_r.type_values.is_empty());
-            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
-        },
-        _ => assert!(false),
-    }
     let type_matcher = TypeMatcher::new();
     assert_eq!(LocalType::new(3), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
     let s5 = "(T<t>, Float, T<u>)";
@@ -1356,14 +1329,6 @@ data U<t2> = D(t2);
         },
         Err(_) => assert!(false),
     }
-    assert_eq!(1, type_stack.type_value_stack_len());
-    assert_eq!(3, type_stack.type_entries().len());
-    match type_stack.type_entry(LocalType::new(2)) {
-        Some(TypeStackEntry::Type(type_value)) => {
-            assert_eq!(String::from("(T<t1>, Float, T<t2>)"), type_value.to_string_without_fun());
-        },
-        _ => assert!(false),
-    }
     let mut local_types2 = LocalTypes::new();
     let s7 = "(t, u, v)";
     let mut cursor6 = Cursor::new(s7.as_bytes());
@@ -1398,24 +1363,6 @@ data U<t2> = D(t2);
             }
         },
         Err(_) => assert!(false),
-    }
-    assert_eq!(2, type_stack.type_value_stack_len());
-    match type_stack.type_values_and_type_entry_index() {
-        Some((type_values, idx)) => {
-            assert_eq!(3, idx);
-            assert_eq!(3, type_values.len());
-            assert_eq!(String::from("T<t1>"), type_values[0].to_string_without_fun());
-            assert_eq!(String::from("Float"), type_values[1].to_string_without_fun());
-            assert_eq!(String::from("T<t2>"), type_values[2].to_string_without_fun());
-        },
-        None => assert!(false),
-    }
-    assert_eq!(3, type_stack.type_entries().len());
-    match type_stack.type_entry(LocalType::new(2)) {
-        Some(TypeStackEntry::Type(type_value)) => {
-            assert_eq!(String::from("(T<t1>, Float, T<t2>)"), type_value.to_string_without_fun());
-        },
-        _ => assert!(false),
     }
     assert_eq!(LocalType::new(4), local_types2.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
     let s9 = "(U<t>, U<u>, v)";
@@ -1460,24 +1407,6 @@ data U<t2> = D(t2);
         },
         Err(_) => assert!(false),
     }
-    assert_eq!(2, type_stack.type_value_stack_len());
-    assert_eq!(5, type_stack.type_entries().len());
-    match type_stack.type_entry(LocalType::new(3)) {
-        Some(TypeStackEntry::Type(type_value)) => {
-            assert_eq!(String::from("(U<T<t1>>, U<T<t2>>, t5)"), type_value.to_string_without_fun());
-        },
-        _ => assert!(false),
-    }
-    match type_stack.type_entry(LocalType::new(4)) {
-        Some(TypeStackEntry::Param(type_param_entry)) => {
-            let type_param_entry_r = type_param_entry.borrow();
-            assert_eq!(1, type_param_entry_r.trait_names.len()); 
-            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Shared));
-            assert_eq!(true, type_param_entry_r.type_values.is_empty());
-            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
-        },
-        _ => assert!(false),
-    }
     let s11 = "(t, u, v)";
     let mut cursor10 = Cursor::new(s11.as_bytes());
     let mut parser10 = Parser::new(Lexer::new(String::from("test10.vscfl"), &mut cursor10));
@@ -1515,8 +1444,33 @@ data U<t2> = D(t2);
     type_stack.pop_type_values();
     assert_eq!(1, type_stack.type_value_stack_len());
     match type_stack.type_values_and_type_entry_index() {
-        Some((_, idx)) => assert_eq!(2, idx),
+        Some((type_values, idx)) => {
+            assert_eq!(2, idx);
+            assert_eq!(2, type_values.len());
+            assert_eq!(String::from("t1"), type_values[0].to_string_without_fun());
+            assert_eq!(String::from("t2"), type_values[1].to_string_without_fun());
+        },
         None => assert!(false),
     }
     assert_eq!(2, type_stack.type_entries().len());
+    match type_stack.type_entry(LocalType::new(0)) {
+        Some(TypeStackEntry::Param(type_param_entry)) => {
+            let type_param_entry_r = type_param_entry.borrow();
+            assert_eq!(1, type_param_entry_r.trait_names.len()); 
+            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Shared)); 
+            assert_eq!(true, type_param_entry_r.type_values.is_empty());
+            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+        },
+        _ => assert!(false),
+    }
+    match type_stack.type_entry(LocalType::new(1)) {
+        Some(TypeStackEntry::Param(type_param_entry)) => {
+            let type_param_entry_r = type_param_entry.borrow();
+            assert_eq!(1, type_param_entry_r.trait_names.len()); 
+            assert_eq!(true, type_param_entry_r.trait_names.contains(&TraitName::Shared));
+            assert_eq!(true, type_param_entry_r.type_values.is_empty());
+            assert_eq!(true, type_param_entry_r.closure_local_types.is_empty());
+        },
+        _ => assert!(false),
+    }
 }
