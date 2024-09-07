@@ -219,13 +219,15 @@ impl TypeStack
                         let type_param_entry1_r = type_param_entry1.borrow();
                         let type_param_entry2_r = type_param_entry2.borrow();
                         let mut type_name: Option<TypeName> = None;
-                        for (type_value3, type_value4) in type_param_entry1_r.type_values.iter().zip(type_param_entry2_r.type_values.iter()) {
-                            match self.type_name_for_type_values(type_value3, type_value4, trait_ident, typ)? {
-                                Some(tmp_type_name) => {
-                                    type_name = Some(tmp_type_name.clone());
-                                    break;
+                        if !type_param_entry2_r.type_values.is_empty() {
+                            for (type_value3, type_value4) in type_param_entry1_r.type_values.iter().zip(type_param_entry2_r.type_values.iter()) {
+                                match self.type_name_for_type_values(type_value3, type_value4, trait_ident, typ)? {
+                                    Some(tmp_type_name) => {
+                                        type_name = Some(tmp_type_name.clone());
+                                        break;
+                                    }
+                                    None => (),
                                 }
-                                None => (),
                             }
                         }
                         Ok(type_name)
@@ -234,7 +236,13 @@ impl TypeStack
                     _ => Err(FrontendInternalError(String::from("type_name_from_type_values: no type stack entry or type parameter entry"))),
                 }
             },
-            (TypeValue::Param(_, _), TypeValue::Type(_, _, _)) => Err(FrontendInternalError(String::from("type_name_from_type_values: can't match type parameter with type"))),
+            (TypeValue::Param(_, local_type1), TypeValue::Type(_, _, _)) => {
+                match self.type_entries.get(local_type1.index()) {
+                    Some(TypeStackEntry::Type(type_value3)) => self.type_name_for_type_values(type_value3, type_value2, trait_ident, typ),
+                    Some(TypeStackEntry::Param(_)) => Err(FrontendInternalError(String::from("type_name_from_type_values: can't match type parameter with type"))),
+                    None => Err(FrontendInternalError(String::from("type_name_from_type_values: no type stack entry"))),
+                }
+            },
             (TypeValue::Type(_, _, type_values1), TypeValue::Param(_, local_type2)) => {
                 match typ.type_param_entry(*local_type2) {
                     Some(type_param_entry2) => {
@@ -243,13 +251,15 @@ impl TypeStack
                             Ok(type_value1.type_name())
                         } else {
                             let mut type_name: Option<TypeName> = None;
-                            for (type_value3, type_value4) in type_values1.iter().zip(type_param_entry2_r.type_values.iter()) {
-                                match self.type_name_for_type_values(type_value3, type_value4, trait_ident, typ)? {
-                                    Some(tmp_type_name) => {
-                                        type_name = Some(tmp_type_name.clone());
-                                        break;
+                            if !type_param_entry2_r.type_values.is_empty() {
+                                for (type_value3, type_value4) in type_values1.iter().zip(type_param_entry2_r.type_values.iter()) {
+                                    match self.type_name_for_type_values(type_value3, type_value4, trait_ident, typ)? {
+                                        Some(tmp_type_name) => {
+                                            type_name = Some(tmp_type_name.clone());
+                                            break;
+                                        }
+                                        None => (),
                                     }
-                                    None => (),
                                 }
                             }
                             Ok(type_name)
