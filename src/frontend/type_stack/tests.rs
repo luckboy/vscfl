@@ -1428,7 +1428,7 @@ trait T<t1> {};
 }
 
 #[test]
-fn test_type_stack_push_type_values_for_local_type_and_type_pushes_type_values_for_one_type_parameter_with_type_argument()
+fn test_type_stack_push_type_values_for_local_type_and_type_pushes_type_values_for_type_parameter_with_type_argument()
 {
     let s = "
 builtin type Int;
@@ -2984,7 +2984,7 @@ impl T for V {};
 }
 
 #[test]
-fn test_type_stack_type_name_for_local_type_and_type_returns_type_name_for_typertype_parameter_with_type_argument()
+fn test_type_stack_type_name_for_local_type_and_type_returns_type_name_for_type_and_type_parameter_with_type_argument()
 {
     let s = "
 builtin type Int;
