@@ -1774,7 +1774,7 @@ fn get_ref2(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos, s: &st
                             match new_offs.last_mut() {
                                 Some(new_off) => {
                                     if *n2 < (*len as u64) {
-                                        *new_off = *n2 as usize;
+                                        *new_off += *n2 as usize;
                                     } else {
                                         return Err(FrontendError::Message(pos.clone(), String::from("index out of bounds")))
                                     }
