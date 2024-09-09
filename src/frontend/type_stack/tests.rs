@@ -3148,3 +3148,1367 @@ impl U for W {};
         Err(_) => assert!(false),
     }
 }
+
+#[test]
+fn test_type_stack_shared_flag_for_local_type_returns_shared_flag()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types_for_type_vars(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut type_stack = TypeStack::new();
+    let mut local_types = LocalTypes::new();
+    let s3 = "(t, Int, u)";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "t: shared, u: shared";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            assert_eq!(LocalType::new(2), local_types.set_defined_type(&typ));
+                            type_stack.set_first_type_values_for_type(&typ);
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let type_matcher = TypeMatcher::new();
+    assert_eq!(LocalType::new(3), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    let s5 = "(t, Float, u)";
+    let mut cursor4 = Cursor::new(s5.as_bytes());
+    let mut parser4 = Parser::new(Lexer::new(String::from("test4.vscfl"), &mut cursor4));
+    match parser4.parse_type() {
+        Ok(type_expr) => {
+            let s6 = "t: shared, u: shared";
+            let mut cursor5 = Cursor::new(s6.as_bytes());
+            let mut parser5 = Parser::new(Lexer::new(String::from("test5.vscfl"), &mut cursor5));
+            match parser5.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test4.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(3), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                            match type_matcher.matches(LocalType::new(0), LocalType::new(4), &tree, &mut local_types) {
+                                Ok(TypeMatcherResult::Matched) => assert!(true),
+                                _ => assert!(false),
+                            }
+                            match type_stack.push_type_entries_for_local_type(LocalType::new(3), &local_types) {
+                                Ok(local_type) => assert_eq!(LocalType::new(2), local_type),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    match type_stack.shared_flag_for_local_type(LocalType::new(2), &tree) {
+        Ok(SharedFlag::Shared) => assert!(true),
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_type_stack_shared_flag_for_local_type_returns_shared_flag_for_first_data_type()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+data T<t1, t2> = C(t1, Int, t2);
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types_for_type_vars(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut type_stack = TypeStack::new();
+    let mut local_types = LocalTypes::new();
+    let s3 = "(t, Int, u)";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "t: shared, u: shared";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            assert_eq!(LocalType::new(2), local_types.set_defined_type(&typ));
+                            type_stack.set_first_type_values_for_type(&typ);
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let type_matcher = TypeMatcher::new();
+    assert_eq!(LocalType::new(3), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    let s5 = "T<t, u>";
+    let mut cursor4 = Cursor::new(s5.as_bytes());
+    let mut parser4 = Parser::new(Lexer::new(String::from("test4.vscfl"), &mut cursor4));
+    match parser4.parse_type() {
+        Ok(type_expr) => {
+            let s6 = "t: shared, u: shared";
+            let mut cursor5 = Cursor::new(s6.as_bytes());
+            let mut parser5 = Parser::new(Lexer::new(String::from("test5.vscfl"), &mut cursor5));
+            match parser5.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test4.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(3), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                            match type_matcher.matches(LocalType::new(0), LocalType::new(4), &tree, &mut local_types) {
+                                Ok(TypeMatcherResult::Matched) => assert!(true),
+                                _ => assert!(false),
+                            }
+                            match type_stack.push_type_entries_for_local_type(LocalType::new(3), &local_types) {
+                                Ok(local_type) => assert_eq!(LocalType::new(2), local_type),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    match type_stack.shared_flag_for_local_type(LocalType::new(2), &tree) {
+        Ok(SharedFlag::Shared) => assert!(true),
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_type_stack_shared_flag_for_local_type_returns_shared_flag_for_second_data_type()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+data T<t1, t2> = C(t1, Int, t2);
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types_for_type_vars(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut type_stack = TypeStack::new();
+    let mut local_types = LocalTypes::new();
+    let s3 = "(t, Int, u) -> Int";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            assert_eq!(LocalType::new(2), local_types.set_defined_type(&typ));
+                            type_stack.set_first_type_values_for_type(&typ);
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let type_matcher = TypeMatcher::new();
+    assert_eq!(LocalType::new(3), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    let s5 = "T<t, u>";
+    let mut cursor4 = Cursor::new(s5.as_bytes());
+    let mut parser4 = Parser::new(Lexer::new(String::from("test4.vscfl"), &mut cursor4));
+    match parser4.parse_type() {
+        Ok(type_expr) => {
+            let s6 = "";
+            let mut cursor5 = Cursor::new(s6.as_bytes());
+            let mut parser5 = Parser::new(Lexer::new(String::from("test5.vscfl"), &mut cursor5));
+            match parser5.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test4.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(3), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                            match type_matcher.matches(LocalType::new(0), LocalType::new(4), &tree, &mut local_types) {
+                                Ok(TypeMatcherResult::Matched) => assert!(true),
+                                _ => assert!(false),
+                            }
+                            match type_stack.push_type_entries_for_local_type(LocalType::new(3), &local_types) {
+                                Ok(local_type) => assert_eq!(LocalType::new(2), local_type),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    match type_stack.shared_flag_for_local_type(LocalType::new(2), &tree) {
+        Ok(SharedFlag::None) => assert!(true),
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_type_stack_shared_flag_for_local_type_returns_shared_flag_for_unique_data_type()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+data T<t1, t2> = C(t1, uniq Int, t2);
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types_for_type_vars(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut type_stack = TypeStack::new();
+    let mut local_types = LocalTypes::new();
+    let s3 = "(t, Int, u)";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "t: shared, u: shared";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            assert_eq!(LocalType::new(2), local_types.set_defined_type(&typ));
+                            type_stack.set_first_type_values_for_type(&typ);
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let type_matcher = TypeMatcher::new();
+    assert_eq!(LocalType::new(3), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    let s5 = "T<t, u>";
+    let mut cursor4 = Cursor::new(s5.as_bytes());
+    let mut parser4 = Parser::new(Lexer::new(String::from("test4.vscfl"), &mut cursor4));
+    match parser4.parse_type() {
+        Ok(type_expr) => {
+            let s6 = "t: shared, u: shared";
+            let mut cursor5 = Cursor::new(s6.as_bytes());
+            let mut parser5 = Parser::new(Lexer::new(String::from("test5.vscfl"), &mut cursor5));
+            match parser5.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test4.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(3), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                            match type_matcher.matches(LocalType::new(0), LocalType::new(4), &tree, &mut local_types) {
+                                Ok(TypeMatcherResult::Matched) => assert!(true),
+                                _ => assert!(false),
+                            }
+                            match type_stack.push_type_entries_for_local_type(LocalType::new(3), &local_types) {
+                                Ok(local_type) => assert_eq!(LocalType::new(2), local_type),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    match type_stack.shared_flag_for_local_type(LocalType::new(2), &tree) {
+        Ok(SharedFlag::None) => assert!(true),
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_type_stack_shared_flag_for_local_type_returns_shared_flag_for_function_type()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types_for_type_vars(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut type_stack = TypeStack::new();
+    let mut local_types = LocalTypes::new();
+    let s3 = "(t, Int, u)";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "t: shared, u: shared";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            assert_eq!(LocalType::new(2), local_types.set_defined_type(&typ));
+                            type_stack.set_first_type_values_for_type(&typ);
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let type_matcher = TypeMatcher::new();
+    assert_eq!(LocalType::new(3), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    let s5 = "(t, uniq Float, u) -> Int";
+    let mut cursor4 = Cursor::new(s5.as_bytes());
+    let mut parser4 = Parser::new(Lexer::new(String::from("test4.vscfl"), &mut cursor4));
+    match parser4.parse_type() {
+        Ok(type_expr) => {
+            let s6 = "t: shared, u: shared";
+            let mut cursor5 = Cursor::new(s6.as_bytes());
+            let mut parser5 = Parser::new(Lexer::new(String::from("test5.vscfl"), &mut cursor5));
+            match parser5.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test4.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(3), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                            match type_matcher.matches(LocalType::new(0), LocalType::new(4), &tree, &mut local_types) {
+                                Ok(TypeMatcherResult::Matched) => assert!(true),
+                                _ => assert!(false),
+                            }
+                            match type_stack.push_type_entries_for_local_type(LocalType::new(3), &local_types) {
+                                Ok(local_type) => assert_eq!(LocalType::new(2), local_type),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    match type_stack.shared_flag_for_local_type(LocalType::new(2), &tree) {
+        Ok(SharedFlag::Shared) => assert!(true),
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_type_stack_change_type_params_to_types_changes_type_params_to_types()
+{
+    let s = "
+builtin type Char;
+builtin type Int;
+builtin type Float;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types_for_type_vars(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut type_stack = TypeStack::new();
+    let mut local_types = LocalTypes::new();
+    let s3 = "(Int, Float, Char)";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            assert_eq!(LocalType::new(0), local_types.set_defined_type(&typ));
+                            type_stack.set_first_type_values_for_type(&typ);
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    assert_eq!(LocalType::new(1), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    let s5 = "(t, Float, u)";
+    let mut cursor4 = Cursor::new(s5.as_bytes());
+    let mut parser4 = Parser::new(Lexer::new(String::from("test4.vscfl"), &mut cursor4));
+    match parser4.parse_type() {
+        Ok(type_expr) => {
+            let s6 = "t: shared, u: shared";
+            let mut cursor5 = Cursor::new(s6.as_bytes());
+            let mut parser5 = Parser::new(Lexer::new(String::from("test5.vscfl"), &mut cursor5));
+            match parser5.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test4.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(1), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                            match type_stack.push_type_entries_for_local_type(LocalType::new(1), &local_types) {
+                                Ok(local_type) => assert_eq!(LocalType::new(0), local_type),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let s7 = "(t, u, v)";
+    let mut cursor6 = Cursor::new(s7.as_bytes());
+    let mut parser6 = Parser::new(Lexer::new(String::from("test6.vscfl"), &mut cursor6));
+    match parser6.parse_type() {
+        Ok(type_expr) => {
+            let s8 = "t: shared, u: shared, v: shared";
+            let mut cursor7 = Cursor::new(s8.as_bytes());
+            let mut parser7 = Parser::new(Lexer::new(String::from("test7.vscfl"), &mut cursor7));
+            match parser7.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test6.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(0), &typ) {
+                                Ok(()) => assert!(true),
+                                Err(_) => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    match type_stack.change_type_params_to_types(&tree) {
+        Ok(None) => assert!(true),
+        _ => assert!(false),
+    }
+    assert_eq!(2, type_stack.type_value_stack_len());
+    match type_stack.type_values_and_type_entry_index() {
+        Some((type_values, idx)) => {
+            assert_eq!(0, idx);
+            assert_eq!(3, type_values.len());
+            assert_eq!(String::from("()"), type_values[0].to_string_without_fun());
+            assert_eq!(String::from("Float"), type_values[1].to_string_without_fun());
+            assert_eq!(String::from("()"), type_values[2].to_string_without_fun());
+        },
+        None => assert!(false),
+    }
+    assert_eq!(true, type_stack.type_entries().is_empty());
+}
+
+#[test]
+fn test_type_stack_change_type_params_to_types_changes_type_params_to_types_for_double_type_values()
+{
+    let s = "
+builtin type Char;
+builtin type Int;
+builtin type Float;
+data T<t1> = C(t1);
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types_for_type_vars(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut type_stack = TypeStack::new();
+    let mut local_types = LocalTypes::new();
+    let s3 = "(Int, Float, Char)";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            assert_eq!(LocalType::new(0), local_types.set_defined_type(&typ));
+                            type_stack.set_first_type_values_for_type(&typ);
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    assert_eq!(LocalType::new(1), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    let s5 = "(t, Float, u)";
+    let mut cursor4 = Cursor::new(s5.as_bytes());
+    let mut parser4 = Parser::new(Lexer::new(String::from("test4.vscfl"), &mut cursor4));
+    match parser4.parse_type() {
+        Ok(type_expr) => {
+            let s6 = "t: shared, u: shared";
+            let mut cursor5 = Cursor::new(s6.as_bytes());
+            let mut parser5 = Parser::new(Lexer::new(String::from("test5.vscfl"), &mut cursor5));
+            match parser5.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test4.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(1), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                            match type_stack.push_type_entries_for_local_type(LocalType::new(1), &local_types) {
+                                Ok(local_type) => assert_eq!(LocalType::new(0), local_type),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let mut local_types2 = LocalTypes::new();
+    let s7 = "(t, u, v)";
+    let mut cursor6 = Cursor::new(s7.as_bytes());
+    let mut parser6 = Parser::new(Lexer::new(String::from("test6.vscfl"), &mut cursor6));
+    match parser6.parse_type() {
+        Ok(type_expr) => {
+            let s8 = "t: shared, u: shared, v: shared";
+            let mut cursor7 = Cursor::new(s8.as_bytes());
+            let mut parser7 = Parser::new(Lexer::new(String::from("test7.vscfl"), &mut cursor7));
+            match parser7.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test6.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            assert_eq!(LocalType::new(3), local_types2.set_defined_type(&typ));
+                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(0), &typ) {
+                                Ok(()) => assert!(true),
+                                Err(_) => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    assert_eq!(LocalType::new(4), local_types2.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    let type_matcher = TypeMatcher::new();
+    let s9 = "(T<t>, Int, T<u>)";
+    let mut cursor8 = Cursor::new(s9.as_bytes());
+    let mut parser8 = Parser::new(Lexer::new(String::from("test8.vscfl"), &mut cursor8));
+    match parser8.parse_type() {
+        Ok(type_expr) => {
+            let s10 = "t: shared, u: shared";
+            let mut cursor9 = Cursor::new(s10.as_bytes());
+            let mut parser9 = Parser::new(Lexer::new(String::from("test7.vscfl"), &mut cursor9));
+            match parser9.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test8.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types2.set_type(LocalType::new(3), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                            match type_matcher.matches(LocalType::new(0), LocalType::new(4), &tree, &mut local_types2) {
+                                Ok(TypeMatcherResult::Matched) => assert!(true),
+                                _ => assert!(false),
+                            }
+                            match type_matcher.matches(LocalType::new(2), LocalType::new(5), &tree, &mut local_types2) {
+                                Ok(TypeMatcherResult::Matched) => assert!(true),
+                                _ => assert!(false),
+                            }
+                            match type_stack.push_type_entries_for_local_type(LocalType::new(3), &local_types2) {
+                                Ok(local_type) => assert_eq!(LocalType::new(3), local_type),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let s11 = "(t, u, v)";
+    let mut cursor10 = Cursor::new(s11.as_bytes());
+    let mut parser10 = Parser::new(Lexer::new(String::from("test10.vscfl"), &mut cursor10));
+    match parser10.parse_type() {
+        Ok(type_expr) => {
+            let s12 = "t: shared, u: shared, v: shared";
+            let mut cursor11 = Cursor::new(s12.as_bytes());
+            let mut parser11 = Parser::new(Lexer::new(String::from("test11.vscfl"), &mut cursor11));
+            match parser11.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test10.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(3), &typ) {
+                                Ok(()) => assert!(true),
+                                Err(_) => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    match type_stack.change_type_params_to_types(&tree) {
+        Ok(None) => assert!(true),
+        _ => assert!(false),
+    }
+    assert_eq!(3, type_stack.type_value_stack_len());
+    match type_stack.type_values_and_type_entry_index() {
+        Some((type_values, idx)) => {
+            assert_eq!(0, idx);
+            assert_eq!(3, type_values.len());
+            assert_eq!(String::from("T<()>"), type_values[0].to_string_without_fun());
+            assert_eq!(String::from("Int"), type_values[1].to_string_without_fun());
+            assert_eq!(String::from("T<()>"), type_values[2].to_string_without_fun());
+        },
+        None => assert!(false),
+    }
+    assert_eq!(true, type_stack.type_entries().is_empty());
+    type_stack.pop_type_values();
+    assert_eq!(2, type_stack.type_value_stack_len());
+    match type_stack.type_values_and_type_entry_index() {
+        Some((type_values, idx)) => {
+            assert_eq!(0, idx);
+            assert_eq!(3, type_values.len());
+            assert_eq!(String::from("()"), type_values[0].to_string_without_fun());
+            assert_eq!(String::from("Float"), type_values[1].to_string_without_fun());
+            assert_eq!(String::from("()"), type_values[2].to_string_without_fun());
+        },
+        None => assert!(false),
+    }
+    assert_eq!(true, type_stack.type_entries().is_empty());
+}
+
+#[test]
+fn test_type_stack_change_type_params_to_types_changes_type_params_to_types_with_type_entry()
+{
+    let s = "
+builtin type Char;
+builtin type Int;
+builtin type Float;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types_for_type_vars(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut type_stack = TypeStack::new();
+    let mut local_types = LocalTypes::new();
+    let s3 = "(Int, Float, Char)";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            assert_eq!(LocalType::new(0), local_types.set_defined_type(&typ));
+                            type_stack.set_first_type_values_for_type(&typ);
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    assert_eq!(LocalType::new(1), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    let s5 = "(t, Float, u)";
+    let mut cursor4 = Cursor::new(s5.as_bytes());
+    let mut parser4 = Parser::new(Lexer::new(String::from("test4.vscfl"), &mut cursor4));
+    match parser4.parse_type() {
+        Ok(type_expr) => {
+            let s6 = "t: shared, u: shared";
+            let mut cursor5 = Cursor::new(s6.as_bytes());
+            let mut parser5 = Parser::new(Lexer::new(String::from("test5.vscfl"), &mut cursor5));
+            match parser5.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test4.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(1), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                            match type_stack.push_type_entries_for_local_type(LocalType::new(1), &local_types) {
+                                Ok(local_type) => assert_eq!(LocalType::new(0), local_type),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let mut local_types2 = LocalTypes::new();
+    let s7 = "(t, u, v)";
+    let mut cursor6 = Cursor::new(s7.as_bytes());
+    let mut parser6 = Parser::new(Lexer::new(String::from("test6.vscfl"), &mut cursor6));
+    match parser6.parse_type() {
+        Ok(type_expr) => {
+            let s8 = "t: shared, u: shared, v: shared";
+            let mut cursor7 = Cursor::new(s8.as_bytes());
+            let mut parser7 = Parser::new(Lexer::new(String::from("test7.vscfl"), &mut cursor7));
+            match parser7.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test6.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            assert_eq!(LocalType::new(3), local_types2.set_defined_type(&typ));
+                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(0), &typ) {
+                                Ok(()) => assert!(true),
+                                Err(_) => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let type_matcher = TypeMatcher::new();
+    let s9 = "(t, Int, u)";
+    let mut cursor8 = Cursor::new(s9.as_bytes());
+    let mut parser8 = Parser::new(Lexer::new(String::from("test8.vscfl"), &mut cursor8));
+    match parser8.parse_type() {
+        Ok(type_expr) => {
+            let s10 = "t: shared, u: shared";
+            let mut cursor9 = Cursor::new(s10.as_bytes());
+            let mut parser9 = Parser::new(Lexer::new(String::from("test7.vscfl"), &mut cursor9));
+            match parser9.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test8.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types2.set_type(LocalType::new(3), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                            match type_matcher.matches(LocalType::new(0), LocalType::new(4), &tree, &mut local_types2) {
+                                Ok(TypeMatcherResult::Matched) => assert!(true),
+                                _ => assert!(false),
+                            }
+                            match type_matcher.matches(LocalType::new(2), LocalType::new(5), &tree, &mut local_types2) {
+                                Ok(TypeMatcherResult::Matched) => assert!(true),
+                                _ => assert!(false),
+                            }
+                            match type_stack.push_type_entries_for_local_type(LocalType::new(3), &local_types2) {
+                                Ok(local_type) => assert_eq!(LocalType::new(3), local_type),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    match type_stack.change_type_params_to_types(&tree) {
+        Ok(Some(local_type)) => assert_eq!(LocalType::new(0), local_type),
+        _ => assert!(false),
+    }
+    assert_eq!(2, type_stack.type_value_stack_len());
+    match type_stack.type_values_and_type_entry_index() {
+        Some((type_values, idx)) => {
+            assert_eq!(0, idx);
+            assert_eq!(3, type_values.len());
+            assert_eq!(String::from("()"), type_values[0].to_string_without_fun());
+            assert_eq!(String::from("Float"), type_values[1].to_string_without_fun());
+            assert_eq!(String::from("()"), type_values[2].to_string_without_fun());
+        },
+        None => assert!(false),
+    }
+    assert_eq!(1, type_stack.type_entries().len());
+    match type_stack.type_entry(LocalType::new(0)) {
+        Some(TypeStackEntry::Type(type_value)) => {
+            assert_eq!(String::from("((), Int, ())"), type_value.to_string_without_fun());
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_type_stack_change_type_params_to_types_changes_type_params_to_types_for_first_closure_local_types()
+{
+    let s = "
+builtin type Char;
+builtin type Int;
+builtin type Float;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types_for_type_vars(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut type_stack = TypeStack::new();
+    let mut local_types = LocalTypes::new();
+    let s3 = "(Int, Float, Char) -> Int";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            assert_eq!(LocalType::new(0), local_types.set_defined_type(&typ));
+                            type_stack.set_first_type_values_for_type(&typ);
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    assert_eq!(LocalType::new(1), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    assert_eq!(LocalType::new(2), local_types.add_type_value(Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Int")), Vec::new()))));
+    assert_eq!(LocalType::new(3), local_types.add_type_value(Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Float")), Vec::new()))));
+    let s5 = "(t, Float, u) -> Int";
+    let mut cursor4 = Cursor::new(s5.as_bytes());
+    let mut parser4 = Parser::new(Lexer::new(String::from("test4.vscfl"), &mut cursor4));
+    match parser4.parse_type() {
+        Ok(type_expr) => {
+            let s6 = "t: -> <Float, Int>";
+            let mut cursor5 = Cursor::new(s6.as_bytes());
+            let mut parser5 = Parser::new(Lexer::new(String::from("test5.vscfl"), &mut cursor5));
+            match parser5.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test4.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(1), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                            match local_types.type_entry(LocalType::new(4)) {
+                                Some(LocalTypeEntry::Param(_, _, type_param_entry, _)) => {
+                                    let mut type_param_entry_r = type_param_entry.borrow_mut();
+                                    type_param_entry_r.closure_local_types.insert(LocalType::new(2));
+                                    type_param_entry_r.closure_local_types.insert(LocalType::new(3));
+                                },
+                                _ => assert!(false),
+                            }
+                            match type_stack.push_type_entries_for_local_type(LocalType::new(1), &local_types) {
+                                Ok(local_type) => assert_eq!(LocalType::new(0), local_type),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let s7 = "(t, u, v)";
+    let mut cursor6 = Cursor::new(s7.as_bytes());
+    let mut parser6 = Parser::new(Lexer::new(String::from("test6.vscfl"), &mut cursor6));
+    match parser6.parse_type() {
+        Ok(type_expr) => {
+            let s8 = "t: -> <Float, Int>";
+            let mut cursor7 = Cursor::new(s8.as_bytes());
+            let mut parser7 = Parser::new(Lexer::new(String::from("test7.vscfl"), &mut cursor7));
+            match parser7.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test6.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(0), &typ) {
+                                Ok(()) => assert!(true),
+                                Err(_) => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    match type_stack.change_type_params_to_types(&tree) {
+        Ok(None) => assert!(true),
+        _ => assert!(false),
+    }
+    assert_eq!(2, type_stack.type_value_stack_len());
+    match type_stack.type_values_and_type_entry_index() {
+        Some((type_values, idx)) => {
+            assert_eq!(0, idx);
+            assert_eq!(3, type_values.len());
+            assert_eq!(String::from("(Float) -> Int"), type_values[0].to_string_without_fun());
+            assert_eq!(String::from("Float"), type_values[1].to_string_without_fun());
+            assert_eq!(String::from("()"), type_values[2].to_string_without_fun());
+        },
+        None => assert!(false),
+    }
+    assert_eq!(true, type_stack.type_entries().is_empty());
+}
+
+#[test]
+fn test_type_stack_change_type_params_to_types_changes_type_params_to_types_for_second_closure_local_types()
+{
+    let s = "
+builtin type Char;
+builtin type Int;
+builtin type Float;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.evaluate_types_for_type_vars(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let mut type_stack = TypeStack::new();
+    let mut local_types = LocalTypes::new();
+    let s3 = "(Int, Float, Char) -> Int";
+    let mut cursor2 = Cursor::new(s3.as_bytes());
+    let mut parser2 = Parser::new(Lexer::new(String::from("test2.vscfl"), &mut cursor2));
+    match parser2.parse_type() {
+        Ok(type_expr) => {
+            let s4 = "";
+            let mut cursor3 = Cursor::new(s4.as_bytes());
+            let mut parser3 = Parser::new(Lexer::new(String::from("test3.vscfl"), &mut cursor3));
+            match parser3.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test2.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            assert_eq!(LocalType::new(0), local_types.set_defined_type(&typ));
+                            type_stack.set_first_type_values_for_type(&typ);
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    assert_eq!(LocalType::new(1), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
+    assert_eq!(LocalType::new(2), local_types.add_type_value(Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Name(String::from("Int")), Vec::new()))));
+    assert_eq!(LocalType::new(3), local_types.add_type_value(Rc::new(TypeValue::Type(UniqFlag::Uniq, TypeValueName::Name(String::from("Float")), Vec::new()))));
+    let s5 = "(t, Float, u) -> Int";
+    let mut cursor4 = Cursor::new(s5.as_bytes());
+    let mut parser4 = Parser::new(Lexer::new(String::from("test4.vscfl"), &mut cursor4));
+    match parser4.parse_type() {
+        Ok(type_expr) => {
+            let s6 = "t: -> <Float, Int>";
+            let mut cursor5 = Cursor::new(s6.as_bytes());
+            let mut parser5 = Parser::new(Lexer::new(String::from("test5.vscfl"), &mut cursor5));
+            match parser5.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test4.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match local_types.set_type(LocalType::new(1), &typ) {
+                                Ok(true) => assert!(true),
+                                _ => assert!(false),
+                            }
+                            match local_types.type_entry(LocalType::new(4)) {
+                                Some(LocalTypeEntry::Param(_, _, type_param_entry, _)) => {
+                                    let mut type_param_entry_r = type_param_entry.borrow_mut();
+                                    type_param_entry_r.closure_local_types.insert(LocalType::new(2));
+                                    type_param_entry_r.closure_local_types.insert(LocalType::new(3));
+                                },
+                                _ => assert!(false),
+                            }
+                            match type_stack.push_type_entries_for_local_type(LocalType::new(1), &local_types) {
+                                Ok(local_type) => assert_eq!(LocalType::new(0), local_type),
+                                _ => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    let s7 = "(t, u, v)";
+    let mut cursor6 = Cursor::new(s7.as_bytes());
+    let mut parser6 = Parser::new(Lexer::new(String::from("test6.vscfl"), &mut cursor6));
+    match parser6.parse_type() {
+        Ok(type_expr) => {
+            let s8 = "t: -> <Float, Int>";
+            let mut cursor7 = Cursor::new(s8.as_bytes());
+            let mut parser7 = Parser::new(Lexer::new(String::from("test7.vscfl"), &mut cursor7));
+            match parser7.parse_where() {
+                Ok(where_tuples) => {
+                    match namer.check_idents_for_type_with_where(&type_expr, where_tuples.as_slice(), &tree) {
+                        Ok(()) => assert!(true),
+                        Err(_) => assert!(false),
+                    }
+                    let pos = Pos::new(String::from("test6.vscfl"), 1, 1);
+                    match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
+                        Ok(typ) => {
+                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(0), &typ) {
+                                Ok(()) => assert!(true),
+                                Err(_) => assert!(false),
+                            }
+                        },
+                        Err(_) => assert!(false),
+                    }
+                },
+                Err(_) => assert!(false),
+            }
+        },
+        Err(_) => assert!(false),
+    }
+    match type_stack.change_type_params_to_types(&tree) {
+        Ok(None) => assert!(true),
+        _ => assert!(false),
+    }
+    assert_eq!(2, type_stack.type_value_stack_len());
+    match type_stack.type_values_and_type_entry_index() {
+        Some((type_values, idx)) => {
+            assert_eq!(0, idx);
+            assert_eq!(3, type_values.len());
+            assert_eq!(String::from("uniq (Float) -> Int"), type_values[0].to_string_without_fun());
+            assert_eq!(String::from("Float"), type_values[1].to_string_without_fun());
+            assert_eq!(String::from("()"), type_values[2].to_string_without_fun());
+        },
+        None => assert!(false),
+    }
+    assert_eq!(true, type_stack.type_entries().is_empty());
+}
