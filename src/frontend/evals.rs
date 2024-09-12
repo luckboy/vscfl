@@ -209,7 +209,7 @@ fn reference(arg_values: &[Value], ref_values: &mut RefValues, _pos: &Pos) -> Fr
         let idx = ref_values.add_value(RefValue(RefValueFlag::None, arg_values[0].clone()));
         Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Ref(idx, Vec::new())))))
     } else {
-        Err(FrontendError::Internal(String::from("reference: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("reference: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -219,7 +219,7 @@ fn global_ref(arg_values: &[Value], ref_values: &mut RefValues, _pos: &Pos) -> F
         let idx = ref_values.add_value(RefValue(RefValueFlag::Global, arg_values[0].clone()));
         Ok(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Ref(idx, Vec::new())))))
     } else {
-        Err(FrontendError::Internal(String::from("global_ref: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("global_ref: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -260,7 +260,7 @@ fn op_neg(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Front
             _ => Err(FrontendError::Internal(String::from("op_neg: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("op_neg: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("op_neg: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -306,7 +306,7 @@ fn op_not(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Front
             _ => Err(FrontendError::Internal(String::from("op_not: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("op_not: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("op_not: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -370,7 +370,7 @@ fn op_mul(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Front
             _ => Err(FrontendError::Internal(String::from("op_mul: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("op_mul: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("op_mul: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -562,7 +562,7 @@ fn op_div(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Front
             _ => Err(FrontendError::Internal(String::from("op_div: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("op_div: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("op_div: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -750,7 +750,7 @@ fn op_rem(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Front
             _ => Err(FrontendError::Internal(String::from("op_rem: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("op_rem: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("op_rem: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -814,7 +814,7 @@ fn op_add(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Front
             _ => Err(FrontendError::Internal(String::from("op_add: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("op_add: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("op_add: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -878,7 +878,7 @@ fn op_sub(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Front
             _ => Err(FrontendError::Internal(String::from("op_sub: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("op_sub: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("op_sub: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -923,7 +923,7 @@ fn op_shl(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Front
             _ => Err(FrontendError::Internal(String::from("op_shl: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("op_shl: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("op_shl: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -968,7 +968,7 @@ fn op_shr(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Front
             _ => Err(FrontendError::Internal(String::from("op_shr: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("op_shr: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("op_shr: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -1022,7 +1022,7 @@ fn op_eq(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Fronte
             _ => Err(FrontendError::Internal(String::from("op_eq: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("op_eq: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("op_eq: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -1076,7 +1076,7 @@ fn op_ne(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Fronte
             _ => Err(FrontendError::Internal(String::from("op_ne: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("op_ne: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("op_ne: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -1112,7 +1112,7 @@ fn op_lt(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Fronte
             _ => Err(FrontendError::Internal(String::from("op_lt: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("op_lt: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("op_lt: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -1148,7 +1148,7 @@ fn op_ge(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Fronte
             _ => Err(FrontendError::Internal(String::from("op_ge: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("op_ge: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("op_ge: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -1184,7 +1184,7 @@ fn op_gt(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Fronte
             _ => Err(FrontendError::Internal(String::from("op_gt: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("op_gt: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("op_gt: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -1220,7 +1220,7 @@ fn op_le(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Fronte
             _ => Err(FrontendError::Internal(String::from("op_le: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("op_le: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("op_le: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -1281,7 +1281,7 @@ fn op_and(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Front
             _ => Err(FrontendError::Internal(String::from("op_xor: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("op_xor: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("op_xor: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -1342,7 +1342,7 @@ fn op_xor(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Front
             _ => Err(FrontendError::Internal(String::from("op_xor: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("op_xor: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("op_xor: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -1403,7 +1403,7 @@ fn op_or(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Fronte
             _ => Err(FrontendError::Internal(String::from("op_or: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("op_or: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("op_or: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -1428,7 +1428,7 @@ fn op_get_nth(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> F
             _ => Err(FrontendError::Internal(String::from("op_get_nth: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("op_get_nth: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("op_get_nth: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -1453,7 +1453,7 @@ fn op_get2_nth(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> 
             _ => Err(FrontendError::Internal(String::from("op_get2_nth: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("op_get2_nth: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("op_get2_nth: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -1488,7 +1488,7 @@ fn op_set_nth(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> F
             _ => Err(FrontendError::Internal(String::from("op_set_nth: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("op_set_nth: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("op_set_nth: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -1510,7 +1510,7 @@ fn slice(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> Fronten
             _ => Err(FrontendError::Internal(String::from("slice: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("slice: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("slice: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -1569,7 +1569,7 @@ fn slice_from_ref2(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos, 
             _ => Err(FrontendError::Internal(String::from("slice_from_ref2: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("slice_from_ref2: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("slice_from_ref2: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -1594,7 +1594,7 @@ fn global_slice(arg_values: &[Value], ref_values: &mut RefValues, pos: &Pos) -> 
             _ => Err(FrontendError::Internal(String::from("global_slice: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("slice: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("slice: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -1649,7 +1649,7 @@ fn shl_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos, n: u32) -
             _ => Err(FrontendError::Internal(String::from("shl_n: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("shl_n: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("shl_n: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -1716,7 +1716,7 @@ fn shr_n(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos, n: u32) -
             _ => Err(FrontendError::Internal(String::from("shr_n: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("shr_n: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("shr_n: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -1750,7 +1750,7 @@ fn len(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Frontend
             _ => Err(FrontendError::Internal(String::from("len: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("len: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("len: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -1800,7 +1800,7 @@ fn get_ref2(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos, s: &st
             _ => Err(FrontendError::Internal(String::from("get_ref2: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("get_ref2: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("get_ref2: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
@@ -1861,7 +1861,7 @@ fn get_slice2(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos, s: &
             _ => Err(FrontendError::Internal(String::from("get_slice2: invalid value"))),
         }
     } else {
-        Err(FrontendError::Internal(String::from("get_slice2: too few or many arguments")))
+        Err(FrontendError::Internal(String::from("get_slice2: number of function arguments isn't equal to number of applied arguments")))
     }
 }
 
