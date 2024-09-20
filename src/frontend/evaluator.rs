@@ -66,7 +66,7 @@ fn add_var_key(ident: &String, type_name: &Option<TypeName>, pos: Pos, tree: &Tr
             let var_r = var.borrow();
             let (trait_ident, is_builtin_var) = match &*var_r {
                 Var::Builtin(tmp_trait_ident, _) => (tmp_trait_ident, true),
-                Var::Var(_, _, _, _, tmp_trait_ident, _, _, _, _) => (tmp_trait_ident, true),
+                Var::Var(_, _, _, _, tmp_trait_ident, _, _, _, _) => (tmp_trait_ident, false),
                 Var::Fun(_, _, _) => return Ok(()),
             };
             let key_type_name = match type_name {
@@ -1513,9 +1513,9 @@ impl Evaluator
                 }
                 self.check_pattern_exhaustions_for_expr(&**expr2, tree, type_stack, local_types, errs)?;
             },
-            Expr::Match(expr2, cases, Some(local_type), pos) => {
+            Expr::Match(expr2, cases, _, pos) => {
                 self.check_pattern_exhaustions_for_expr(&**expr2, tree, type_stack, local_types, errs)?;
-                let mut forest: PatternForest<PatternId> = PatternForest::Alt(Vec::new(), pattern_max_for_local_type(*local_type, tree, local_types)?);
+                let mut forest: PatternForest<PatternId> = PatternForest::Alt(Vec::new(), pattern_max_for_local_type(expr_local_type(&*expr2)?, tree, local_types)?);
                 for case in cases {
                     match case {
                         Case(pattern, expr3) => {
@@ -1530,7 +1530,6 @@ impl Evaluator
                     _ => errs.push(FrontendError::Message(pos.clone(), String::from("non-exhaustive patterns"))),
                 }
             },
-            _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("check_pattern_exhaustions_for_expr: no local type"))])),
         }
         Ok(())
     }
@@ -3406,3 +3405,6 @@ impl Evaluator
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests;
