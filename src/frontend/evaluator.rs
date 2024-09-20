@@ -515,6 +515,7 @@ enum PatternObject
     DoubleN(Vec<f64>),
     Tuple(Vec<PatternValue>),
     Array(Vec<PatternValue>),
+    FilledArray(PatternValue, usize),
     Data(String, Vec<PatternValue>),
     Var(String),
     At(String, PatternValue),
@@ -2713,6 +2714,23 @@ impl Evaluator
                                 }
                                 Ok(Some(true))
                             },
+                            (Object::Array(elem_values), PatternObject::FilledArray(elem_pattern_value, len)) => {
+                                if elem_values.len() == *len {
+                                    if *len > 0 {
+                                        match self.match_value_with_pattern_value(&elem_values[0], elem_pattern_value, pos, var_env, errs)? {
+                                            Some(true) => (),
+                                            Some(false) => return Ok(Some(false)),
+                                            None => return Ok(None),
+                                        }
+                                        if (&elem_values[1..]).iter().any(|e| e != &elem_values[0]) {
+                                            return Ok(Some(false));
+                                        }
+                                    }
+                                    Ok(Some(true))
+                                } else {
+                                    Ok(Some(false))
+                                }
+                            },
                             (Object::Data(ident1, field_values), PatternObject::Data(ident2, field_pattern_values)) => {
                                 if ident1 != ident2 {
                                     return Ok(Some(false));
@@ -3178,7 +3196,7 @@ impl Evaluator
             },
             Literal::FilledArray(elem_pattern, len) => {
                 match self.evaluate_pattern_value_for_pattern(elem_pattern, tree, type_stack, local_types, errs)? {
-                    Some(elem_pattern_value) => Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::Array(vec![elem_pattern_value; *len])))))),
+                    Some(elem_pattern_value) => Ok(Some(PatternValue::Object(Rc::new(RefCell::new(PatternObject::FilledArray(elem_pattern_value, *len)))))),
                     None => Ok(None),
                 }
             },
