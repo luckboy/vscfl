@@ -2363,6 +2363,13 @@ impl Evaluator
                                                 }
                                                 Ok(Some(PatternValue::Object(object.clone())))
                                             },
+                                            PatternObject::FilledArray(elem_pattern_value, _) => {
+                                                match self.convert_pattern_value_for_type_value(elem_pattern_value, type_value2, pos, tree, local_types, errs)? {
+                                                    Some(elem_pattern_value2) => *elem_pattern_value = elem_pattern_value2,
+                                                    None => return Ok(None),
+                                                }
+                                                Ok(Some(PatternValue::Object(object.clone())))
+                                            },
                                             _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("convert_pattern_value_for_type_value: object isn't tuple"))])),
                                         }
                                     },
