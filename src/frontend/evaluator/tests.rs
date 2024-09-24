@@ -1867,6 +1867,80 @@ a: Int = [1, 2, 3] match {
 }
 
 #[test]
+fn test_evaluator_evaluate_values_evaluates_values_for_pattern_matchting_with_vector()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+builtin type Float4;
+builtin float4;
+V: Float4 = float4(1.5, 2.5, 3.5, 4.5);
+a: Int = float4(1.5, 2.5, 3.5, 4.5) match {
+        V => 1;
+        _ => 2;
+    };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let evaluator = Evaluator::new();
+    match evaluator.evaluate_values(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(6, tree.defs().len());
+    match &*tree.defs()[4] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    assert_eq!(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::FloatN(vec![1.5, 2.5, 3.5, 4.5])))), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[5] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    assert_eq!(Value::Int(1), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
 fn test_evaluator_evaluate_values_evaluates_value_for_fields_with_shared_types()
 {
     let s = "
