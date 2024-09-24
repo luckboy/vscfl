@@ -97,7 +97,7 @@ fn do_fun_for_fun_key<T, F>(key: &(String, Option<TypeName>), tree: &Tree, z: T,
                 Var::Builtin(tmp_trait_ident, _) => (tmp_trait_ident, None),
                 Var::Fun(fun, tmp_trait_ident, Some(tmp_type)) => {
                     match &**fun {
-                        Fun::Fun(_, args, _, _, tmp_body, _, Some(tmp_local_types)) => {
+                        Fun::Fun(_, args, _, _, tmp_body, _, tmp_local_types) => {
                             let tmp_arg_idents: Vec<String> = args.iter().map(|a| {
                                     match a {
                                         Arg(ident, _, _, _) => ident.clone(),
@@ -161,12 +161,13 @@ fn do_fun_for_fun_key<T, F>(key: &(String, Option<TypeName>), tree: &Tree, z: T,
                         },
                         None => {
                             match fun_tuple {
-                                Some((arg_idents, body, local_types, typ)) => {
+                                Some((arg_idents, body, Some(local_types), typ)) => {
                                     match body {
                                         Some(body) => f(arg_idents.as_slice(), &**body, &**local_types, &**typ),
                                         None => Ok(z),
                                     }
                                 },
+                                Some((_, _, None, _)) => Ok(z),
                                 None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_fun_for_fun_key: variable is built-in variable"))])),
                             }
                         },
@@ -174,12 +175,13 @@ fn do_fun_for_fun_key<T, F>(key: &(String, Option<TypeName>), tree: &Tree, z: T,
                 },
                 None => {
                     match fun_tuple {
-                        Some((arg_idents, body, local_types, typ)) => {
+                        Some((arg_idents, body, Some(local_types), typ)) => {
                             match body {
                                 Some(body) => f(arg_idents.as_slice(), &**body, &**local_types, &**typ),
                                 None => Ok(z),
                             }
                         },
+                        Some((_, _, None, _)) => Ok(z),
                         None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_fun_for_fun_key: variable is built-in variable"))])),
                     }
                 },
