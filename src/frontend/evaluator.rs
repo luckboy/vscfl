@@ -134,8 +134,8 @@ fn do_var_for_var_key<T, F>(key: &(String, Option<TypeName>), tree: &Tree, z: T,
             let var_r = var.borrow();
             let (trait_ident, var_tuple) = match &*var_r {
                 Var::Builtin(tmp_trait_ident, _) => (tmp_trait_ident, None),
-                Var::Var(_, _, _, tmp_expr, tmp_trait_ident, _, Some(tmp_local_types), Some(tmp_typ), tmp_value) => (tmp_trait_ident, Some((tmp_expr, tmp_local_types, tmp_typ, tmp_value))),
-                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: variable is function or no local types or no type"))])),
+                Var::Var(_, _, _, tmp_expr, tmp_trait_ident, _, tmp_local_types, Some(tmp_typ), tmp_value) => (tmp_trait_ident, Some((tmp_expr, tmp_local_types, tmp_typ, tmp_value))),
+                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: variable is functions or no type"))]))
             };
             match &key.1 {
                 Some(type_name) => {
@@ -176,12 +176,13 @@ fn do_var_for_var_key<T, F>(key: &(String, Option<TypeName>), tree: &Tree, z: T,
                         },
                         None => {
                             match var_tuple {
-                                Some((expr, local_types, typ, value)) => {
+                                Some((expr, Some(local_types), typ, value)) => {
                                     match expr {
                                         Some(expr) => f(&**expr, &**local_types, &**typ, value),
                                         None => Ok(z),
                                     }
                                 },
+                                Some((_, None, _, _)) => Ok(z),
                                 None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: variable is built-in variable"))])),
                             }
                         },
@@ -189,12 +190,13 @@ fn do_var_for_var_key<T, F>(key: &(String, Option<TypeName>), tree: &Tree, z: T,
                 },
                 None => {
                     match var_tuple {
-                        Some((expr, local_types, typ, value)) => {
+                        Some((expr, Some(local_types), typ, value)) => {
                             match expr {
                                 Some(expr) => f(&**expr, &**local_types, &**typ, value),
                                 None => Ok(z),
                             }
                         },
+                        Some((_, None, _, _)) => Ok(z),
                         None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: variable is built-in variable"))])),
                     }
                 },
@@ -212,8 +214,8 @@ fn do_var_mut_for_var_key<T, F>(key: &(String, Option<TypeName>), tree: &Tree, z
             let mut var_r = var.borrow_mut();
             let (trait_ident, var_tuple) = match &mut *var_r {
                 Var::Builtin(tmp_trait_ident, _) => (tmp_trait_ident, None),
-                Var::Var(_, _, _, tmp_expr, tmp_trait_ident, _, Some(tmp_local_types), Some(tmp_typ), tmp_value) => (tmp_trait_ident, Some((tmp_expr, tmp_local_types, tmp_typ, tmp_value))),
-                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: variable is function or no local types or no type"))])),
+                Var::Var(_, _, _, tmp_expr, tmp_trait_ident, _, tmp_local_types, Some(tmp_typ), tmp_value) => (tmp_trait_ident, Some((tmp_expr, tmp_local_types, tmp_typ, tmp_value))),
+                _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: variable is function or no type"))])),
             };
             match &key.1 {
                 Some(type_name) => {
@@ -254,12 +256,13 @@ fn do_var_mut_for_var_key<T, F>(key: &(String, Option<TypeName>), tree: &Tree, z
                         },
                         None => {
                             match var_tuple {
-                                Some((expr, local_types, typ, value)) => {
+                                Some((expr, Some(local_types), typ, value)) => {
                                     match expr {
                                         Some(expr) => f(&mut **expr, &**local_types, &**typ, value),
                                         None => Ok(z),
                                     }
                                 },
+                                Some((_, None, _, _)) => Ok(z),
                                 None =>  Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: variable is built-in variable"))])),
                             }
                         },
@@ -267,12 +270,13 @@ fn do_var_mut_for_var_key<T, F>(key: &(String, Option<TypeName>), tree: &Tree, z
                 },
                 None => {
                     match var_tuple {
-                        Some((expr, local_types, typ, value)) => {
+                        Some((expr, Some(local_types), typ, value)) => {
                             match expr {
                                 Some(expr) => f(&mut **expr, &**local_types, &**typ, value),
                                 None => Ok(z),
                             }
                         },
+                        Some((_, None, _, _)) => Ok(z),
                         None =>  Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: variable is built-in variable"))])),
                     }
                 },
@@ -626,7 +630,7 @@ impl Evaluator
                                                                     },
                                                                     ImplVar::Var(_, _, _, _, Some(value2)) => Some(value2.clone()),
                                                                     ImplVar::Var(_, _, _, _, None) => None,
-                                                                    ImplVar::Fun(_, _) => Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Fun(ident.clone(), None))))),
+                                                                    ImplVar::Fun(_, _) => Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Fun(ident.clone(), Some(type_name.clone())))))),
                                                                 }
                                                             },
                                                             None => value,

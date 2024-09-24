@@ -1017,3 +1017,1147 @@ m: Int = 1 match {
         _ => assert!(false),
     }
 }
+
+#[test]
+fn test_evaluator_evaluate_values_evaluates_values_for_implemented_variables()
+{
+    let s = "
+trait T
+{
+    a: t where t: shared + T;
+};
+builtin type Int;
+data U = C(Int);
+data V = D(U);
+impl T for V
+{
+    a = D(a);
+};
+impl T for U
+{
+    a = C(a);
+};
+impl T for Int
+{
+    a = 1;
+};
+x: V = a;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let evaluator = Evaluator::new();
+    match evaluator.evaluate_values(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(8, tree.defs().len());
+    match &*tree.defs()[4] {
+        Def::Impl(impl1, _) => {
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Impl(_, _, impl_defs, _) => {
+                    assert_eq!(1, impl_defs.len());
+                    match &*impl_defs[0] {
+                        ImplDef(_, impl_var, _) => {
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Var(_, _, _, _, Some(value)) => {
+                                    assert_eq!(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Data(String::from("D"), vec![Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Data(String::from("C"), vec![Value::Int(1)]))))])))), *value);
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[5] {
+        Def::Impl(impl1, _) => {
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Impl(_, _, impl_defs, _) => {
+                    assert_eq!(1, impl_defs.len());
+                    match &*impl_defs[0] {
+                        ImplDef(_, impl_var, _) => {
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Var(_, _, _, _, Some(value)) => {
+                                    assert_eq!(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Data(String::from("C"), vec![Value::Int(1)])))), *value);
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[6] {
+        Def::Impl(impl1, _) => {
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Impl(_, _, impl_defs, _) => {
+                    assert_eq!(1, impl_defs.len());
+                    match &*impl_defs[0] {
+                        ImplDef(_, impl_var, _) => {
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Var(_, _, _, _, Some(value)) => {
+                                    assert_eq!(Value::Int(1), *value);
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[7] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    assert_eq!(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Data(String::from("D"), vec![Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Data(String::from("C"), vec![Value::Int(1)]))))])))), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_evaluator_evaluate_values_evaluates_values_for_implemented_variables_with_default_value()
+{
+    let s = "
+data T<t1> = C() | D(t1);
+trait U
+{
+    a: T<t> where t: shared + U = C();
+};
+builtin type Int;
+builtin type Float;
+impl U for Int
+{
+    a = D(1);
+};
+impl U for Float {};
+x: T<Int> = a;
+y: T<Float> = a;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let evaluator = Evaluator::new();
+    match evaluator.evaluate_values(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(8, tree.defs().len());
+    match &*tree.defs()[1] {
+        Def::Trait(_, trait1, _) => {
+            let trait_r = trait1.borrow();
+            match &*trait_r {
+                Trait(_, trait_defs, _) => {
+                    assert_eq!(1, trait_defs.len());
+                    match &*trait_defs[0] {
+                        TraitDef(_, var, _) => {
+                            let var_r = var.borrow();
+                            match &*var_r {
+                                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                                    assert_eq!(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Data(String::from("C"), Vec::new())))), *value);
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[4] {
+        Def::Impl(impl1, _) => {
+            let impl_r = impl1.borrow();
+            match &*impl_r {
+                Impl::Impl(_, _, impl_defs, _) => {
+                    assert_eq!(1, impl_defs.len());
+                    match &*impl_defs[0] {
+                        ImplDef(_, impl_var, _) => {
+                            let impl_var_r = impl_var.borrow();
+                            match &*impl_var_r {
+                                ImplVar::Var(_, _, _, _, Some(value)) => {
+                                    assert_eq!(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Data(String::from("D"), vec![Value::Int(1)])))), *value);
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[6] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    assert_eq!(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Data(String::from("D"), vec![Value::Int(1)])))), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[7] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    assert_eq!(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Data(String::from("C"), Vec::new())))), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_evaluator_evaluate_values_evaluates_values_for_lambdas_with_closures()
+{
+    let s = "
+trait OpAdd
+{
+    op_add(x: t, y: t) -> t where t: OpAdd;
+};
+builtin type Bool;
+builtin type Int;
+builtin impl OpAdd for Int;
+a: (Int) -> Int = let x = 1; y = 2; in |z| x + y + z;
+b: (Int) -> Int = let x = 1; y = 2; in |z| let y = 3; in x + y + z;
+c: (Int) -> Int = let x = 1; in if false then |y| 1 + y else |y| x + y;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let evaluator = Evaluator::new();
+    match evaluator.evaluate_values(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(7, tree.defs().len());
+    match &*tree.defs()[4] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, _, _, _, Some(value)) => {
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Let(_, expr, _, _) => {
+                                    match &**expr {
+                                        Expr::Lambda(_, _, _, _, _, Some(local_fun), Some(closure), _) => {
+                                            assert_eq!(LocalFun::new(0), *local_fun);
+                                            assert_eq!(2, closure.values().len());
+                                            match closure.value(&String::from("x")) {
+                                                Some(value) => assert_eq!(Value::Int(1), *value),
+                                                None => assert!(false),
+                                            }
+                                            match closure.value(&String::from("y")) {
+                                                Some(value) => assert_eq!(Value::Int(2), *value),
+                                                None => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                    assert_eq!(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Lambda(String::from("a"), None, LocalFun::new(0))))), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[5] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, _, _, _, Some(value)) => {
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Let(_, expr, _, _) => {
+                                    match &**expr {
+                                        Expr::Lambda(_, _, _, _, _, Some(local_fun), Some(closure), _) => {
+                                            assert_eq!(LocalFun::new(0), *local_fun);
+                                            assert_eq!(1, closure.values().len());
+                                            match closure.value(&String::from("x")) {
+                                                Some(value) => assert_eq!(Value::Int(1), *value),
+                                                None => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                    assert_eq!(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Lambda(String::from("b"), None, LocalFun::new(0))))), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[6] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, _, _, _, Some(value)) => {
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Let(_, expr, _, _) => {
+                                    match &**expr {
+                                        Expr::If(_, expr2, expr3, _, _) => {
+                                            match &**expr2 {
+                                                Expr::Lambda(_, _, _, _, _, Some(local_fun), None, _) => {
+                                                    assert_eq!(LocalFun::new(0), *local_fun);
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr3 {
+                                                Expr::Lambda(_, _, _, _, _, Some(local_fun), Some(closure), _) => {
+                                                    assert_eq!(LocalFun::new(1), *local_fun);
+                                                    assert_eq!(1, closure.values().len());
+                                                    match closure.value(&String::from("x")) {
+                                                        Some(value) => assert_eq!(Value::Int(1), *value),
+                                                        None => assert!(false),
+                                                    }
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                    assert_eq!(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Lambda(String::from("c"), None, LocalFun::new(1))))), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_evaluator_evaluate_values_evaluates_values_for_builtin_values_and_function_values()
+{
+    let s = "
+trait OpAdd
+{
+    op_add(x: t, y: t) -> t where t: OpAdd;
+};
+trait Zero
+{
+    builtin zero;
+};
+builtin type Int;
+builtin type Float;
+builtin type Float2;
+builtin impl OpAdd for Int;
+builtin impl Zero for Int;
+builtin float2;
+builtin FLOAT_MAX_EXP;
+a: (Int, Int) -> Int = op_add;
+b: (Float, Float) -> Float2 = float2;
+c: Int = FLOAT_MAX_EXP;
+d: () -> Int = zero; 
+e: (Int, Int) -> Int = g;
+f: (Int) -> Int = h;
+g(x: Int, y: Int) -> Int = x + y;
+trait T
+{
+    h(x: t) -> t where t: T = x;
+};
+impl T for Int
+{
+    h(x) = x + 1;
+};
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(errs) => {
+            println!("{}", errs);
+            assert!(false)
+        },
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let evaluator = Evaluator::new();
+    match evaluator.evaluate_values(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(18, tree.defs().len());
+    match &*tree.defs()[9] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    match evaluator.evals().fun(&(String::from("op_add"), Some(TypeName::Name(String::from("Int"))))) {
+                        Some(fun) => {
+                            assert_eq!(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::EvalFun(String::from("op_add"), Some(TypeName::Name(String::from("Int"))), fun)))), *value);
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[10] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    match evaluator.evals().fun(&(String::from("float2"), None)) {
+                        Some(fun) => {
+                            assert_eq!(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::EvalFun(String::from("float2"), None, fun)))), *value);
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[11] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    assert_eq!(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Builtin(String::from("FLOAT_MAX_EXP"), None)))), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[12] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    assert_eq!(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Builtin(String::from("zero"), Some(TypeName::Name(String::from("Int"))))))), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[13] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    assert_eq!(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Fun(String::from("g"), None)))), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[14] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    assert_eq!(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Fun(String::from("h"), Some(TypeName::Name(String::from("Int"))))))), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_evaluator_evaluate_values_evaluates_values_for_castings_in_expressions()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+a: Int = 1.5 as Int;
+b: (Int, Float) = (1.5, 2) as (Int, Float);
+c: [Int; 3] = [1.5, 2.5, 3.5] as [Int; 3];
+d: [Float; 2] = [1; 2] as [Float; 2];
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let evaluator = Evaluator::new();
+    match evaluator.evaluate_values(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(6, tree.defs().len());
+    match &*tree.defs()[2] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    assert_eq!(Value::Int(1), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[3] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    assert_eq!(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Tuple(vec![Value::Int(1), Value::Float(2.0)])))), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[4] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    assert_eq!(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Array(vec![Value::Int(1), Value::Int(2), Value::Int(3)])))), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }    
+    match &*tree.defs()[5] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    assert_eq!(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Array(vec![Value::Float(1.0), Value::Float(1.0)])))), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }    
+}
+
+#[test]
+fn test_evaluator_evaluate_values_evaluates_values_for_castings_in_patterns()
+{
+    let s = "
+builtin type Int;
+builtin type Float;
+a: Int = 1 match {
+        1.5 as Int => 1;
+        _ => 2;
+    };
+b: Int = (1, 2.0) match {
+        (1.5, 2) as (Int, Float) => 1;
+        _ => 2;
+    };
+c: Int = [1, 2, 3] match {
+        [1.5, 2.5, 3.5] as [Int; 3] => 1;
+        _ => 2;
+    };
+d: Int = [1.0, 1.0] match {
+        [1; 2] as [Float; 2] => 1;
+        _ => 2;
+    };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let evaluator = Evaluator::new();
+    match evaluator.evaluate_values(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(6, tree.defs().len());
+    match &*tree.defs()[2] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    assert_eq!(Value::Int(1), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[3] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    assert_eq!(Value::Int(1), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[4] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    assert_eq!(Value::Int(1), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[5] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    assert_eq!(Value::Int(1), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_evaluator_evaluate_values_evaluates_value_for_pattern_matchting_with_filled_array()
+{
+    let s = "
+builtin type Int;
+a: Int = [1, 2, 3] match {
+        [_; 3] => 1;
+        [1, 2, 3] => 2; 
+        _ => 3;
+    };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let evaluator = Evaluator::new();
+    match evaluator.evaluate_values(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(2, tree.defs().len());
+    match &*tree.defs()[1] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    assert_eq!(Value::Int(2), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_evaluator_evaluate_values_evaluates_value_for_fields_with_shared_types()
+{
+    let s = "
+trait OpAdd
+{
+    op_add(x: t, y: t) -> t where t: OpAdd;
+};
+builtin type Int;
+builtin type Float;
+builtin type Int4;
+builtin impl OpAdd for Int;
+builtin int4;
+data T = C(U, Int4, (Int, Int));
+data U = D(Int, Float, Int);
+a: (Int, Int, Int) =
+    let x = C(D(1, 2.5, 3), int4(1, 2, 3, 4), (1, 2));
+        (y1, x) = x.0.0 ->;
+        (z1, x) = x.0.2 ->;
+        x = x.0.0 <- (y1 + z1);
+        (y2, x) = x.1.x ->;
+        (z2, x) = x.1.w ->;
+        x = x.1.x <- (y2 + z2);
+        (y3, x) = x.2.0 ->;
+        (z3, x) = x.2.1 ->;
+        x = x.2.0 <- (y3 + z3);
+        (w1, x) = x.0.0 ->;
+        (w2, x) = x.1.x ->;
+        w3 = x.2.0;
+    in  (w1, w2, w3);
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let evaluator = Evaluator::new();
+    match evaluator.evaluate_values(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(9, tree.defs().len());
+    match &*tree.defs()[8] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    assert_eq!(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Tuple(vec![Value::Int(4), Value::Int(5), Value::Int(3)])))), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_evaluator_evaluate_values_evaluates_value_for_fields_with_unique_types()
+{
+    let s = "
+trait OpAdd
+{
+    op_add(x: t, y: t) -> t where t: OpAdd;
+};
+builtin type Int;
+builtin type Float;
+builtin type Int4;
+builtin impl OpAdd for Int;
+builtin int4;
+data T = C(uniq U, uniq Int4, uniq (Int, Int));
+data U = D(Int, Float, Int);
+a: (Int, Int, Int) =
+    let x = C(uniq D(1, 2.5, 3), uniq int4(1, 2, 3, 4), uniq (1, 2));
+        (y1, x) = x.0.0 ->;
+        (z1, x) = x.0.2 ->;
+        x = x.0.0 <- (y1 + z1);
+        (y2, x) = x.1.x ->;
+        (z2, x) = x.1.w ->;
+        x = x.1.x <- (y2 + z2);
+        (y3, x) = x.2.0 ->;
+        (z3, x) = x.2.1 ->;
+        x = x.2.0 <- (y3 + z3);
+        (w1, x) = x.0.0 ->;
+        (w2, x) = x.1.x ->;
+        w3 = x.2.0;
+    in  (w1, w2, w3);
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(errs) => {
+            println!("{}", errs);
+            assert!(false)
+        },
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let evaluator = Evaluator::new();
+    match evaluator.evaluate_values(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(9, tree.defs().len());
+    match &*tree.defs()[8] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    assert_eq!(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Tuple(vec![Value::Int(4), Value::Int(5), Value::Int(3)])))), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_evaluator_evaluate_values_checks_pattern_exhaustions_for_variables()
+{
+    let s = "
+builtin type Bool;
+builtin type Int;
+builtin type Float;
+data T = C(Bool, Int) | D(Int, Int) | E(Float);
+a: Int = C(true, 1) match {
+        C(true, 1) => 1;
+        C(true, _) => 2;
+        C(false, _) => 3;
+        D(_, _) => 4;
+        E(_) => 5;
+    };
+b: Int = let (x, _) = (1, 2.5); in x;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(errs) => {
+            println!("{}", errs);
+            assert!(false)
+        },
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let evaluator = Evaluator::new();
+    match evaluator.evaluate_values(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(6, tree.defs().len());
+    match &*tree.defs()[4] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    assert_eq!(Value::Int(1), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+    match &*tree.defs()[5] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, _, _, _, _, _, Some(value)) => {
+                    assert_eq!(Value::Int(1), *value);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_evaluator_evaluate_values_checks_pattern_exhaustions_for_functions()
+{
+    let s = "
+builtin type Bool;
+builtin type Int;
+builtin type Float;
+data T = C(Bool, Int) | D(Int, Int) | E(Float);
+f(x: T) -> Int = x match {
+        C(true, 1) => 1;
+        C(true, _) => 2;
+        C(false, _) => 3;
+        D(_, _) => 4;
+        E(_) => 5;
+    };
+g(t: (Int, Float)) -> Int = let (x, _) = t; in x;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(errs) => {
+            println!("{}", errs);
+            assert!(false)
+        },
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let evaluator = Evaluator::new();
+    match evaluator.evaluate_values(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+}
