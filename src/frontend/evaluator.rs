@@ -1511,7 +1511,7 @@ impl Evaluator
                             self.normalize_pattern_forest(&mut forest)?;
                             match forest {
                                 PatternForest::All => (),
-                                _ => errs.push(FrontendError::Message(pattern_pos(&**pattern).clone(), String::from("non-exhaustive patterns"))),
+                                _ => errs.push(FrontendError::Message(pattern_pos(&**pattern).clone(), String::from("non-exhaustive pattern"))),
                             }
                         },
                     }
