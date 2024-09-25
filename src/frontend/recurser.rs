@@ -23,7 +23,12 @@ fn add_fun_key(ident: &String, type_name: &Option<TypeName>, pos: Pos, tree: &Tr
             let (trait_ident, is_builtin_var) = match &*var_r {
                 Var::Builtin(tmp_trait_ident, _) => (tmp_trait_ident, true),
                 Var::Var(_, _, _, _, _, _, _, _, _) => return Ok(()),
-                Var::Fun(_, tmp_trait_ident, _) => (tmp_trait_ident, false),
+                Var::Fun(fun, tmp_trait_ident, _) => {
+                    match &**fun {
+                        Fun::Fun(_, _, _, _, _, _, _) => (tmp_trait_ident, false),
+                        _ => return Ok(()),
+                    }
+                },
             };
             let key_type_name = match type_name {
                 Some(type_name) => {
@@ -474,3 +479,6 @@ impl Recurser
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests;
