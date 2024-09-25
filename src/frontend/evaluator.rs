@@ -95,7 +95,7 @@ fn add_var_key(ident: &String, type_name: &Option<TypeName>, pos: Pos, tree: &Tr
                                                             let impl_var_r = impl_var.borrow();
                                                             match &*impl_var_r {
                                                                 ImplVar::Builtin(_) => return Ok(()),
-                                                                ImplVar::Var(_, _, _, _, _) => Some(type_name2.clone()),
+                                                                ImplVar::Var(_, _, _, _, _) => Some(type_name2),
                                                                 _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: implementation variable is function"))])),
                                                             }
                                                         },
@@ -632,13 +632,13 @@ impl Evaluator
                                                                 match &*impl_var_r {
                                                                     ImplVar::Builtin(_) => {
                                                                         match self.evals.fun(&(ident.clone(), Some(type_name2.clone()))) {
-                                                                            Some(fun) => Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::EvalFun(ident.clone(), Some(type_name2.clone()), fun))))),
-                                                                            None => Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Builtin(ident.clone(), Some(type_name2.clone())))))),
+                                                                            Some(fun) => Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::EvalFun(ident.clone(), Some(type_name2), fun))))),
+                                                                            None => Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Builtin(ident.clone(), Some(type_name2)))))),
                                                                         }
                                                                     },
                                                                     ImplVar::Var(_, _, _, _, Some(value2)) => Some(value2.clone()),
                                                                     ImplVar::Var(_, _, _, _, None) => None,
-                                                                    ImplVar::Fun(_, _) => Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Fun(ident.clone(), Some(type_name2.clone())))))),
+                                                                    ImplVar::Fun(_, _) => Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Fun(ident.clone(), Some(type_name2)))))),
                                                                 }
                                                             },
                                                             None => value,
