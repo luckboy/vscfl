@@ -1495,10 +1495,7 @@ impl T for Int
     let namer = Namer::new();
     match namer.check_idents(&mut tree) {
         Ok(()) => assert!(true),
-        Err(errs) => {
-            println!("{}", errs);
-            assert!(false)
-        },
+        Err(_) => assert!(false),
     }
     let typer = Typer::new();
     match typer.check_types(&tree) {
@@ -1974,10 +1971,7 @@ c: Int = [1, 2] match {
     let namer = Namer::new();
     match namer.check_idents(&mut tree) {
         Ok(()) => assert!(true),
-        Err(errs) => {
-            println!("{}", errs);
-            assert!(false)
-        },
+        Err(_) => assert!(false),
     }
     let typer = Typer::new();
     match typer.check_types(&tree) {
@@ -2200,10 +2194,7 @@ a: (Int, Int, Int) =
     let typer = Typer::new();
     match typer.check_types(&tree) {
         Ok(()) => assert!(true),
-        Err(errs) => {
-            println!("{}", errs);
-            assert!(false)
-        },
+        Err(_) => assert!(false),
     }
     let instancer = Instancer::new();
     match instancer.check_insts(&tree) {
@@ -2268,10 +2259,7 @@ b: Int = let (x, _) = (1, 2.5); in x;
     let typer = Typer::new();
     match typer.check_types(&tree) {
         Ok(()) => assert!(true),
-        Err(errs) => {
-            println!("{}", errs);
-            assert!(false)
-        },
+        Err(_) => assert!(false),
     }
     let instancer = Instancer::new();
     match instancer.check_insts(&tree) {
@@ -2348,10 +2336,7 @@ g(t: (Int, Float)) -> Int = let (x, _) = t; in x;
     let typer = Typer::new();
     match typer.check_types(&tree) {
         Ok(()) => assert!(true),
-        Err(errs) => {
-            println!("{}", errs);
-            assert!(false)
-        },
+        Err(_) => assert!(false),
     }
     let instancer = Instancer::new();
     match instancer.check_insts(&tree) {
@@ -2906,10 +2891,7 @@ a: Int = D() match {
     let namer = Namer::new();
     match namer.check_idents(&mut tree) {
         Ok(()) => assert!(true),
-        Err(errs) => {
-            println!("{}", errs);
-            assert!(false)
-        },
+        Err(_) => assert!(false),
     }
     let typer = Typer::new();
     match typer.check_types(&tree) {
@@ -2944,6 +2926,182 @@ a: Int = D() match {
 }
 
 #[test]
+fn test_evaluator_evaluate_values_complains_on_reference_value_must_not_be_used_in_pattern()
+{
+    let s = "
+builtin type Int;
+builtin type Ref;
+builtin ref;
+A: Ref<Int> = ref(1);
+a: Int = ref(1) match {
+        A => 1;
+        _ => 2;
+    };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let evaluator = Evaluator::new();
+    match evaluator.evaluate_values(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(6, pos.line);
+                    assert_eq!(9, pos.column);
+                    assert_eq!(String::from("reference value mustn't be used in pattern"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_evaluator_evaluate_values_complains_on_slice_value_must_not_be_used_in_pattern()
+{
+    let s = "
+builtin type Slice;
+trait SliceFrom<t1>
+{
+    slice(a: t) -> Slice<u> where t: SliceFrom <u>;
+};
+builtin type Int;
+builtin impl SliceFrom for [_; _];
+A: Slice<Int> = slice([1, 2, 3]);
+a: Int = slice([1, 2, 3]) match {
+        A => 1;
+        _ => 2;
+    };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let evaluator = Evaluator::new();
+    match evaluator.evaluate_values(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(10, pos.line);
+                    assert_eq!(9, pos.column);
+                    assert_eq!(String::from("slice value mustn't be used in pattern"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_evaluator_evaluate_values_complains_on_value_of_built_in_variable_must_not_be_used_in_pattern()
+{
+    let s = "
+builtin type Int;
+builtin FLOAT_MAX_EXP;
+a: Int = 1 match {
+        FLOAT_MAX_EXP => 1;
+        _ => 2;
+    };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let evaluator = Evaluator::new();
+    match evaluator.evaluate_values(&tree) {
+        Err(errs) => {
+            assert_eq!(1, errs.errors().len());
+            match &errs.errors()[0] {
+                FrontendError::Message(pos, msg) => {
+                    assert_eq!(4, pos.line);
+                    assert_eq!(9, pos.column);
+                    assert_eq!(String::from("value of built-in variable mustn't be used in pattern"), *msg);
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
 fn test_evaluator_evaluate_values_complains_on_value_of_built_in_variable_must_not_be_in_vector_for_evaluation_of_variable_values()
 {
     let s = "
@@ -2967,10 +3125,7 @@ a: Int =
     let namer = Namer::new();
     match namer.check_idents(&mut tree) {
         Ok(()) => assert!(true),
-        Err(errs) => {
-            println!("{}", errs);
-            assert!(false)
-        },
+        Err(_) => assert!(false),
     }
     let typer = Typer::new();
     match typer.check_types(&tree) {
@@ -3027,10 +3182,7 @@ a: Ref<Int> =
     let namer = Namer::new();
     match namer.check_idents(&mut tree) {
         Ok(()) => assert!(true),
-        Err(errs) => {
-            println!("{}", errs);
-            assert!(false)
-        },
+        Err(_) => assert!(false),
     }
     let typer = Typer::new();
     match typer.check_types(&tree) {
@@ -3088,10 +3240,7 @@ a: Ref<Int> =
     let namer = Namer::new();
     match namer.check_idents(&mut tree) {
         Ok(()) => assert!(true),
-        Err(errs) => {
-            println!("{}", errs);
-            assert!(false)
-        },
+        Err(_) => assert!(false),
     }
     let typer = Typer::new();
     match typer.check_types(&tree) {
@@ -3145,10 +3294,7 @@ a: Int = printf(\"%d\\n\", 2);
     let namer = Namer::new();
     match namer.check_idents(&mut tree) {
         Ok(()) => assert!(true),
-        Err(errs) => {
-            println!("{}", errs);
-            assert!(false)
-        },
+        Err(_) => assert!(false),
     }
     let typer = Typer::new();
     match typer.check_types(&tree) {
@@ -3204,10 +3350,7 @@ fu(x: Int) -> Int = x;
     let namer = Namer::new();
     match namer.check_idents(&mut tree) {
         Ok(()) => assert!(true),
-        Err(errs) => {
-            println!("{}", errs);
-            assert!(false)
-        },
+        Err(_) => assert!(false),
     }
     let typer = Typer::new();
     match typer.check_types(&tree) {
@@ -3263,10 +3406,7 @@ fug2(x: Int) -> (Float, Int) = (1.5, x);
     let namer = Namer::new();
     match namer.check_idents(&mut tree) {
         Ok(()) => assert!(true),
-        Err(errs) => {
-            println!("{}", errs);
-            assert!(false)
-        },
+        Err(_) => assert!(false),
     }
     let typer = Typer::new();
     match typer.check_types(&tree) {

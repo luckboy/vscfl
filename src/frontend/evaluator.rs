@@ -78,7 +78,11 @@ fn add_var_key(ident: &String, type_name: &Option<TypeName>, pos: Pos, tree: &Tr
                                     let trait_r = trait1.borrow();
                                     match &*trait_r {
                                         Trait(_, _, Some(trait_vars)) => {
-                                            match trait_vars.impl1(&type_name) {
+                                            let type_name2 = match type_name {
+                                                TypeName::Array(Some(_)) if trait_vars.impl1(&type_name).is_none() => TypeName::Array(None),
+                                                _ => type_name.clone(),
+                                            };
+                                            match trait_vars.impl1(&type_name2) {
                                                 Some(impl1) => {
                                                     let impl_r = impl1.borrow();
                                                     let impl_vars = match &*impl_r {
@@ -91,7 +95,7 @@ fn add_var_key(ident: &String, type_name: &Option<TypeName>, pos: Pos, tree: &Tr
                                                             let impl_var_r = impl_var.borrow();
                                                             match &*impl_var_r {
                                                                 ImplVar::Builtin(_) => return Ok(()),
-                                                                ImplVar::Var(_, _, _, _, _) => Some(type_name.clone()),
+                                                                ImplVar::Var(_, _, _, _, _) => Some(type_name2.clone()),
                                                                 _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: implementation variable is function"))])),
                                                             }
                                                         },
@@ -610,7 +614,11 @@ impl Evaluator
                                         let trait_r = trait1.borrow();
                                         match &*trait_r {
                                             Trait(_, _, Some(trait_vars)) => {
-                                                match trait_vars.impl1(&type_name) {
+                                                let type_name2 = match type_name {
+                                                    TypeName::Array(Some(_)) if trait_vars.impl1(&type_name).is_none() => TypeName::Array(None),
+                                                    _ => type_name.clone(),
+                                                };
+                                                match trait_vars.impl1(&type_name2) {
                                                     Some(impl1) => {
                                                         let impl_r = impl1.borrow();
                                                         let impl_vars = match &*impl_r {
@@ -623,14 +631,14 @@ impl Evaluator
                                                                 let impl_var_r = impl_var.borrow();
                                                                 match &*impl_var_r {
                                                                     ImplVar::Builtin(_) => {
-                                                                        match self.evals.fun(&(ident.clone(), Some(type_name.clone()))) {
-                                                                            Some(fun) => Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::EvalFun(ident.clone(), Some(type_name.clone()), fun))))),
-                                                                            None => Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Builtin(ident.clone(), Some(type_name.clone())))))),
+                                                                        match self.evals.fun(&(ident.clone(), Some(type_name2.clone()))) {
+                                                                            Some(fun) => Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::EvalFun(ident.clone(), Some(type_name2.clone()), fun))))),
+                                                                            None => Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Builtin(ident.clone(), Some(type_name2.clone())))))),
                                                                         }
                                                                     },
                                                                     ImplVar::Var(_, _, _, _, Some(value2)) => Some(value2.clone()),
                                                                     ImplVar::Var(_, _, _, _, None) => None,
-                                                                    ImplVar::Fun(_, _) => Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Fun(ident.clone(), Some(type_name.clone())))))),
+                                                                    ImplVar::Fun(_, _) => Some(Value::Object(SharedFlag::Shared, Rc::new(RefCell::new(Object::Fun(ident.clone(), Some(type_name2.clone())))))),
                                                                 }
                                                             },
                                                             None => value,
