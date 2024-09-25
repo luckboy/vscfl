@@ -105,7 +105,7 @@ fn do_fun_for_fun_key<T, F>(key: &(String, Option<TypeName>), tree: &Tree, z: T,
                             }).collect();
                             (tmp_trait_ident, Some((tmp_arg_idents, tmp_body, tmp_local_types, tmp_type)))
                         },
-                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_fun_for_fun_key: function is constructor or no local types"))])),
+                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_fun_for_fun_key: function is constructor"))])),
                     }
                 },
                 _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_fun_for_fun_key: variable is variable or no type"))])),
@@ -125,7 +125,7 @@ fn do_fun_for_fun_key<T, F>(key: &(String, Option<TypeName>), tree: &Tree, z: T,
                                                     let impl_vars = match &*impl_r {
                                                         Impl::Builtin(_, _, Some(tmp_impl_vars)) => tmp_impl_vars,
                                                         Impl::Impl(_, _, _, Some(tmp_impl_vars)) => tmp_impl_vars,
-                                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no implementation variables"))])),
+                                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_fun_for_fun_key: no implementation variables"))])),
                                                     };
                                                     match impl_vars.var(&key.0) {
                                                         Some(impl_var) => {

@@ -152,7 +152,7 @@ fn do_var_for_var_key<T, F>(key: &(String, Option<TypeName>), tree: &Tree, z: T,
                                                     let impl_vars = match &*impl_r {
                                                         Impl::Builtin(_, _, Some(tmp_impl_vars)) => tmp_impl_vars,
                                                         Impl::Impl(_, _, _, Some(tmp_impl_vars)) => tmp_impl_vars,
-                                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no implementation variables"))])),
+                                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: no implementation variables"))])),
                                                     };
                                                     match impl_vars.var(&key.0) {
                                                         Some(impl_var) => {
@@ -232,7 +232,7 @@ fn do_var_mut_for_var_key<T, F>(key: &(String, Option<TypeName>), tree: &Tree, z
                                                     let impl_vars = match &*impl_r {
                                                         Impl::Builtin(_, _, Some(tmp_impl_vars)) => tmp_impl_vars,
                                                         Impl::Impl(_, _, _, Some(tmp_impl_vars)) => tmp_impl_vars,
-                                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("add_var_key: no implementation variables"))])),
+                                                        _ => return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: no implementation variables"))])),
                                                     };
                                                     match impl_vars.var(&key.0) {
                                                         Some(impl_var) => {
