@@ -17655,6 +17655,226 @@ m(x: V) -> (V, Int, Int) = x match { y @ E(_, z, w) => (y, z, w); };
 }
 
 #[test]
+fn test_typer_check_types_infers_types_for_recursive_variable()
+{
+    let s = "
+builtin type Int;
+a: Int = a;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(2, tree.defs().len());
+    match &*tree.defs()[1] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), _, None) => {
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Var(_, Some(local_type), _) => {
+                                    assert_eq!(LocalType::new(1), *local_type);
+                                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_check_types_infers_types_for_recursive_constant()
+{
+    let s = "
+builtin type Int;
+A: Int = 1 match {
+        A => 1;
+        _ => 2;
+    };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(2, tree.defs().len());
+    match &*tree.defs()[1] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Var(_, _, _, expr, _, Some(local_type), Some(local_types), _, None) => {
+                    assert_eq!(LocalType::new(0), *local_type);
+                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                    match expr {
+                        Some(expr) => {
+                            match &**expr {
+                                Expr::Match(expr, cases, Some(local_type), _) => {
+                                    match &**expr {
+                                        Expr::Literal(_, Some(local_type), _) => {
+                                            assert_eq!(LocalType::new(1), *local_type);
+                                            assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                    assert_eq!(2, cases.len());
+                                    match &cases[0] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Const(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(2), *local_type);
+                                                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(3), *local_type);
+                                                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    match &cases[1] {
+                                        Case(pattern, expr) => {
+                                            match &**pattern {
+                                                Pattern::Wildcard(Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(4), *local_type);
+                                                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            match &**expr {
+                                                Expr::Literal(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(5), *local_type);
+                                                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                        },
+                                    }
+                                    assert_eq!(LocalType::new(6), *local_type);
+                                    assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                },
+                                _ => assert!(false),
+                            }
+                        },
+                        None => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn test_typer_check_types_infers_types_for_recursive_function()
+{
+    let s = "
+builtin type Int;
+f() -> Int = f();
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    assert_eq!(2, tree.defs().len());
+    match &*tree.defs()[1] {
+        Def::Var(_, var, _) => {
+            let var_r = var.borrow();
+            match &*var_r {
+                Var::Fun(fun, _, _) => {
+                    match &**fun {
+                        Fun::Fun(_, args, _, _, expr, Some(ret_local_type), Some(local_types)) => {
+                            assert_eq!(true, args.is_empty());
+                            assert_eq!(LocalType::new(0), *ret_local_type);
+                            assert_eq!(String::from("Int"), local_types.local_type_to_string(*ret_local_type));
+                            match expr {
+                                Some(expr) => {
+                                    match &**expr {
+                                        Expr::App(expr, exprs, Some(local_type), _) => {
+                                            match &**expr {
+                                                Expr::Var(_, Some(local_type), _) => {
+                                                    assert_eq!(LocalType::new(1), *local_type);
+                                                    assert_eq!(String::from("() -> Int"), local_types.local_type_to_string(*local_type));
+                                                },
+                                                _ => assert!(false),
+                                            }
+                                            assert_eq!(true, exprs.is_empty());
+                                            assert_eq!(LocalType::new(2), *local_type);
+                                            assert_eq!(String::from("Int"), local_types.local_type_to_string(*local_type));
+                                        },
+                                        _ => assert!(false),
+                                    }
+                                },
+                                None => assert!(false),
+                            }
+                        },
+                        _ => assert!(false),
+                    }
+                },
+                _ => assert!(false),
+            }
+        },
+        _ => assert!(false),
+    }
+}
+
+#[test]
 fn test_typer_check_types_complains_on_undefined_built_in_type_variable_bool()
 {
     let s = "
