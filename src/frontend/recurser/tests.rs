@@ -226,10 +226,7 @@ X: Int = 1;
     let recurser = Recurser::new();
     match recurser.check_recursions(&tree) {
         Ok(()) => assert!(true),
-        Err(errs) => {
-            println!("{}", errs);
-            assert!(false)
-        },
+        Err(_) => assert!(false),
     }
 }
 
@@ -282,10 +279,7 @@ y: Int = 2;
     let recurser = Recurser::new();
     match recurser.check_recursions(&tree) {
         Ok(()) => assert!(true),
-        Err(errs) => {
-            println!("{}", errs);
-            assert!(false)
-        },
+        Err(_) => assert!(false),
     }
 }
 
@@ -356,9 +350,399 @@ i() -> Int = 1 match {
     let recurser = Recurser::new();
     match recurser.check_recursions(&tree) {
         Ok(()) => assert!(true),
-        Err(errs) => {
-            println!("{}", errs);
-            assert!(false)
-        },
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn test_recurser_check_recursions_checks_recursions_for_implemented_functions()
+{
+    let s = "
+trait T
+{
+    f() -> t where t: T;
+};
+builtin type Int;
+data U = C(Int);
+data V = D(U);
+impl T for V
+{
+    f() = D(f());
+};
+impl T for U
+{
+    f() = C(f());
+};
+impl T for Int
+{
+    f() = 1;
+};
+g() -> V = f();
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let evaluator = Evaluator::new();
+    match evaluator.evaluate_values(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let recurser = Recurser::new();
+    match recurser.check_recursions(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn test_recurser_check_recursions_checks_recursions_for_implemented_functions_with_default_value()
+{
+    let s = "
+data T<t1> = C() | D(t1);
+trait U
+{
+    f() -> T<t> where t: U = C();
+};
+builtin type Int;
+builtin type Float;
+impl U for Int
+{
+    f() = D(1);
+};
+impl U for Float {};
+g() -> T<Int> = f();
+h() -> T<Float> = f();
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let evaluator = Evaluator::new();
+    match evaluator.evaluate_values(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let recurser = Recurser::new();
+    match recurser.check_recursions(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn test_recurser_check_recursions_checks_recursion_for_tail_recursive_function()
+{
+    let s = "
+builtin type Int;
+f() -> Int = f();
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let evaluator = Evaluator::new();
+    match evaluator.evaluate_values(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let recurser = Recurser::new();
+    match recurser.check_recursions(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn test_recurser_check_recursions_checks_recursion_for_tail_recursive_function_and_let_clause()
+{
+    let s = "
+trait OpAdd
+{
+    op_add(x: t, y: t) -> t where t: OpAdd;
+};
+builtin type Int;
+builtin impl OpAdd for Int; 
+f(x: Int) -> Int =
+    let y = x + 1;
+    in  f(y);
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let evaluator = Evaluator::new();
+    match evaluator.evaluate_values(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let recurser = Recurser::new();
+    match recurser.check_recursions(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn test_recurser_check_recursions_checks_recursion_for_tail_recursive_function_and_if_clause()
+{
+    let s = "
+trait OpMul
+{
+    op_mul(x: t, y: t) -> t where t: OpMul;
+};
+trait OpSub
+{
+    op_sub(x: t, y: t) -> t where t: OpSub;
+};
+trait Ord
+{
+    op_le(x: t, y: t) -> Bool where t: Ord;
+};
+builtin type Bool;
+builtin type Int;
+builtin impl OpMul for Int;
+builtin impl OpSub for Int;
+builtin impl Ord for Int;
+f(x: Int, y: Int) -> Int = if x <= 0 then y else f(x - 1, x * y);
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let evaluator = Evaluator::new();
+    match evaluator.evaluate_values(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let recurser = Recurser::new();
+    match recurser.check_recursions(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn test_recurser_check_recursions_checks_recursion_for_tail_recursive_function_and_match_clause()
+{
+    let s = "
+trait OpAdd
+{
+    op_add(x: t, y: t) -> t where t: OpAdd;
+};
+builtin type Int;
+builtin impl OpAdd for Int;
+data T = C() | D() | E();
+f(x: T, y: Int) -> Int =
+    x match {
+        C() => f(D(), y + 1);
+        D() => f(E(), y + 1);
+        E() => y;
+    };
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let evaluator = Evaluator::new();
+    match evaluator.evaluate_values(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let recurser = Recurser::new();
+    match recurser.check_recursions(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn test_recurser_check_recursions_checks_recursion_for_tail_recursive_function_and_typed_expression()
+{
+    let s = "
+builtin type Int;
+f() -> Int = f(): Int;
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let evaluator = Evaluator::new();
+    match evaluator.evaluate_values(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let recurser = Recurser::new();
+    match recurser.check_recursions(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
     }
 }
