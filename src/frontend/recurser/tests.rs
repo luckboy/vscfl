@@ -870,6 +870,56 @@ impl T for Int
 }
 
 #[test]
+fn test_recurser_check_recursions_checks_recursions_for_local_variable()
+{
+    let s = "
+builtin type Int;
+f() -> Int =
+    let g = || 1;
+    in  g();
+g() -> Int = f();
+";
+    let s2 = &s[1..];
+    let mut cursor = Cursor::new(s2.as_bytes());
+    let mut parser = Parser::new(Lexer::new(String::from("test.vscfl"), &mut cursor));
+    let mut tree = Tree::new();
+    match parser.parse(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let namer = Namer::new();
+    match namer.check_idents(&mut tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let typer = Typer::new();
+    match typer.check_types(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let instancer = Instancer::new();
+    match instancer.check_insts(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let limiter = Limiter::new();
+    match limiter.check_limits(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let evaluator = Evaluator::new();
+    match evaluator.evaluate_values(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+    let recurser = Recurser::new();
+    match recurser.check_recursions(&tree) {
+        Ok(()) => assert!(true),
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
 fn test_recurser_check_recursions_complains_on_recursive_function_can_use_only_tail_recursion()
 {
     let s = "
