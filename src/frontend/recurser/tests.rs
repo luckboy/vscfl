@@ -816,7 +816,7 @@ f(x: Int, y: Int) -> Int =
 }
 
 #[test]
-fn test_recurser_check_recursions_checks_recursions_for_implemented_recursive_function()
+fn test_recurser_check_recursions_checks_recursion_for_implemented_recursive_function()
 {
     let s = "
 trait T
