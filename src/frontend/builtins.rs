@@ -453,8 +453,6 @@ impl Builtins
         impl_pairs.insert((String::from("UpdateUniqGlobalSlice"), TypeName::Name(String::from("UniqGlobalSlice"))));
         // Map
         impl_pairs.insert((String::from("Map"), TypeName::Array(None)));
-        // FlatMap
-        impl_pairs.insert((String::from("FlatMap"), TypeName::Array(None)));
         // MapInPlace
         impl_pairs.insert((String::from("MapInPlace"), TypeName::Array(None)));
         for s in ["UniqSlice", "UniqPrivateSlice", "UniqLocalSlice", "UniqGlobalSlice"] {
