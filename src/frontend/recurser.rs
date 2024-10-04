@@ -484,5 +484,11 @@ impl Recurser
     }
 }
 
+pub fn check_recursions(tree: &Tree) -> FrontendResultWithErrors<()>
+{
+    let recurser = Recurser::new();
+    recurser.check_recursions(tree)
+}
+
 #[cfg(test)]
 mod tests;

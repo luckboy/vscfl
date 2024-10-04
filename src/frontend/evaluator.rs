@@ -3443,5 +3443,11 @@ impl Evaluator
     }
 }
 
+pub fn evaluate_values(tree: &Tree) -> FrontendResultWithErrors<()>
+{
+    let evaluator = Evaluator::new();
+    evaluator.evaluate_values(tree)
+}
+
 #[cfg(test)]
 mod tests;

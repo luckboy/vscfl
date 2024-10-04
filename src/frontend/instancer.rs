@@ -348,5 +348,11 @@ impl Instancer
     }
 }
 
+pub fn check_insts(tree: &Tree) -> FrontendResultWithErrors<()>
+{
+    let instancer = Instancer::new();
+    instancer.check_insts(tree)
+}
+
 #[cfg(test)]
 mod tests;

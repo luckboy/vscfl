@@ -305,5 +305,11 @@ impl Limiter
     }
 }
 
+pub fn check_limits(tree: &Tree) -> FrontendResultWithErrors<()>
+{
+    let limiter = Limiter::new();
+    limiter.check_limits(tree)
+}
+
 #[cfg(test)]
 mod tests;

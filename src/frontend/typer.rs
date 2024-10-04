@@ -3876,5 +3876,41 @@ impl Typer
     }
 }
 
+pub fn evaluate_types_for_type_vars(tree: &Tree) -> FrontendResultWithErrors<()>
+{
+    let typer = Typer::new();
+    typer.evaluate_types_for_type_vars(tree)
+}
+
+pub fn evaluate_types_for_vars(tree: &Tree) -> FrontendResultWithErrors<()>
+{
+    let typer = Typer::new();
+    typer.evaluate_types_for_vars(tree)
+}
+
+pub fn evaluate_types(tree: &Tree) -> FrontendResultWithErrors<()>
+{
+    let typer = Typer::new();
+    typer.evaluate_types(tree)
+}
+
+pub fn infer_types(tree: &Tree) -> FrontendResultWithErrors<()>
+{
+    let typer = Typer::new();
+    typer.infer_types(tree)
+}
+
+pub fn check_types(tree: &Tree) -> FrontendResultWithErrors<()>
+{
+    let typer = Typer::new();
+    typer.check_types(tree)
+}
+
+pub fn evaluate_type_with_where(ident: &str, type_expr: &TypeExpr, where_tuples: &[WhereTuple], trait_ident: &Option<String>, pos: &Pos, tree: &Tree) -> FrontendResultWithErrors<Type>
+{
+    let typer = Typer::new();
+    typer.evaluate_type_with_where(ident, type_expr, where_tuples, trait_ident, pos, tree)
+}
+
 #[cfg(test)]
 mod tests;
