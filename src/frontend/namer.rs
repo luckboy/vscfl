@@ -323,7 +323,7 @@ impl Namer
                                     for trait_def in trait_defs {
                                         match &**trait_def {
                                             TraitDef(var_ident, var, var_pos) => {
-                                                match tree.vars.get(ident) {
+                                                match tree.vars.get(var_ident) {
                                                     Some(defined_var) => {
                                                         let defined_var_r = defined_var.borrow();
                                                         add_error_for_var(var_ident.as_str(), var_pos.clone(), &*defined_var_r, errs);

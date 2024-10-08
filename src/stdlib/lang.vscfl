@@ -155,7 +155,7 @@ trait Ord
 
 trait OpAnd
 {
-    op_add(x: t, y: t) -> t where t: OpAnd;
+    op_and(x: t, y: t) -> t where t: OpAnd;
 };
 
 trait OpXor
