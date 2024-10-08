@@ -1,0 +1,87 @@
+//
+// Copyright (c) 2024 Łukasz Szpakowski
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+//
+data Option<t> = None() | Some(t);
+
+impl Map for Option
+{
+    map(c, f) =
+        c match {
+            Some(x) => Some(f(x));
+            None()  => None();
+        };
+};
+
+impl FlatMap for Option
+{
+    flat_map(c, f) =
+        c match {
+            Some(x) => f(x);
+            None()  => None();
+        };
+};
+
+impl MapInPlace for Option
+{
+    map_in_place(c, f) =
+        c match {
+            Some(x) => Some(f(x));
+            None()  => None();
+        };
+};
+
+impl Fold for Option
+{
+    fold_left(c, z, f) =
+        c match {
+            Some(x) => f(z, x);
+            None()  => z;
+        };
+
+    fold_right(c, z, f) =
+        c match {
+            Some(x) => f(x, z);
+            None()  => z;
+        };
+};
+
+impl FoldUpdate for Option
+{
+    fold_left_update(c, z, f) =
+        c match {
+            Some(x) =>
+                let (y, x2) = f(z, x);
+                in  (y, Some(x2));
+            None()  => (z, None());
+        };
+
+    fold_right_update(c, z, f) =
+        c match {
+            Some(x) =>
+                let (y, x2) = f(x, z);
+                in  (y, Some(x2));
+            None()  => (z, None());
+        };
+};
+
+impl Zip for Option
+{
+    zip(c, d) =
+        (c, d) match {
+            (Some(x), Some(y)) => Some((x, y));
+            _                  => None();
+        };
+};
+
+impl Unzip for Option
+{
+    unzip(c) =
+        c match {
+            Some((x, y)) => (Some(x), Some(y));
+            None()       => (None(), None());
+        };
+};

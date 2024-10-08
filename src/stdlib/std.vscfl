@@ -1,0 +1,264 @@
+//
+// Copyright (c) 2024 Łukasz Szpakowski
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+//
+trait Zero
+{
+    builtin zero;
+};
+
+trait Shl2
+{
+    shl2(x: t, y: Uint2) -> t where t: Shl2;
+};
+
+trait Shl3
+{
+    shl3(x: t, y: Uint3) -> t where t: Shl3;
+};
+
+trait Shl4
+{
+    shl4(x: t, y: Uint4) -> t where t: Shl4;
+};
+
+trait Shl8
+{
+    shl8(x: t, y: Uint8) -> t where t: Shl8;
+};
+
+trait Shl16
+{
+    shl16(x: t, y: Uint16) -> t where t: Shl16;
+};
+
+trait Shr2
+{
+    shr2(x: t, y: Uint2) -> t where t: Shr2;
+};
+
+trait Shr3
+{
+    shr3(x: t, y: Uint3) -> t where t: Shr3;
+};
+
+trait Shr4
+{
+    shr4(x: t, y: Uint4) -> t where t: Shr4;
+};
+
+trait Shr8
+{
+    shr8(x: t, y: Uint8) -> t where t: Shr8;
+};
+
+trait Shr16
+{
+    shlr6(x: t, y: Uint16) -> t where t: Shr16;
+};
+
+trait Len<t>
+{
+    len(a: a) -> SizeT where a: Len <t>;
+
+    len2(a: a) -> (SizeT, a) where a: Len <t>;
+};
+
+trait GetRef<t>
+{
+    get_ref(s: s, i: SizeT) -> Ref<t> where s: GetRef <t>;
+};
+
+trait GetPrivateRef<t>
+{
+    get_private_ref(s: s, i: SizeT) -> PrivateRef<t> where s: GetPrivateRef <t>;
+};
+
+trait GetLocalRef<t>
+{
+    get_local_ref(s: s, i: SizeT) -> LocalRef<t> where s: GetLocalRef <t>;
+};
+
+trait GetGlobalRef<t>
+{
+    get_global_ref(s: s, i: SizeT) -> GlobalRef<t> where s: GetGlobalRef <t>;
+};
+
+trait GetConstantRef<t>
+{
+    get_constant_ref(s: s, i: SizeT) -> ConstantRef<t> where s: GetConstantRef <t>;
+};
+
+trait UpdateUniqRef<t>
+{
+    update_uniq_ref(s: s, i: SizeT, f: f) -> s where s: UpdateUniqRef <t>, f: -> <UniqRef<t>, UniqRef<t>>;
+
+    update_get2_uniq_ref(s: s, i: SizeT, f: f) -> s where s: UpdateUniqRef <t>, f: -> <UniqRef<t>, (u, UniqRef<t>)>;
+};
+
+trait UpdateUniqPrivateRef<t>
+{
+    update_uniq_private_ref(s: s, i: SizeT, f: f) -> s where s: UpdateUniqPrivateRef <t>, f: -> <UniqPrivateRef<t>, UniqPrivateRef<t>>;
+
+    update_get2_uniq_private_ref(s: s, i: SizeT, f: f) -> s where s: UpdateUniqPrivateRef <t>, f: -> <UniqPrivateRef<t>, (u, UniqPrivateRef<t>)>;
+};
+
+trait UpdateUniqLocalRef<t>
+{
+    update_uniq_local_ref(s: s, i: SizeT, f: f) -> s where s: UpdateUniqLocalRef <t>, f: -> <UniqLocalRef<t>, UniqLocalRef<t>>;
+
+    update_get2_uniq_local_ref(s: s, i: SizeT, f: f) -> s where s: UpdateUniqLocalRef <t>, f: -> <UniqLocalRef<t>, (u, UniqLocalRef<t>)>;
+};
+
+trait UpdateUniqGlobalRef<t>
+{
+    update_uniq_global_ref(s: s, i: SizeT, f: f) -> s where s: UpdateUniqGlobalRef <t>, f: -> <UniqGlobalRef<t>, UniqGlobalRef<t>>;
+
+    update_get2_uniq_global_ref(s: s, i: SizeT, f: f) -> s where s: UpdateUniqGlobalRef <t>, f: -> <UniqGlobalRef<t>, (u, UniqGlobalRef<t>)>;
+};
+
+trait GetSlice<t>
+{
+    get_slice(s: s, i: SizeT, j: SizeT) -> Slice<t> where s: GetSlice <t>;
+};
+
+trait GetPrivateSlice<t>
+{
+    get_private_slice(s: s, i: SizeT, j: SizeT) -> PrivateSlice<t> where s: GetPrivateSlice <t>;
+};
+
+trait GetLocalSlice<t>
+{
+    get_local_slice(s: s, i: SizeT, j: SizeT) -> LocalSlice<t> where s: GetLocalSlice <t>;
+};
+
+trait GetGlobalSlice<t>
+{
+    get_global_slice(s: s, i: SizeT, j: SizeT) -> GlobalSlice<t> where s: GetGlobalSlice <t>;
+};
+
+trait GetConstantSlice<t>
+{
+    get_constant_slice(s: s, i: SizeT, j: SizeT) -> ConstantSlice<t> where s: GetConstantSlice <t>;
+};
+
+trait UpdateUniqSlice<t>
+{
+    update_uniq_slice(s: s, i: SizeT, j: SizeT, f: f) -> s where s: UpdateUniqSlice <t>, f: -> <UniqSlice<t>, UniqSlice<t>>;
+
+    update_get2_uniq_slice(s: s, i: SizeT, j: SizeT, f: f) -> s where s: UpdateUniqSlice <t>, f: -> <UniqSlice<t>, (u, UniqSlice<t>)>;
+};
+
+trait UpdateUniqPrivateSlice<t>
+{
+    update_uniq_private_slice(s: s, i: SizeT, j: SizeT, f: f) -> s where s: UpdateUniqPrivateSlice <t>, f: -> <UniqPrivateSlice<t>, UniqPrivateSlice<t>>;
+
+    update_get2_uniq_private_slice(s: s, i: SizeT, j: SizeT, f: f) -> s where s: UpdateUniqPrivateSlice <t>, f: -> <UniqPrivateSlice<t>, (u, UniqPrivateSlice<t>)>;
+};
+
+trait UpdateUniqLocalSlice<t>
+{
+    update_uniq_local_slice(s: s, i: SizeT, j: SizeT, f: f) -> s where s: UpdateUniqLocalSlice <t>, f: -> <UniqLocalSlice<t>, UniqLocalSlice<t>>;
+
+    update_get2_uniq_local_slice(s: s, i: SizeT, j: SizeT, f: f) -> s where s: UpdateUniqLocalSlice <t>, f: -> <UniqLocalSlice<t>, (u, UniqLocalSlice<t>)>;
+};
+
+trait UpdateUniqGlobalSlice<t>
+{
+    update_uniq_global_slice(s: s, i: SizeT, j: SizeT, f: f) -> s where s: UpdateUniqGlobalSlice <t>, f: -> <UniqGlobalSlice<t>, UniqGlobalSlice<t>>;
+
+    update_get2_uniq_global_slice(s: s, i: SizeT, j: SizeT, f: f) -> s where s: UpdateUniqGlobalSlice <t>, f: -> <UniqGlobalSlice<t>, (u, UniqGlobalSlice<t>)>;
+};
+
+trait Map<t>
+{
+    map(c: c, f: (t) -> u) -> d where c: Map <t>, d: Map <u>, c == d;
+};
+
+trait FlatMap<t>
+{
+    flat_map(c: c, f: (t) -> d) -> d where c: FlatMap <t>, d: FlatMap <u>, c == d;
+};
+
+trait MapInPlace<t>
+{
+    map_in_place(c: c, f: (t) -> t) -> c where c: MapInPlace <t>;
+};
+
+trait Fold<t>
+{
+    fold_left(c: c, z: t, f: (t, u) -> t) -> t where c: Fold <u>;
+
+    fold_right(c: c, z: t, f: (u, t) -> t) -> t where c: Fold <u>;
+};
+
+trait FoldUpdate<t>
+{
+    fold_left_update(c: c, z: t, f: (t, u) -> (t, u)) -> (t, c) where c: FoldUpdate <u>;
+
+    fold_right_update(c: c, z: t, f: (u, t) -> (t, u)) -> (t, c) where c: FoldUpdate <u>;
+};
+
+trait Zip<t>
+{
+    zip(c: c, d: d) -> e where c: Zip <t>, d: Zip <u>, e: Zip <(t, u)>, c == d == e;
+};
+
+trait Unzip<t>
+{
+    unzip(c: c) -> (d, e) where c: Unzip <(t, u)>, d: Unzip <t>, e: Unzip <u>, c == d == e;
+};
+
+trait MapInPlaceUniqRefs<t>
+{
+    map_in_place_uniq_refs(s: s, f: (UniqRef<t>) -> UniqRef<t>) -> s where s: MapInPlaceUniqRefs<t>;
+};
+
+trait MapInPlaceUniqPrivateRefs<t>
+{
+    map_in_place_uniq_private_refs(s: s, f: (UniqPrivateRef<t>) -> UniqPrivateRef<t>) -> s where s: MapInPlaceUniqPrivateRefs<t>;
+};
+
+trait MapInPlaceUniqLocalRefs<t>
+{
+    map_in_place_uniq_local_refs(s: s, f: (UniqLocalRef<t>) -> UniqLocalRef<t>) -> s where s: MapInPlaceUniqLocalRefs<t>;
+};
+
+trait MapInPlaceUniqGlobalRefs<t>
+{
+    map_in_place_uniq_global_refs(s: s, f: (UniqGlobalRef<t>) -> UniqGlobalRef<t>) -> s where s: MapInPlaceUniqGlobalRefs<t>;
+};
+
+trait FoldUpdateUniqRefs<t>
+{
+    fold_left_update_uniq_refs(s: s, z: t, f: (t, UniqRef<u>) -> (t, UniqRef<u>)) -> (t, s) where s: FoldUpdateUniqRefs <u>;
+
+    fold_right_update_uniq_refs(s: s, z: t, f: (UniqRef<u>, t) -> (t, UniqRef<u>)) -> (t, s) where s: FoldUpdateUniqRefs <u>;
+};
+
+trait FoldUpdateUniqPrivateRefs<t>
+{
+    fold_left_update_uniq_private_refs(s: s, z: t, f: (t, UniqPrivateRef<u>) -> (t, UniqPrivateRef<u>)) -> (t, s) where s: FoldUpdateUniqPrivateRefs <u>;
+
+    fold_right_update_uniq_private_refs(s: s, z: t, f: (UniqPrivateRef<u>, t) -> (t, UniqPrivateRef<u>)) -> (t, s) where s: FoldUpdateUniqPrivateRefs <u>;
+};
+
+trait FoldUpdateUniqLocalRefs<t>
+{
+    fold_left_update_uniq_local_refs(s: s, z: t, f: (t, UniqLocalRef<u>) -> (t, UniqLocalRef<u>)) -> (t, s) where s: FoldUpdateUniqLocalRefs <u>;
+
+    fold_right_update_uniq_local_refs(s: s, z: t, f: (UniqLocalRef<u>, t) -> (t, UniqLocalRef<u>)) -> (t, s) where s: FoldUpdateUniqLocalRefs <u>;
+};
+
+trait FoldUpdateUniqGlobalRefs<t>
+{
+    fold_left_update_uniq_global_refs(s: s, z: t, f: (t, UniqGlobalRef<u>) -> (t, UniqGlobalRef<u>)) -> (t, s) where s: FoldUpdateUniqGlobalRefs <u>;
+
+    fold_right_update_uniq_global_refs(s: s, z: t, f: (UniqGlobalRef<u>, t) -> (t, UniqGlobalRef<u>)) -> (t, s) where s: FoldUpdateUniqGlobalRefs <u>;
+};
+
+builtin copy_str_to_uniq_private_slice;
+builtin copy_str_to_uniq_global_slice;

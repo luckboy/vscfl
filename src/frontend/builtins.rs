@@ -141,7 +141,7 @@ impl Builtins
         type_vars.insert(String::from("UniqSlice"), BuiltinTypeVar::new(String::from("t"), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::Slice, false, true));
         type_vars.insert(String::from("UniqPrivateSlice"), BuiltinTypeVar::new(String::from("t"), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::Slice, false, true));
         type_vars.insert(String::from("UniqLocalSlice"), BuiltinTypeVar::new(String::from("t"), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::Slice, false, false));
-        type_vars.insert(String::from("UniqGlobaSlice"), BuiltinTypeVar::new(String::from("t"), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::Slice, false, true));
+        type_vars.insert(String::from("UniqGlobalSlice"), BuiltinTypeVar::new(String::from("t"), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::Slice, false, true));
         // Type variables for OpenCL.
         type_vars.insert(String::from("ClMemFenceFlags"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::Shared, RefTypeFlag::None, false, false));
         type_vars.insert(String::from("EventT"), BuiltinTypeVar::new(String::new(), Vec::new(), Vec::new(), SharedFlag::None, RefTypeFlag::None, false, false));
@@ -397,6 +397,11 @@ impl Builtins
         // Zero
         for s in ["Bool", "Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Half", "Float", "Double", "SizeT", "PtrdiffT", "IntptrT", "UintptrT", "ClMemFenceFlags", "EventT"] {
             impl_pairs.insert((String::from("Zero"), TypeName::Name(String::from(s))));
+        }
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                impl_pairs.insert((String::from("Zero"), TypeName::Name(format!("{}{}", s, n))));
+            }
         }
         // ShlN
         for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {

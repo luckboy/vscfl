@@ -1,0 +1,280 @@
+//
+// Copyright (c) 2024 Łukasz Szpakowski
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+//
+builtin type Bool;
+builtin type Char;
+builtin type Short;
+builtin type Int;
+builtin type Long;
+builtin type Uchar;
+builtin type Ushort;
+builtin type Uint;
+builtin type Ulong;
+builtin type Half;
+builtin type Float;
+builtin type Double;
+builtin type SizeT;
+builtin type PtrdiffT;
+builtin type IntptrT;
+builtin type UintptrT;
+builtin type Char2;
+builtin type Char3;
+builtin type Char4;
+builtin type Char8;
+builtin type Char16;
+builtin type Short2;
+builtin type Short3;
+builtin type Short4;
+builtin type Short8;
+builtin type Short16;
+builtin type Int2;
+builtin type Int3;
+builtin type Int4;
+builtin type Int8;
+builtin type Int16;
+builtin type Long2;
+builtin type Long3;
+builtin type Long4;
+builtin type Long8;
+builtin type Long16;
+builtin type Uchar2;
+builtin type Uchar3;
+builtin type Uchar4;
+builtin type Uchar8;
+builtin type Uchar16;
+builtin type Ushort2;
+builtin type Ushort3;
+builtin type Ushort4;
+builtin type Ushort8;
+builtin type Ushort16;
+builtin type Uint2;
+builtin type Uint3;
+builtin type Uint4;
+builtin type Uint8;
+builtin type Uint16;
+builtin type Ulong2;
+builtin type Ulong3;
+builtin type Ulong4;
+builtin type Ulong8;
+builtin type Ulong16;
+builtin type Float2;
+builtin type Float3;
+builtin type Float4;
+builtin type Float8;
+builtin type Float16;
+builtin type Double2;
+builtin type Double3;
+builtin type Double4;
+builtin type Double8;
+builtin type Double16;
+builtin type Ref;
+builtin type PrivateRef;
+builtin type LocalRef;
+builtin type GlobalRef;
+builtin type ConstantRef;
+builtin type UniqRef;
+builtin type UniqPrivateRef;
+builtin type UniqLocalRef;
+builtin type UniqGlobalRef;
+builtin type Slice;
+builtin type PrivateSlice;
+builtin type LocalSlice;
+builtin type GlobalSlice;
+builtin type ConstantSlice;
+builtin type UniqSlice;
+builtin type UniqPrivateSlice;
+builtin type UniqLocalSlice;
+builtin type UniqGlobalSlice;
+
+trait OpNeg
+{
+    op_neg(x: t) -> t where t: OpNeg;
+};
+
+trait OpNot
+{
+    op_not(x: t) -> t where t: OpNot;
+};
+
+trait OpMul
+{
+    op_mul(x: t, y: t) -> t where t: OpMul;
+};
+
+trait OpDiv
+{
+    op_div(x: t, y: t) -> t where t: OpDiv;
+};
+
+trait OpRem
+{
+    op_rem(x: t, y: t) -> t where t: OpRem;
+};
+
+trait OpAdd
+{
+    op_add(x: t, y: t) -> t where t: OpAdd;
+};
+
+trait OpSub
+{
+    op_sub(x: t, y: t) -> t where t: OpSub;
+};
+
+trait OpShl
+{
+    op_shl(x: t, y: Uint) -> t where t: OpShl;
+};
+
+trait OpShr
+{
+    op_shr(x: t, y: Uint) -> t where t: OpShr;
+};
+
+trait Eq
+{
+    op_eq(x: t, y: t) -> Bool where t: Eq;
+
+    op_ne(x: t, y: t) -> Bool where t: Eq = !(x == y);
+};
+
+trait Ord
+{
+    op_lt(x: t, y: t) -> Bool where t: Ord;
+
+    op_ge(x: t, y: t) -> Bool where t: Ord = !(x < y);
+
+    op_gt(x: t, y: t) -> Bool where t: Ord = y < x;
+
+    op_le(x: t, y: t) -> Bool where t: Ord = !(y < x);
+};
+
+trait OpAnd
+{
+    op_add(x: t, y: t) -> t where t: OpAnd;
+};
+
+trait OpXor
+{
+    op_xor(x: t, y: t) -> t where t: OpXor;
+};
+
+trait OpOr
+{
+    op_or(x: t, y: t) -> t where t: OpOr;
+};
+
+trait OpGet<t>
+{
+    op_get(r: r) -> t where r: OpGet <t>;
+
+    op_get2(r: r) -> (t, r) where r: OpGet <t>;
+};
+
+trait OpSet<t>
+{
+    op_set(r: r, x: t) -> r where r: OpSet <t>;
+};
+
+trait OpUpdate<t>
+{
+    op_update(r: r, f: f) -> r where r: OpUpdate <t>, f: -> <t, t>;
+
+    op_update_get2(r: r, f: f) -> (u, r) where r: OpUpdate <t>, f: -> <t, (u, t)>;
+};
+
+trait OpGetNth<t>
+{
+    op_get_nth(a: a, i: SizeT) -> t where a: OpGetNth <t>;
+
+    op_get2_nth(a: a, i: SizeT) -> (t, a) where a: OpGetNth <t>;
+};
+
+trait OpSetNth<t>
+{
+    op_set_nth(a: a, i: SizeT, x: t) -> a where a: OpSetNth <t>;
+};
+
+trait OpUpdateNth<t>
+{
+    op_update_nth(a: a, f: f) -> a where a: OpUpdateNth <t>, f: -> <t, t>;
+
+    op_update_get2_nth(a: a, f: f) -> (u, a) where a: OpUpdateNth <t>, f: -> <t, (u, t)>;
+};
+
+trait SliceFrom<t>
+{
+    slice(a: a) -> Slice<t> where a: SliceFrom <t>;
+
+    slice_from_ref(r: Ref<a>) -> Slice<t> where a: SliceFrom <t>;
+};
+
+trait PrivateSliceFrom<t>
+{
+    private_slice(a: a) -> PrivateSlice<t> where a: PrivateSliceFrom <t>;
+
+    private_slice_from_ref(r: PrivateRef<a>) -> PrivateSlice<t> where a: PrivateSliceFrom <t>;
+};
+
+trait LocalSliceFrom<t>
+{
+    local_slice(a: a) -> LocalSlice<t> where a: LocalSliceFrom <t>;
+
+    local_slice_from_ref(r: LocalRef<a>) -> LocalSlice<t> where a: LocalSliceFrom <t>;
+};
+
+trait GlobalSliceFrom<t>
+{
+    global_slice(a: a) -> GlobalSlice<t> where a: GlobalSliceFrom <t>;
+
+    global_slice_from_ref(r: GlobalRef<a>) -> GlobalSlice<t> where a: GlobalSliceFrom <t>;
+};
+
+trait UniqSliceFrom<t>
+{
+    uniq_slice(a: a) -> UniqSlice<t> where a: UniqSliceFrom <t>;
+
+    uniq_slice_from_ref(r: UniqRef<a>) -> UniqSlice<t> where a: UniqSliceFrom <t>;
+};
+
+trait UniqPrivateSliceFrom<t>
+{
+    uniq_private_slice(a: a) -> UniqPrivateSlice<t> where a: UniqPrivateSliceFrom <t>;
+
+    uniq_private_slice_from_ref(r: UniqPrivateRef<a>) -> UniqPrivateSlice<t> where a: UniqPrivateSliceFrom <t>;
+};
+
+trait UniqLocalSliceFrom<t>
+{
+    uniq_local_slice(a: a) -> UniqLocalSlice<t> where a: UniqLocalSliceFrom <t>;
+
+    uniq_local_slice_from_ref(r: LocalRef<a>) -> UniqLocalSlice<t> where a: UniqLocalSliceFrom <t>;
+};
+
+trait UniqGlobalSliceFrom<t>
+{
+    uniq_global_slice(a: a) -> UniqGlobalSlice<t> where a: UniqGlobalSliceFrom <t>;
+
+    uniq_global_slice_from_ref(r: UniqGlobalRef<a>) -> UniqGlobalSlice<t> where a: UniqGlobalSliceFrom <t>;
+};
+
+builtin ref;
+builtin private_ref;
+builtin local_ref;
+builtin global_ref;
+builtin uniq_ref;
+builtin uniq_private_ref;
+builtin uniq_local_ref;
+builtin uniq_global_ref;
+builtin ref_from_uniq;
+builtin private_ref_from_uniq;
+builtin local_ref_from_uniq;
+builtin global_ref_from_uniq;
+builtin slice_from_uniq;
+builtin private_slice_from_uniq;
+builtin local_slice_from_uniq;
+builtin global_slice_from_uniq;
