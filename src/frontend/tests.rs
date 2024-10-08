@@ -8,7 +8,7 @@
 use super::*;
 
 #[test]
-fn test_do_frontend_phases_does_frontend_phases_with_std_library()
+fn test_do_frontend_phases_does_frontend_phases_with_standard_library()
 {
     let s = "
 kernel mykernel() -> () = ();
