@@ -188,6 +188,11 @@ impl Builtins
         vars.insert(String::from("zero"), BuiltinVar::new(String::from("() -> t"), String::from("t: Zero")));
         vars.insert(String::from("copy_str_to_uniq_private_slice"), BuiltinVar::new(String::from("(ConstantSlice<Char>, UniqPrivateSlice<Char>) -> UniqPrivateSlice<Char>"), String::new()));
         vars.insert(String::from("copy_str_to_uniq_global_slice"), BuiltinVar::new(String::from("(ConstantSlice<Char>, UniqGlobalSlice<Char>) -> UniqGlobalSlice<Char>"), String::new()));
+        vars.insert(String::from("MAXFLOAT"), BuiltinVar::new(String::from("Float"), String::new()));
+        vars.insert(String::from("HUGE_VALF"), BuiltinVar::new(String::from("Float"), String::new()));
+        vars.insert(String::from("INFINITY"), BuiltinVar::new(String::from("Float"), String::new()));
+        vars.insert(String::from("NAN"), BuiltinVar::new(String::from("Float"), String::new()));
+        vars.insert(String::from("HUGE_VAL"), BuiltinVar::new(String::from("Double"), String::new()));
         vars.insert(String::from("FLOAT_DIG"), BuiltinVar::new(String::from("Uint"), String::new()));
         vars.insert(String::from("FLOAT_MANT_DIG"), BuiltinVar::new(String::from("Uint"), String::new()));
         vars.insert(String::from("FLOAT_MAX_10_EXP"), BuiltinVar::new(String::from("Int"), String::new()));
@@ -695,13 +700,13 @@ impl Builtins
                 impl_pairs.insert((String::from("Common"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
-        // ExtCommon
+        // CommonExt
         for s in ["Float", "Double"] {
-            impl_pairs.insert((String::from("ExtCommon"), TypeName::Name(String::from(s))));
+            impl_pairs.insert((String::from("CommonExt"), TypeName::Name(String::from(s))));
         }
         for s in ["Float", "Double"] {
             for n in [2, 3, 4, 8, 16] {
-                impl_pairs.insert((String::from("ExtCommon"), TypeName::Name(format!("{}{}", s, n))));
+                impl_pairs.insert((String::from("CommonExt"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
         // MaxValue

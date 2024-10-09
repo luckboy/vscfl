@@ -178,6 +178,8 @@ trait MathExt
 
     remainder(x: t, y: t) -> t where t: MathExt;
 
+    rint(x: t) -> t where t: MathExt;
+
     round(x: t) -> t where t: MathExt;
 
     trunc(x: t) -> t where t: MathExt;
@@ -438,3 +440,43 @@ trait Signbit
 {
     signbit(x: t) -> Bool where t: Signbit;
 };
+
+trait MathValues
+{
+    M_E: t where t: shared + MathValues;
+    M_LOG2E: t where t: shared + MathValues;
+    M_LOG10E: t where t: shared + MathValues;
+    M_LN2: t where t: shared + MathValues;
+    M_LN10: t where t: shared + MathValues;
+    M_PI: t where t: shared + MathValues;
+    M_PI_2: t where t: shared + MathValues;
+    M_PI_4: t where t: shared + MathValues;
+    M_1_PI: t where t: shared + MathValues;
+    M_2_PI: t where t: shared + MathValues;
+    M_2_SQRTPI: t where t: shared + MathValues;
+    M_SQRT2: t where t: shared + MathValues;
+    M_SQRT1_2: t where t: shared + MathValues;
+};
+
+trait EpsilonValue
+{
+    EPSILON: t where t: shared + EpsilonValue;
+};
+
+builtin MAXFLOAT;
+builtin HUGE_VALF;
+builtin INFINITY;
+builtin NAN;
+builtin HUGE_VAL;
+builtin FLOAT_DIG;
+builtin FLOAT_MANT_DIG;
+builtin FLOAT_MAX_10_EXP;
+builtin FLOAT_MAX_EXP;
+builtin FLOAT_MIN_10_EXP;
+builtin FLOAT_MIN_EXP;
+builtin DOUBLE_DIG;
+builtin DOUBLE_MANT_DIG;
+builtin DOUBLE_MAX_10_EXP;
+builtin DOUBLE_MAX_EXP;
+builtin DOUBLE_MIN_10_EXP;
+builtin DOUBLE_MIN_EXP;

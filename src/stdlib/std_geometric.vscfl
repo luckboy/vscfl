@@ -1,0 +1,43 @@
+//
+// Copyright (c) 2024 Łukasz Szpakowski
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+//
+trait Cross
+{
+    cross(p0: t, p1: t) -> t where t: Cross;
+};
+
+trait HalfGeometric
+{
+    half_dot(p0: t, p1: t) -> Half where t: HalfGeometric;
+
+    half_distance(p0: t, p1: t) -> Half where t: HalfGeometric;
+
+    half_length(p: t) -> Half where t: HalfGeometric;
+};
+
+trait FloatGeometric
+{
+    float_dot(p0: t, p1: t) -> Float where t: FloatGeometric;
+
+    float_distance(p0: t, p1: t) -> Float where t: FloatGeometric;
+
+    float_length(p: t) -> Float where t: FloatGeometric;
+};
+
+trait DoubleGeometric
+{
+    double_dot(p0: t, p1: t) -> Double where t: DoubleGeometric;
+
+    double_distance(p0: t, p1: t) -> Double where t: DoubleGeometric;
+
+    double_length(p: t) -> Double where t: DoubleGeometric;
+};
+
+trait Normalize
+{
+    normalize(p: t) -> t where t: Normalize;
+};

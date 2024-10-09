@@ -172,9 +172,12 @@ fn generate_lang_impls_source() -> Source
 }
 
 const STD_SOURCE: &'static str = include_str!("stdlib/std.vscfl");
+const STD_COMMON_SOURCE: &'static str = include_str!("stdlib/std_common.vscfl");
+const STD_GEOMETRIC_SOURCE: &'static str = include_str!("stdlib/std_geometric.vscfl");
 const STD_MATH_SOURCE: &'static str = include_str!("stdlib/std_math.vscfl");
 const STD_OPTION_SOURCE: &'static str = include_str!("stdlib/std_option.vscfl");
 const STD_RANGE_SOURCE: &'static str = include_str!("stdlib/std_range.vscfl");
+const STD_VALUES_SOURCE: &'static str = include_str!("stdlib/std_values.vscfl");
 
 fn generate_std_impls_source() -> Source
 {
@@ -457,6 +460,70 @@ fn generate_std_impls_source() -> Source
     for s in ["Float", "Double"] {
         src += format!("builtin impl Signbit for {};\n", s).as_str();
     }
+    // MathValues
+    for s in ["Float", "Double"] {
+        src += format!("builtin impl MathValues for {};\n", s).as_str();
+    }
+    // EpsilonValue
+    for s in ["Float", "Double"] {
+        src += format!("builtin impl EpsilonValue for {};\n", s).as_str();
+    }
+    // Common
+    for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+        src += format!("builtin impl Common for {};\n", s).as_str();
+    }
+    for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl Common for {}{};\n", s, n).as_str();
+        }
+    }
+    // CommonExt
+    for s in ["Float", "Double"] {
+        src += format!("builtin impl CommonExt for {};\n", s).as_str();
+    }
+    for s in ["Float", "Double"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl CommonExt for {}{};\n", s, n).as_str();
+        }
+    }
+    // MaxValue
+    for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+        src += format!("builtin impl MaxValue for {};\n", s).as_str();
+    }
+    // MinValue
+    for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+        src += format!("builtin impl MinValue for {};\n", s).as_str();
+    }
+    // Cross
+    for s in ["Float", "Double"] {
+        for n in [3, 4] {
+            src += format!("builtin impl Cross for {}{};\n", s, n).as_str();
+        }
+    }
+    // HalfGeometric
+    src += "builtin impl HalfGeometric for Float;\n";
+    for n in [2, 3, 4] {
+        src += format!("builtin impl HalfGeometric for Float{};\n", n).as_str();
+    }
+    // FloatGeometric
+    src += "builtin impl FloatGeometric for Float;\n";
+    for n in [2, 3, 4] {
+        src += format!("builtin impl FloatGeometric for Float{};\n", n).as_str();
+    }
+    // DoubleGeometric
+    src += "builtin impl DoubleGeometric for Double;\n";
+    for n in [2, 3, 4] {
+        src += format!("builtin impl DoubleGeometric for Double{};\n", n).as_str();
+    }
+    // Normalize
+    for s in ["Float", "Double"] {
+        src += format!("builtin impl Normalize for {};\n", s).as_str();
+    }
+    for s in ["Float", "Double"] {
+        for n in [2, 3, 4] {
+            src += format!("builtin impl Normalize for {}{};\n", s, n).as_str();
+        }
+    }
     Source::String(String::from("(stdlib)/std_impls.vscfl"), src)
 }
 
@@ -466,9 +533,12 @@ pub fn stdlib_sources() -> Vec<Source>
         Source::String(String::from("(stdlib)/lang.vscfl"), String::from(LANG_SOURCE)),
         generate_lang_impls_source(),
         Source::String(String::from("(stdlib)/std.vscfl"), String::from(STD_SOURCE)),
+        Source::String(String::from("(stdlib)/std_common.vscfl"), String::from(STD_COMMON_SOURCE)),
+        Source::String(String::from("(stdlib)/std_geometric.vscfl"), String::from(STD_GEOMETRIC_SOURCE)),
         Source::String(String::from("(stdlib)/std_math.vscfl"), String::from(STD_MATH_SOURCE)),
         Source::String(String::from("(stdlib)/std_option.vscfl"), String::from(STD_OPTION_SOURCE)),
         Source::String(String::from("(stdlib)/std_range.vscfl"), String::from(STD_RANGE_SOURCE)),
+        Source::String(String::from("(stdlib)/std_values.vscfl"), String::from(STD_VALUES_SOURCE)),
         generate_std_impls_source()
     ]
 }

@@ -1,0 +1,30 @@
+//
+// Copyright (c) 2024 Łukasz Szpakowski
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+//
+trait Common
+{
+    abs(x: t) -> t where t: Common;
+
+    max(x: t, y: t) -> t where t: Common;
+
+    min(x: t, y: t) -> t where t: Common;
+};
+
+trait CommonExt
+{
+    clamp(x: t, min_val: t, max_val: t) -> t where t: CommonExt;
+
+    degrees(radians: t) -> t where t: CommonExt;
+
+    radians(degrees: t) -> t where t: CommonExt;
+
+    step(edge: t, x: t) -> t  where t: CommonExt;
+    
+    smoothstep(edge0: t, edge1: t, x: t) -> t where t: CommonExt;
+    
+    sign(x: t) -> t where t: CommonExt;
+};
