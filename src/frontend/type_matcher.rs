@@ -233,8 +233,14 @@ impl TypeMatcher
                 if eq_local_type != root_local_type1 && eq_local_type != root_local_type2 {
                     match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, eq_local_type))) {
                         Some(LocalTypeEntry::Param(_, _, type_param_entry, _)) => {
-                            let mut type_param_entry_r = type_param_entry.borrow_mut();
-                            type_param_entry_r.trait_names = trait_names.clone();
+                            let old_trait_names = {
+                                let type_param_entry_r = type_param_entry.borrow();
+                                type_param_entry_r.trait_names.clone()
+                            };
+                            if &old_trait_names != trait_names {
+                                let mut type_param_entry_r = type_param_entry.borrow_mut();
+                                type_param_entry_r.trait_names = trait_names.clone();
+                            }
                         },
                         Some(_) => return Err(FrontendInternalError(String::from("set_trait_names_for_local_types: no type parameter entry"))),
                         None => return Err(FrontendInternalError(String::from("set_trait_names_for_local_types: no local type entry"))),
