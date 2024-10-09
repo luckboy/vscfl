@@ -493,7 +493,7 @@ impl Builtins
         impl_pairs.insert((String::from("FoldUpdateUniqLocalRefs"), TypeName::Name(String::from("UniqLocalSlice"))));
         // FoldUpdateUniqGlobalRefs
         impl_pairs.insert((String::from("FoldUpdateUniqGlobalRefs"), TypeName::Name(String::from("UniqGlobalSlice"))));
-        // Trigonometrics
+        // Trigonometric
         for s in ["Half", "Float", "Double"] {
             impl_pairs.insert((String::from("Trigonometric"), TypeName::Name(String::from(s))));
         }

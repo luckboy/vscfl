@@ -1,0 +1,440 @@
+//
+// Copyright (c) 2024 Łukasz Szpakowski
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+//
+trait Trigonometric
+{
+    cos(x: t) -> t where t: Trigonometric;
+
+    sin(x: t) -> t where t: Trigonometric;
+
+    tan(x: t) -> t where t: Trigonometric;
+};
+
+trait TrigonometricExt
+{
+    cospi(x: t) -> t where t: TrigonometricExt;
+
+    sincos(x: t) -> (t, t) where t: TrigonometricExt;
+
+    sinpi(x: t) -> t where t: TrigonometricExt;
+
+    tanpi(x: t) -> t where t: TrigonometricExt;
+};
+
+trait InvTrigonometric
+{
+    acos(x: t) -> t where t: InvTrigonometric;
+
+    asin(x: t) -> t where t: InvTrigonometric;
+
+    atan(x: t) -> t where t: InvTrigonometric;
+};
+
+trait InvTrigonometricExt
+{
+    acospi(x: t) -> t where t: InvTrigonometricExt;
+
+    asinpi(x: t) -> t where t: InvTrigonometricExt;
+
+    atan2(y: t, x: t) -> t where t: InvTrigonometricExt;
+
+    atanpi(x: t) -> t where t: InvTrigonometricExt;
+
+    atan2pi(y: t, x: t) -> t where t: InvTrigonometricExt;
+};
+
+trait Hyperbolic
+{
+    cosh(x: t) -> t where t: Hyperbolic;
+
+    sinh(x: t) -> t where t: Hyperbolic;
+
+    tanh(x: t) -> t where t: Hyperbolic;
+};
+
+trait InvHyperbolic
+{
+    acosh(x: t) -> t where t: InvHyperbolic;
+
+    asinh(x: t) -> t where t: InvHyperbolic;
+
+    atanh(x: t) -> t where t: InvHyperbolic;
+};
+
+trait Erf
+{
+    erfc(x: t) -> t where t: Erf;
+
+    erf(x: t) -> t where t: Erf;
+};
+
+trait Gamma
+{
+    tgamma(x: t) -> t where t: Gamma;
+
+    lgamma(x: t) -> t where t: Gamma;    
+};
+
+trait LgammaR
+{
+    lgamma_r(x: t) -> (t, Int) where t: LgammaR;
+};
+
+trait LgammaR2
+{
+    lgamma_r2(x: t) -> (t, Int2) where t: LgammaR2;
+};
+
+trait LgammaR3
+{
+    lgamma_r3(x: t) -> (t, Int3) where t: LgammaR3;
+};
+
+trait LgammaR4
+{
+    lgamma_r4(x: t) -> (t, Int4) where t: LgammaR4;
+};
+
+trait LgammaR8
+{
+    lgamma_r8(x: t) -> (t, Int8) where t: LgammaR8;
+};
+
+trait LgammaR16
+{
+    lgamma_r16(x: t) -> (t, Int16) where t: LgammaR16;
+};
+
+trait Math
+{
+    exp(x: t) -> t where t: Math;
+
+    exp2(x: t) -> t where t: Math;
+
+    exp10(x: t) -> t where t: Math;
+
+    log(x: t) -> t where t: Math;
+
+    log2(x: t) -> t where t: Math;
+
+    log10(x: t) -> t where t: Math;
+
+    powr(x: t, y: t) -> t where t: Math;
+
+    recip(x: t, y: t) -> t where t: Math;
+    
+    rsqrt(x: t) -> t where t: Math;
+
+    sqrt(x: t) -> t where t: Math;
+};
+
+trait MathExt
+{
+    cbrt(x: t) -> t where t: MathExt;
+
+    ceil(x: t) -> t where t: MathExt;
+
+    copysign(x: t, y: t) -> t where t: MathExt;
+
+    expm1(x: t) -> t where t: MathExt;
+
+    fabs(x: t) -> t where t: MathExt;
+
+    fdim(x: t, y: t) -> t where t: MathExt;
+
+    floor(x: t) -> t where t: MathExt;
+
+    fma(a: t, b: t, c: t) -> t where t: MathExt;
+
+    fmax(x: t, y: t) -> t where t: MathExt;
+
+    fmin(x: t, y: t) -> t where t: MathExt;
+
+    fmod(x: t, y: t) -> t where t: MathExt;
+
+    fract(x: t) -> (t, t) where t: MathExt;    
+
+    hypot(x: t, y: t) -> t where t: MathExt;
+
+    log1p(x: t) -> t where t: MathExt;
+
+    logb(x: t) -> t where t: MathExt;
+
+    mad(a: t, b: t, c: t) -> t where t: MathExt;
+
+    maxmag(x: t, y: t) -> t where t: MathExt;
+
+    minmag(x: t, y: t) -> t where t: MathExt;
+
+    modf(x: t) -> (t, t) where t: MathExt;
+
+    nextafter(x: t, y: t) -> t where t: MathExt;
+
+    pow(x: t, y: t) -> t where t: MathExt;
+
+    remainder(x: t, y: t) -> t where t: MathExt;
+
+    round(x: t) -> t where t: MathExt;
+
+    trunc(x: t) -> t where t: MathExt;
+};
+
+trait Frexp
+{
+    frexp(x: t) -> (t, Int) where t: Frexp;
+};
+
+trait Frexp2
+{
+    frexp2(x: t) -> (t, Int2) where t: Frexp2;
+};
+
+trait Frexp3
+{
+    frexp3(x: t) -> (t, Int3) where t: Frexp3;
+};
+
+trait Frexp4
+{
+    frexp4(x: t) -> (t, Int4) where t: Frexp4;
+};
+
+trait Frexp8
+{
+    frexp8(x: t) -> (t, Int8) where t: Frexp8;
+};
+
+trait Frexp16
+{
+    frexp16(x: t) -> (t, Int16) where t: Frexp16;
+};
+
+trait Ilogb
+{
+    ilogb(x: t) -> Int where t: Ilogb;
+};
+
+trait Ilogb2
+{
+    ilogb2(x: t) -> Int2 where t: Ilogb2;
+};
+
+trait Ilogb3
+{
+    ilogb3(x: t) -> Int3 where t: Ilogb3;
+};
+
+trait Ilogb4
+{
+    ilogb4(x: t) -> Int4 where t: Ilogb4;
+};
+
+trait Ilogb8
+{
+    ilogb8(x: t) -> Int8 where t: Ilogb8;
+};
+
+trait Ilogb16
+{
+    ilogb16(x: t) -> Int16 where t: Ilogb16;
+};
+
+trait Ldexp
+{
+    ldexp(x: t, k: Int) -> t where t: Ldexp;
+};
+
+trait Ldexp2
+{
+    ldexp2(x: t, k: Int2) -> t where t: Ldexp2;
+};
+
+trait Ldexp3
+{
+    ldexp3(x: t, k: Int3) -> t where t: Ldexp3;
+};
+
+trait Ldexp4
+{
+    ldexp4(x: t, k: Int4) -> t where t: Ldexp4;
+};
+
+trait Ldexp8
+{
+    ldexp8(x: t, k: Int8) -> t where t: Ldexp8;
+};
+
+trait Ldexp16
+{
+    ldexp16(x: t, k: Int16) -> t where t: Ldexp16;
+};
+
+trait NanUint
+{
+    nan_uint(nan_code: Uint) -> t where t: NanUint;
+};
+
+trait NanUint2
+{
+    nan_uint2(nan_code: Uint2) -> t where t: NanUint2;
+};
+
+trait NanUint3
+{
+    nan_uint3(nan_code: Uint3) -> t where t: NanUint3;
+};
+
+trait NanUint4
+{
+    nan_uint4(nan_code: Uint4) -> t where t: NanUint4;
+};
+
+trait NanUint8
+{
+    nan_uint8(nan_code: Uint8) -> t where t: NanUint8;
+};
+
+trait NanUint16
+{
+    nan_uint16(nan_code: Uint8) -> t where t: NanUint16;
+};
+
+trait NanUlong
+{
+    nan_ulong(nan_code: Ulong) -> t where t: NanUlong;
+};
+
+trait NanUlong2
+{
+    nan_ulong2(nan_code: Ulong2) -> t where t: NanUlong2;
+};
+
+trait NanUlong3
+{
+    nan_ulong3(nan_code: Ulong3) -> t where t: NanUlong3;
+};
+
+trait NanUlong4
+{
+    nan_ulong4(nan_code: Ulong4) -> t where t: NanUlong4;
+};
+
+trait NanUlong8
+{
+    nan_ulong8(nan_code: Ulong8) -> t where t: NanUlong8;
+};
+
+trait NanUlong16
+{
+    nan_ulong16(nan_code: Ulong16) -> t where t: NanUlong16;
+};
+
+trait Pown
+{
+    pown(x: t, y: Int) -> t where t: Pown;
+};
+
+trait Pown2
+{
+    pown2(x: t, y: Int2) -> t where t: Pown2;
+};
+
+trait Pown3
+{
+    pown3(x: t, y: Int3) -> t where t: Pown3;
+};
+
+trait Pown4
+{
+    pown4(x: t, y: Int4) -> t where t: Pown4;
+};
+
+trait Pown8
+{
+    pown8(x: t, y: Int8) -> t where t: Pown8;
+};
+
+trait Pown16
+{
+    pown16(x: t, y: Int16) -> t where t: Pown16;
+};
+
+trait Remquo
+{
+    remquo(x: t, y: t) -> (t, Int) where t: Remquo;
+};
+
+trait Remquo2
+{
+    remquo2(x: t, y: t) -> (t, Int2) where t: Remquo2;
+};
+
+trait Remquo3
+{
+    remquo3(x: t, y: t) -> (t, Int3) where t: Remquo3;
+};
+
+trait Remquo4
+{
+    remquo4(x: t, y: t) -> (t, Int4) where t: Remquo4;
+};
+
+trait Remquo8
+{
+    remquo8(x: t, y: t) -> (t, Int8) where t: Remquo8;
+};
+
+trait Remquo16
+{
+    remquo16(x: t, y: t) -> (t, Int16) where t: Remquo16;
+};
+
+trait Rootn
+{
+    rootn(x: t, y: Int) -> t where t: Rootn;
+};
+
+trait Rootn2
+{
+    rootn2(x: t, y: Int2) -> t where t: Rootn2;
+};
+
+trait Rootn3
+{
+    rootn3(x: t, y: Int3) -> t where t: Rootn3;
+};
+
+trait Rootn4
+{
+    rootn4(x: t, y: Int4) -> t where t: Rootn4;
+};
+
+trait Rootn8
+{
+    rootn8(x: t, y: Int8) -> t where t: Rootn8;
+};
+
+trait Rootn16
+{
+    rootn16(x: t, y: Int16) -> t where t: Rootn16;
+};
+
+trait Fpclassify
+{
+    isfinite(x: t) -> Bool where t: Fpclassify;
+
+    isinf(x: t) -> Bool where t: Fpclassify;
+
+    isnan(x: t) -> Bool where t: Fpclassify;
+
+    isnormal(x: t) -> Bool where t: Fpclassify;
+};
+
+trait Signbit
+{
+    signbit(x: t) -> Bool where t: Signbit;
+};

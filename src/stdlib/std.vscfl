@@ -262,3 +262,7 @@ trait FoldUpdateUniqGlobalRefs<t>
 
 builtin copy_str_to_uniq_private_slice;
 builtin copy_str_to_uniq_global_slice;
+
+id(x: t) -> t = x;
+
+flatten(c: c) -> d where c: FlatMap <d>, d: FlatMap <t>, c == d = flat_map(c, id);

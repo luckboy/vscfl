@@ -1,0 +1,57 @@
+//
+// Copyright (c) 2024 Łukasz Szpakowski
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+//
+trait One
+{
+    one() -> t where t: One;
+};
+
+range_fold(i: t, j: t, z: u, f: (u, t) -> u) -> u where t: shared + OpAdd + Ord + One =
+    if i < j then
+        range_fold(i + one(), j, f(z, i), f)
+    else
+        z;
+
+impl One for Char
+{
+    one() = 1 as Char;
+};
+
+impl One for Short
+{
+    one() = 1 as Short;
+};
+
+impl One for Int
+{
+    one() = 1;
+};
+
+impl One for Long
+{
+    one() = 1I;
+};
+
+impl One for Uchar
+{
+    one() = 1u as Uchar;
+};
+
+impl One for Ushort
+{
+    one() = 1u as Ushort;
+};
+
+impl One for Uint
+{
+    one() = 1u;
+};
+
+impl One for Ulong
+{
+    one() = 1U;
+};

@@ -172,7 +172,9 @@ fn generate_lang_impls_source() -> Source
 }
 
 const STD_SOURCE: &'static str = include_str!("stdlib/std.vscfl");
+const STD_MATH_SOURCE: &'static str = include_str!("stdlib/std_math.vscfl");
 const STD_OPTION_SOURCE: &'static str = include_str!("stdlib/std_option.vscfl");
+const STD_RANGE_SOURCE: &'static str = include_str!("stdlib/std_range.vscfl");
 
 fn generate_std_impls_source() -> Source
 {
@@ -276,6 +278,185 @@ fn generate_std_impls_source() -> Source
     src += "builtin impl FoldUpdateUniqLocalRefs for UniqLocalSlice;\n";
     // FoldUpdateUniqGlobalRefs
     src += "builtin impl FoldUpdateUniqGlobalRefs for UniqGlobalSlice;\n";
+    // Trigonometric
+    for s in ["Half", "Float", "Double"] {
+        src += format!("builtin impl Trigonometric for {};\n", s).as_str();
+    }
+    for s in ["Float", "Double"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl Trigonometric for {}{};\n", s, n).as_str();
+        }
+    }
+    // TrigonometricExt
+    for s in ["Float", "Double"] {
+        src += format!("builtin impl TrigonometricExt for {};\n", s).as_str();
+    }
+    for s in ["Float", "Double"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl TrigonometricExt for {}{};\n", s, n).as_str();
+        }
+    }
+    // InvTrigonometric
+    for s in ["Float", "Double"] {
+        src += format!("builtin impl InvTrigonometric for {};\n", s).as_str();
+    }
+    for s in ["Float", "Double"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl InvTrigonometric for {}{};\n", s, n).as_str();
+        }
+    }
+    // InvTrigonometric
+    for s in ["Float", "Double"] {
+        src += format!("builtin impl InvTrigonometricExt for {};\n", s).as_str();
+    }
+    for s in ["Float", "Double"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl InvTrigonometricExt for {}{};\n", s, n).as_str();
+        }
+    }
+    // Hyperbolic
+    for s in ["Float", "Double"] {
+        src += format!("builtin impl Hyperbolic for {};\n", s).as_str();
+    }
+    for s in ["Float", "Double"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl Hyperbolic for {}{};\n", s, n).as_str();
+        }
+    }
+    // InvHyperbolic
+    for s in ["Float", "Double"] {
+        src += format!("builtin impl InvHyperbolic for {};\n", s).as_str();
+    }
+    for s in ["Float", "Double"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl InvHyperbolic for {}{};\n", s, n).as_str();
+        }
+    }
+    // Erf
+    for s in ["Float", "Double"] {
+        src += format!("builtin impl Erf for {};\n", s).as_str();
+    }
+    for s in ["Float", "Double"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl Erf for {}{};\n", s, n).as_str();
+        }
+    }
+    // Gamma
+    for s in ["Float", "Double"] {
+        src += format!("builtin impl Gamma for {};\n", s).as_str();
+    }
+    for s in ["Float", "Double"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl Gamma for {}{};\n", s, n).as_str();
+        }
+    }
+    // LgammaR
+    for s in ["Float", "Double"] {
+        src += format!("builtin impl LgammaR for {};\n", s).as_str();
+    }
+    // LgammaRN
+    for s in ["Float", "Double"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl LgammaR{} for {}{};\n", n, s, n).as_str();
+        }
+    }
+    // Math
+    for s in ["Half", "Float", "Double"] {
+        src += format!("builtin impl Math for {};\n", s).as_str();
+    }
+    for s in ["Float", "Double"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl Math for {}{};\n", s, n).as_str();
+        }
+    }
+    // MathExt
+    for s in ["Float", "Double"] {
+        src += format!("builtin impl MathExt for {};\n", s).as_str();
+    }
+    for s in ["Float", "Double"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl MathExt for {}{};\n", s, n).as_str();
+        }
+    }
+    // Frexp
+    for s in ["Float", "Double"] {
+        src += format!("builtin impl Frexp for {};\n", s).as_str();
+    }
+    // FrexpN
+    for s in ["Float", "Double"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl Frexp{} for {}{};\n", n, s, n).as_str();
+        }
+    }
+    // Ilogb
+    for s in ["Float", "Double"] {
+        src += format!("builtin impl Ilogb for {};\n", s).as_str();
+    }
+    // IlogbN
+    for s in ["Float", "Double"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl Ilogb{} for {}{};\n", n, s, n).as_str();
+        }
+    }
+    // Ldexp
+    for s in ["Float", "Double"] {
+        src += format!("builtin impl Ldexp for {};\n", s).as_str();
+    }
+    for s in ["Float", "Double"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl Ldexp{} for {}{};\n", n, s, n).as_str();
+        }
+    }
+    // NanUint
+    src += "builtin impl NanUint for Float;\n";
+    // NanUintN
+    for n in [2, 3, 4, 8, 16] {
+        src += format!("builtin impl NanUint{} for Float{};\n", n, n).as_str();
+    }
+    // NanUlong
+    src += "builtin impl NanUlong for Double;\n";
+    // NanUlongN
+    for n in [2, 3, 4, 8, 16] {
+        src += format!("builtin impl NanUlong{} for Double{};\n", n, n).as_str();
+    }
+    // Pown
+    for s in ["Float", "Double"] {
+        src += format!("builtin impl Pown for {};\n", s).as_str();
+    }
+    // PownN
+    for s in ["Float", "Double"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl Pown{} for {}{};\n", n, s, n).as_str();
+        }
+    }
+    // Remquo
+    for s in ["Float", "Double"] {
+        src += format!("builtin impl Remquo for {};\n", s).as_str();
+    }
+    // RemquoN
+    for s in ["Float", "Double"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl Remquo{} for {}{};\n", n, s, n).as_str();
+        }
+    }
+    // Rootn
+    for s in ["Float", "Double"] {
+        src += format!("builtin impl Rootn for {};\n", s).as_str();
+    }
+    // RootnN
+    for s in ["Float", "Double"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl Rootn{} for {}{};\n", n, s, n).as_str();
+        }
+    }
+    // Fpclassify
+    for s in ["Float", "Double"] {
+        src += format!("builtin impl Fpclassify for {};\n", s).as_str();
+    }
+    // Signbit
+    for s in ["Float", "Double"] {
+        src += format!("builtin impl Signbit for {};\n", s).as_str();
+    }
     Source::String(String::from("(stdlib)/std_impls.vscfl"), src)
 }
 
@@ -285,7 +466,9 @@ pub fn stdlib_sources() -> Vec<Source>
         Source::String(String::from("(stdlib)/lang.vscfl"), String::from(LANG_SOURCE)),
         generate_lang_impls_source(),
         Source::String(String::from("(stdlib)/std.vscfl"), String::from(STD_SOURCE)),
+        Source::String(String::from("(stdlib)/std_math.vscfl"), String::from(STD_MATH_SOURCE)),
         Source::String(String::from("(stdlib)/std_option.vscfl"), String::from(STD_OPTION_SOURCE)),
+        Source::String(String::from("(stdlib)/std_range.vscfl"), String::from(STD_RANGE_SOURCE)),
         generate_std_impls_source()
     ]
 }
