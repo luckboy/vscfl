@@ -125,8 +125,6 @@ trait Math
 
     powr(x: t, y: t) -> t where t: Math;
 
-    recip(x: t, y: t) -> t where t: Math;
-    
     rsqrt(x: t) -> t where t: Math;
 
     sqrt(x: t) -> t where t: Math;
