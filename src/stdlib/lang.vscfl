@@ -172,7 +172,7 @@ trait OpGet<t>
 {
     op_get(r: r) -> t where r: OpGet <t>;
 
-    op_get2(r: r) -> (t, r) where r: OpGet <t>;
+    op_get2(r: r) -> (t, r) where r: OpGet <t>, t: shared;
 };
 
 trait OpSet<t>
@@ -191,7 +191,7 @@ trait OpGetNth<t>
 {
     op_get_nth(a: a, i: SizeT) -> t where a: OpGetNth <t>;
 
-    op_get2_nth(a: a, i: SizeT) -> (t, a) where a: OpGetNth <t>;
+    op_get2_nth(a: a, i: SizeT) -> (t, a) where a: OpGetNth <t>, t: shared;
 };
 
 trait OpSetNth<t>
