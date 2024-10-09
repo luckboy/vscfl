@@ -55,3 +55,23 @@ impl One for Ulong
 {
     one() = 1U;
 };
+
+impl One for SizeT
+{
+    one() = 1u as SizeT;
+};
+
+impl One for PtrdiffT
+{
+    one() = 1 as PtrdiffT;
+};
+
+impl One for IntptrT
+{
+    one() = 1 as IntptrT;
+};
+
+impl One for UintptrT
+{
+    one() = 1u as UintptrT;
+};
