@@ -744,8 +744,8 @@ impl Builtins
         }
         // Implementations for OpenCL.
         // ConvertS
-        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double", "SizeT", "PtrdiffT", "IntptrT", "UintptrT"] {
-            for t in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double", "SizeT", "PtrdiffT", "IntptrT", "UintptrT"] {
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+            for t in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
                 impl_pairs.insert((format!("Convert{}", s), TypeName::Name(String::from(t))));
             }
         }
