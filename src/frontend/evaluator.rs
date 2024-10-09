@@ -166,7 +166,7 @@ fn do_var_for_var_key<T, F>(key: &(String, Option<TypeName>), tree: &Tree, z: T,
                                                                 _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: implementation variable isn't variable or no local types or no type"))])),
                                                             }
                                                         },
-                                                        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: implementation variable is function"))])),
+                                                        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: no implementation variable"))])),
                                                     }
                                                 },
                                                 None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_for_var_key: no implementation"))])),
@@ -246,7 +246,7 @@ fn do_var_mut_for_var_key<T, F>(key: &(String, Option<TypeName>), tree: &Tree, z
                                                                 _ => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: implementation variable isn't variable or no local types or no type"))])),
                                                             }
                                                         },
-                                                        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: implementation variable is function"))])),
+                                                        None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: no implementation variable"))])),
                                                     }
                                                 },
                                                 None => Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("do_var_mut_for_var_key: no implementation"))])),
