@@ -527,6 +527,66 @@ fn generate_std_impls_source() -> Source
     Source::String(String::from("(stdlib)/std_impls.vscfl"), src)
 }
 
+fn generate_opencl_convert_source() -> Source
+{
+    let mut src = String::new();
+    // ConvertS
+    for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+        src += format!("trait Convert{}\n", s).as_str();
+        src += "{\n";
+        src += format!("    convert_{}(x: t) -> {} where t: Convert{};\n", s.to_lowercase(), s, s).as_str();
+        src += format!("    convert_{}_rte(x: t) -> {} where t: Convert{};\n", s.to_lowercase(), s, s).as_str();
+        src += format!("    convert_{}_rtz(x: t) -> {} where t: Convert{};\n", s.to_lowercase(), s, s).as_str();
+        src += format!("    convert_{}_rtp(x: t) -> {} where t: Convert{};\n", s.to_lowercase(), s, s).as_str();
+        src += format!("    convert_{}_rtn(x: t) -> {} where t: Convert{};\n", s.to_lowercase(), s, s).as_str();
+        src += format!("    convert_{}_sat(x: t) -> {} where t: Convert{};\n", s.to_lowercase(), s, s).as_str();
+        src += format!("    convert_{}_sat_rte(x: t) -> {} where t: Convert{};\n", s.to_lowercase(), s, s).as_str();
+        src += format!("    convert_{}_sat_rtz(x: t) -> {} where t: Convert{};\n", s.to_lowercase(), s, s).as_str();
+        src += format!("    convert_{}_sat_rtp(x: t) -> {} where t: Convert{};\n", s.to_lowercase(), s, s).as_str();
+        src += format!("    convert_{}_sat_rtn(x: t) -> {} where t: Convert{};\n", s.to_lowercase(), s, s).as_str();
+        src += "};\n";
+    }
+    // ConvertSN
+    for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("trait Convert{}{}\n", s, n).as_str();
+            src += "{\n";
+            src += format!("    convert_{}{}(x: t) -> {}{} where t: Convert{}{};\n", s.to_lowercase(), n, s, n, s, n).as_str();
+            src += format!("    convert_{}{}_rte(x: t) -> {}{} where t: Convert{}{};\n", s.to_lowercase(), n, s, n, s, n).as_str();
+            src += format!("    convert_{}{}_rtz(x: t) -> {}{} where t: Convert{}{};\n", s.to_lowercase(), n, s, n, s, n).as_str();
+            src += format!("    convert_{}{}_rtp(x: t) -> {}{} where t: Convert{}{};\n", s.to_lowercase(), n, s, n, s, n).as_str();
+            src += format!("    convert_{}{}_rtn(x: t) -> {}{} where t: Convert{}{};\n", s.to_lowercase(), n, s, n, s, n).as_str();
+            src += format!("    convert_{}{}_sat(x: t) -> {}{} where t: Convert{}{};\n", s.to_lowercase(), n, s, n, s, n).as_str();
+            src += format!("    convert_{}{}_sat_rte(x: t) -> {}{} where t: Convert{}{};\n", s.to_lowercase(), n, s, n, s, n).as_str();
+            src += format!("    convert_{}{}_sat_rtz(x: t) -> {}{} where t: Convert{}{};\n", s.to_lowercase(), n, s, n, s, n).as_str();
+            src += format!("    convert_{}{}_sat_rtp(x: t) -> {}{} where t: Convert{}{};\n", s.to_lowercase(), n, s, n, s, n).as_str();
+            src += format!("    convert_{}{}_sat_rtn(x: t) -> {}{} where t: Convert{}{};\n", s.to_lowercase(), n, s, n, s, n).as_str();
+            src += "};\n";
+        }
+    }
+    Source::String(String::from("(stdlib)/opencl_convert.vscfl"), src)
+}
+
+fn generate_opencl_impls_source() -> Source
+{
+    let mut src = String::new();
+    // ConvertS
+    for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+        for t in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+            src += format!("builtin impl Convert{} for {};\n", s, t).as_str();
+        }
+    }
+    // ConvertSN
+    for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+        for t in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+            for n in [2, 3, 4, 8, 16] {
+                src += format!("builtin impl Convert{}{} for {}{};\n", s, n, t, n).as_str();
+            }
+        }
+    }
+    Source::String(String::from("(stdlib)/opencl_impls.vscfl"), src)
+}
+
 pub fn stdlib_sources() -> Vec<Source>
 { 
     vec![
@@ -539,6 +599,8 @@ pub fn stdlib_sources() -> Vec<Source>
         Source::String(String::from("(stdlib)/std_option.vscfl"), String::from(STD_OPTION_SOURCE)),
         Source::String(String::from("(stdlib)/std_range.vscfl"), String::from(STD_RANGE_SOURCE)),
         Source::String(String::from("(stdlib)/std_values.vscfl"), String::from(STD_VALUES_SOURCE)),
-        generate_std_impls_source()
+        generate_std_impls_source(),
+        generate_opencl_convert_source(),
+        generate_opencl_impls_source()
     ]
 }
