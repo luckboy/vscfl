@@ -569,6 +569,63 @@ fn generate_opencl_convert_source() -> Source
     Source::String(String::from("(stdlib)/opencl_convert.vscfl"), src)
 }
 
+fn generate_opencl_vector_source() -> Source
+{
+    let mut src = String::new();
+    for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+        for t in ["2", "3", "4", "8", "16"] {
+            for u in ["Private", "Local", "Global", "Constant"] {
+                src += format!("builtin {}_{}_vload{};\n", u.to_lowercase(), s.to_lowercase(), t).as_str();
+                if u != "Constant" {
+                    src += format!("builtin {}_{}_vload{}_uniq;\n", u.to_lowercase(), s.to_lowercase(), t).as_str();
+                }
+            }
+        }
+    }
+    for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+        for t in ["2", "3", "4", "8", "16"] {
+            for u in ["Private", "Local", "Global"] {
+                src += format!("builtin {}_{}_vstore{};\n", u.to_lowercase(), s.to_lowercase(), t).as_str();
+            }
+        }
+    }
+    for s in ["Float"] {
+        for t in ["", "2", "3", "4", "8", "16"] {
+            for u in ["Private", "Local", "Global", "Constant"] {
+                src += format!("builtin {}_{}_vload_half{};\n", u.to_lowercase(), s.to_lowercase(), t).as_str();
+                if u != "Constant" {
+                    src += format!("builtin {}_{}_vload_half{}_uniq;\n", u.to_lowercase(), s.to_lowercase(), t).as_str();
+                }
+                if t != "" {
+                    src += format!("builtin {}_{}_vloada_half{};\n", u.to_lowercase(), s.to_lowercase(), t).as_str();
+                    if u != "Constant" {
+                        src += format!("builtin {}_{}_vloada_half{}_uniq;\n", u.to_lowercase(), s.to_lowercase(), t).as_str();
+                    }
+                }
+            }
+        }
+    }
+    for s in ["Float", "Double"] {
+        for t in ["", "2", "3", "4", "8", "16"] {
+            for u in ["Private", "Local", "Global"] {
+                src += format!("builtin {}_{}_vstore_half{};\n", u.to_lowercase(), s.to_lowercase(), t).as_str();
+                src += format!("builtin {}_{}_vstore_half{}_rte;\n", u.to_lowercase(), s.to_lowercase(), t).as_str();
+                src += format!("builtin {}_{}_vstore_half{}_rtz;\n", u.to_lowercase(), s.to_lowercase(), t).as_str();
+                src += format!("builtin {}_{}_vstore_half{}_rtp;\n", u.to_lowercase(), s.to_lowercase(), t).as_str();
+                src += format!("builtin {}_{}_vstore_half{}_rtn;\n", u.to_lowercase(), s.to_lowercase(), t).as_str();
+                if t != "" {
+                    src += format!("builtin {}_{}_vstorea_half{};\n", u.to_lowercase(), s.to_lowercase(), t).as_str();
+                    src += format!("builtin {}_{}_vstorea_half{}_rte;\n", u.to_lowercase(), s.to_lowercase(), t).as_str();
+                    src += format!("builtin {}_{}_vstorea_half{}_rtz;\n", u.to_lowercase(), s.to_lowercase(), t).as_str();
+                    src += format!("builtin {}_{}_vstorea_half{}_rtp;\n", u.to_lowercase(), s.to_lowercase(), t).as_str();
+                    src += format!("builtin {}_{}_vstorea_half{}_rtn;\n", u.to_lowercase(), s.to_lowercase(), t).as_str();
+                }
+            }
+        }
+    }
+    Source::String(String::from("(stdlib)/opencl_vector.vscfl"), src)
+}
+
 fn generate_opencl_impls_source() -> Source
 {
     let mut src = String::new();
@@ -708,6 +765,7 @@ pub fn stdlib_sources() -> Vec<Source>
         generate_std_impls_source(),
         Source::String(String::from("(stdlib)/opencl.vscfl"), String::from(OPENCL_SOURCE)),
         generate_opencl_convert_source(),
+        generate_opencl_vector_source(),
         generate_opencl_impls_source()
     ]
 }

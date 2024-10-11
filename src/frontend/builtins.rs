@@ -222,6 +222,57 @@ impl Builtins
             vars.insert(format!("uint{}_upsample", s), BuiltinVar::new(format!("(Ushort{}, Ushort{}) -> Uint{}", s, s, s), String::new()));
             vars.insert(format!("ulong{}_upsample", s), BuiltinVar::new(format!("(Uint{}, Uint{}) -> Ulong{}", s, s, s), String::new()));
         }
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+            for t in ["2", "3", "4", "8", "16"] {
+                for u in ["Private", "Local", "Global", "Constant"] {
+                    vars.insert(format!("{}_{}_vload{}", u.to_lowercase(), s.to_lowercase(), t), BuiltinVar::new(format!("(SizeT, {}Slice<{}>) -> {}{}", u, s, s, t), String::new()));
+                    if u != "Constant" {
+                        vars.insert(format!("{}_{}_vload{}_uniq", u.to_lowercase(), s.to_lowercase(), t), BuiltinVar::new(format!("(SizeT, Uniq{}Slice<{}>) -> ({}{}, Uniq{}Slice<{}>)", u, s, s, t, u, s), String::new()));
+                    }
+                }
+            }
+        }
+        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+            for t in ["2", "3", "4", "8", "16"] {
+                for u in ["Private", "Local", "Global"] {
+                    vars.insert(format!("{}_{}_vstore{}", u.to_lowercase(), s.to_lowercase(), t), BuiltinVar::new(format!("({}{}, SizeT, Uniq{}Slice<{}>) -> Uniq{}Slice<{}>", s, t, u, s, u, s), String::new()));
+                }
+            }
+        }
+        for s in ["Float"] {
+            for t in ["", "2", "3", "4", "8", "16"] {
+                for u in ["Private", "Local", "Global", "Constant"] {
+                    vars.insert(format!("{}_{}_vload_half{}", u.to_lowercase(), s.to_lowercase(), t), BuiltinVar::new(format!("(SizeT, {}Slice<Half>) -> {}{}", u, s, t), String::new()));
+                    if u != "Constant" {
+                        vars.insert(format!("{}_{}_vload_half{}_uniq", u.to_lowercase(), s.to_lowercase(), t), BuiltinVar::new(format!("(SizeT, Uniq{}Slice<Half>) -> ({}{}, Uniq{}Slice<Half>)", u, s, t, u), String::new()));
+                    }
+                    if t != "" {
+                        vars.insert(format!("{}_{}_vloada_half{}", u.to_lowercase(), s.to_lowercase(), t), BuiltinVar::new(format!("(SizeT, {}Slice<Half>) -> {}{}", u, s, t), String::new()));
+                        if u != "Constant" {
+                            vars.insert(format!("{}_{}_vloada_half{}_uniq", u.to_lowercase(), s.to_lowercase(), t), BuiltinVar::new(format!("(SizeT, Uniq{}Slice<Half>) -> ({}{}, Uniq{}Slice<Half>)", u, s, t, u), String::new()));
+                        }
+                    }
+                }
+            }
+        }
+        for s in ["Float", "Double"] {
+            for t in ["", "2", "3", "4", "8", "16"] {
+                for u in ["Private", "Local", "Global"] {
+                    vars.insert(format!("{}_{}_vstore_half{}", u.to_lowercase(), s.to_lowercase(), t), BuiltinVar::new(format!("({}{}, SizeT, Uniq{}Slice<Half>) -> Uniq{}Slice<Half>", s, t, u, u), String::new()));
+                    vars.insert(format!("{}_{}_vstore_half{}_rte", u.to_lowercase(), s.to_lowercase(), t), BuiltinVar::new(format!("({}{}, SizeT, Uniq{}Slice<Half>) -> Uniq{}Slice<Half>", s, t, u, u), String::new()));
+                    vars.insert(format!("{}_{}_vstore_half{}_rtz", u.to_lowercase(), s.to_lowercase(), t), BuiltinVar::new(format!("({}{}, SizeT, Uniq{}Slice<Half>) -> Uniq{}Slice<Half>", s, t, u, u), String::new()));
+                    vars.insert(format!("{}_{}_vstore_half{}_rtp", u.to_lowercase(), s.to_lowercase(), t), BuiltinVar::new(format!("({}{}, SizeT, Uniq{}Slice<Half>) -> Uniq{}Slice<Half>", s, t, u, u), String::new()));
+                    vars.insert(format!("{}_{}_vstore_half{}_rtn", u.to_lowercase(), s.to_lowercase(), t), BuiltinVar::new(format!("({}{}, SizeT, Uniq{}Slice<Half>) -> Uniq{}Slice<Half>", s, t, u, u), String::new()));
+                    if t != "" {
+                        vars.insert(format!("{}_{}_vstorea_half{}", u.to_lowercase(), s.to_lowercase(), t), BuiltinVar::new(format!("({}{}, SizeT, Uniq{}Slice<Half>) -> Uniq{}Slice<Half>", s, t, u, u), String::new()));
+                        vars.insert(format!("{}_{}_vstorea_half{}_rte", u.to_lowercase(), s.to_lowercase(), t), BuiltinVar::new(format!("({}{}, SizeT, Uniq{}Slice<Half>) -> Uniq{}Slice<Half>", s, t, u, u), String::new()));
+                        vars.insert(format!("{}_{}_vstorea_half{}_rtz", u.to_lowercase(), s.to_lowercase(), t), BuiltinVar::new(format!("({}{}, SizeT, Uniq{}Slice<Half>) -> Uniq{}Slice<Half>", s, t, u, u), String::new()));
+                        vars.insert(format!("{}_{}_vstorea_half{}_rtp", u.to_lowercase(), s.to_lowercase(), t), BuiltinVar::new(format!("({}{}, SizeT, Uniq{}Slice<Half>) -> Uniq{}Slice<Half>", s, t, u, u), String::new()));
+                        vars.insert(format!("{}_{}_vstorea_half{}_rtn", u.to_lowercase(), s.to_lowercase(), t), BuiltinVar::new(format!("({}{}, SizeT, Uniq{}Slice<Half>) -> Uniq{}Slice<Half>", s, t, u, u), String::new()));
+                    }
+                }
+            }
+        }
         vars.insert(String::from("CLK_LOCAL_MEM_FENCE"), BuiltinVar::new(String::from("ClMemFenceFlags"), String::new()));
         vars.insert(String::from("CLK_GLOBAL_MEM_FENCE"), BuiltinVar::new(String::from("ClMemFenceFlags"), String::new()));
         vars.insert(String::from("barrier"), BuiltinVar::new(String::from("(ClMemFenceFlags) -> ()"), String::new()));
@@ -850,38 +901,6 @@ impl Builtins
         for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
             for n in [2, 3, 4, 8, 16] {
                 impl_pairs.insert((String::from("Select"), TypeName::Name(format!("{}{}", s, n))));
-            }
-        }
-        // VloadN
-        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
-            for n in [2, 3, 4, 8, 16] {
-                impl_pairs.insert((format!("Vload{}", n), TypeName::Name(format!("{}{}", s, n))));
-            }
-        }
-        // VstoreN
-        for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
-            for n in [2, 3, 4, 8, 16] {
-                impl_pairs.insert((format!("Vstore{}", n), TypeName::Name(format!("{}{}", s, n))));
-            }
-        }
-        // VloadHalf
-        for s in ["Float"] {
-            impl_pairs.insert((String::from("VloadHalf"), TypeName::Name(String::from(s))));
-        }
-        // VloadHalfN
-        for s in ["Float"] {
-            for n in [2, 3, 4, 8, 16] {
-                impl_pairs.insert((format!("VloadHalf{}", n), TypeName::Name(format!("{}{}", s, n))));
-            }
-        }
-        // VstoreHalf
-        for s in ["Float", "Double"] {
-            impl_pairs.insert((String::from("VstoreHalf"), TypeName::Name(String::from(s))));
-        }
-        // VstoreHalfN
-        for s in ["Float", "Double"] {
-            for n in [2, 3, 4, 8, 16] {
-                impl_pairs.insert((format!("VstoreHalf{}", n), TypeName::Name(format!("{}{}", s, n))));
             }
         }
         // AsyncCopy
