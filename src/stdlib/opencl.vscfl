@@ -477,21 +477,21 @@ trait Select
 
 trait AsyncCopy
 {
-    async_work_group_copy_local_to_global(dst: UniqLocalSlice<t>, src: GlobalSlice<t>, event: EventT) -> (EventT, UniqLocalSlice<t>) where t: AsyncCopy;
+    async_work_group_copy_global_to_local(dst: UniqLocalSlice<t>, src: GlobalSlice<t>, event: EventT) -> (EventT, UniqLocalSlice<t>) where t: AsyncCopy;
 
-    async_work_group_copy_local_to_global_uniq(dst: UniqLocalSlice<t>, src: UniqGlobalSlice<t>, event: EventT) -> (EventT, UniqLocalSlice<t>, UniqGlobalSlice<t>) where t: AsyncCopy;
+    async_work_group_copy_global_to_local_uniq(dst: UniqLocalSlice<t>, src: UniqGlobalSlice<t>, event: EventT) -> (EventT, UniqLocalSlice<t>, UniqGlobalSlice<t>) where t: AsyncCopy;
 
-    async_work_group_copy_global_to_local(dst: UniqGlobalSlice<t>, src: LocalSlice<t>, event: EventT) -> (EventT, UniqGlobalSlice<t>) where t: AsyncCopy;
+    async_work_group_copy_local_to_global(dst: UniqGlobalSlice<t>, src: LocalSlice<t>, event: EventT) -> (EventT, UniqGlobalSlice<t>) where t: AsyncCopy;
 
-    async_work_group_copy_global_to_local_uniq(dst: UniqGlobalSlice<t>, src: UniqLocalSlice<t>, event: EventT) -> (EventT, UniqGlobalSlice<t>, UniqLocalSlice<t>) where t: AsyncCopy;
+    async_work_group_copy_local_to_global_uniq(dst: UniqGlobalSlice<t>, src: UniqLocalSlice<t>, event: EventT) -> (EventT, UniqGlobalSlice<t>, UniqLocalSlice<t>) where t: AsyncCopy;
 
-    async_work_group_strided_copy_local_to_global(dst: UniqLocalSlice<t>, src: GlobalSlice<t>, dst_stride: SizeT, event: EventT) -> (EventT, UniqLocalSlice<t>) where t: AsyncCopy;
+    async_work_group_strided_copy_global_to_local(dst: UniqLocalSlice<t>, src: GlobalSlice<t>, dst_stride: SizeT, event: EventT) -> (EventT, UniqLocalSlice<t>) where t: AsyncCopy;
 
-    async_work_group_strided_copy_local_to_global_uniq(dst: UniqLocalSlice<t>, src: UniqGlobalSlice<t>, dst_stride: SizeT, event: EventT) -> (EventT, UniqLocalSlice<t>, UniqGlobalSlice<t>) where t: AsyncCopy;
+    async_work_group_strided_copy_global_to_local_uniq(dst: UniqLocalSlice<t>, src: UniqGlobalSlice<t>, dst_stride: SizeT, event: EventT) -> (EventT, UniqLocalSlice<t>, UniqGlobalSlice<t>) where t: AsyncCopy;
 
-    async_work_group_strided_copy_global_to_local(dst: UniqGlobalSlice<t>, src: LocalSlice<t>, dst_stride: SizeT, event: EventT) -> (EventT, UniqGlobalSlice<t>) where t: AsyncCopy;
+    async_work_group_strided_copy_local_to_global(dst: UniqGlobalSlice<t>, src: LocalSlice<t>, dst_stride: SizeT, event: EventT) -> (EventT, UniqGlobalSlice<t>) where t: AsyncCopy;
 
-    async_work_group_strided_copy_global_to_local_uniq(dst: UniqGlobalSlice<t>, src: UniqLocalSlice<t>, dst_stride: SizeT, event: EventT) -> (EventT, UniqGlobalSlice<t>, UniqLocalSlice<t>) where t: AsyncCopy;
+    async_work_group_strided_copy_local_to_global_uniq(dst: UniqGlobalSlice<t>, src: UniqLocalSlice<t>, dst_stride: SizeT, event: EventT) -> (EventT, UniqGlobalSlice<t>, UniqLocalSlice<t>) where t: AsyncCopy;
 };
 
 trait Prefetch
