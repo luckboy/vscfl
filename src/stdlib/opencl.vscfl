@@ -550,3 +550,24 @@ trait AtomicXchg
 
     global_atomic_xchg(r: UniqGlobalRef<t>, val: t) -> (t, UniqGlobalRef<t>) where t: AtomicXchg;
 };
+
+trait VecStep
+{
+    vec_step(a: t) -> Int where t: VecStep;
+};
+
+builtin get_work_dim;
+builtin get_global_size;
+builtin get_global_id;
+builtin get_local_size;
+builtin get_local_id;
+builtin get_num_groups;
+builtin get_group_id;
+builtin get_global_offset;
+builtin CLK_LOCAL_MEM_FENCE;
+builtin CLK_GLOBAL_MEM_FENCE;
+builtin barrier;
+builtin mem_fence;
+builtin read_mem_fence;
+builtin write_mem_fence;
+builtin wait_group_events;

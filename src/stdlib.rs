@@ -569,6 +569,41 @@ fn generate_opencl_convert_source() -> Source
     Source::String(String::from("(stdlib)/opencl_convert.vscfl"), src)
 }
 
+fn generate_opencl_shuffle_source() -> Source
+{
+    let mut src = String::new();
+    for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+        for n in [2, 4, 8, 16] {
+            src += format!("trait {}{}Shuffle\n", s, n).as_str();
+            src += "{\n";
+            src += format!("    {}{}_shuffle_uchar{}(x: t, mask: Uchar{}) -> {}{} where t: {}{}Shuffle;\n", s, n, n, n, s, n, s, n).as_str();
+            src += format!("    {}{}_shuffle_ushort{}(x: t, mask: Ushort{}) -> {}{} where t: {}{}Shuffle;\n", s, n, n, n, s, n, s, n).as_str();
+            src += format!("    {}{}_shuffle_uint{}(x: t, mask: Uint{}) -> {}{} where t: {}{}Shuffle;\n", s, n, n, n, s, n, s, n).as_str();
+            src += format!("    {}{}_shuffle_ulong{}(x: t, mask: Ulong{}) -> {}{} where t: {}{}Shuffle;\n", s, n, n, n, s, n, s, n).as_str();
+            src += format!("    {}{}_shuffle2_uchar{}(x: t, y: t, mask: Uchar{}) -> {}{} where t: {}{}Shuffle;\n", s, n, n, n, s, n, s, n).as_str();
+            src += format!("    {}{}_shuffle2_ushort{}(x: t, y: t, mask: Ushort{}) -> {}{} where t: {}{}Shuffle;\n", s, n, n, n, s, n, s, n).as_str();
+            src += format!("    {}{}_shuffle2_uint{}(x: t, y: t, mask: Uint{}) -> {}{} where t: {}{}Shuffle;\n", s, n, n, n, s, n, s, n).as_str();
+            src += format!("    {}{}_shuffle2_ulong{}(x: t, y: t, mask: Ulong{}) -> {}{} where t: {}{}Shuffle;\n", s, n, n, n, s, n, s, n).as_str();
+            src += "};\n";
+        }
+    }
+    Source::String(String::from("(stdlib)/opencl_shuffle.vscfl"), src)
+}
+
+fn generate_opencl_upsample_source() -> Source
+{
+    let mut src = String::new();
+    for s in ["", "2", "3", "4", "8", "16"] {
+        src += format!("builtin short{}_upsample;\n", s).as_str();
+        src += format!("builtin int{}_upsample;\n", s).as_str();
+        src += format!("builtin long{}_upsample;\n", s).as_str();
+        src += format!("builtin ushort{}_upsample;\n", s).as_str();
+        src += format!("builtin uint{}_upsample;\n", s).as_str();
+        src += format!("builtin ulong{}_upsample;\n", s).as_str();
+    }
+    Source::String(String::from("(stdlib)/opencl_upsample.vscfl"), src)
+}
+
 fn generate_opencl_vector_source() -> Source
 {
     let mut src = String::new();
@@ -773,6 +808,20 @@ fn generate_opencl_impls_source() -> Source
     for s in ["Int", "Uint", "Float"] {
         src += format!("builtin impl AtomicXchg for {};\n", s).as_str();
     }
+    // VecStep
+    for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl VecStep for {}{};\n", s, n).as_str();
+        }
+    }
+    // Shuffle
+    for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+        for n in [2, 4, 8, 16] {
+            for m in [2, 4, 8, 16] {
+                src += format!("builtin impl {}{}Shuffle for {}{};\n", s, n, s, m).as_str();
+            }
+        }
+    }
     Source::String(String::from("(stdlib)/opencl_impls.vscfl"), src)
 }
 
@@ -791,6 +840,8 @@ pub fn stdlib_sources() -> Vec<Source>
         generate_std_impls_source(),
         Source::String(String::from("(stdlib)/opencl.vscfl"), String::from(OPENCL_SOURCE)),
         generate_opencl_convert_source(),
+        generate_opencl_shuffle_source(),
+        generate_opencl_upsample_source(),
         generate_opencl_vector_source(),
         generate_opencl_impls_source()
     ]
