@@ -1,0 +1,476 @@
+//
+// Copyright (c) 2024 Łukasz Szpakowski
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+//
+builtin type ClMemFenceFlags;
+builtin type EventT;
+
+trait HalfMath
+{
+    half_cos(x: t) -> t where t: HalfMath;
+
+    half_divide(x: t, y: t) -> t where t: HalfMath;
+
+    half_exp(x: t) -> t where t: HalfMath;
+
+    half_exp2(x: t) -> t where t: HalfMath;
+
+    half_exp10(x: t) -> t where t: HalfMath;
+
+    half_log(x: t) -> t where t: HalfMath;
+
+    half_log2(x: t) -> t where t: HalfMath;
+
+    half_log10(x: t) -> t where t: HalfMath;
+
+    half_powr(x: t, y: t) -> t where t: HalfMath;
+
+    half_recip(x: t) -> t where t: HalfMath;
+
+    half_rsqrt(x: t) -> t where t: HalfMath;
+
+    half_sin(x: t) -> t where t: HalfMath;
+
+    half_sqrt(x: t) -> t where t: HalfMath;
+
+    half_tan(x: t) -> t where t: HalfMath;
+};
+
+trait NativeMath
+{
+    native_cos(x: t) -> t where t: NativeMath;
+
+    native_divide(x: t, y: t) -> t where t: NativeMath;
+
+    native_exp(x: t) -> t where t: NativeMath;
+
+    native_exp2(x: t) -> t where t: NativeMath;
+
+    native_exp10(x: t) -> t where t: NativeMath;
+
+    native_log(x: t) -> t where t: NativeMath;
+
+    native_log2(x: t) -> t where t: NativeMath;
+
+    native_log10(x: t) -> t where t: NativeMath;
+
+    native_powr(x: t, y: t) -> t where t: NativeMath;
+
+    native_recip(x: t) -> t where t: NativeMath;
+
+    native_rsqrt(x: t) -> t where t: NativeMath;
+
+    native_sin(x: t) -> t where t: NativeMath;
+
+    native_sqrt(x: t) -> t where t: NativeMath;
+
+    native_tan(x: t) -> t where t: NativeMath;
+};
+
+trait Integer
+{
+    abs_diff(x: t, y: t) -> t where t: Integer;
+
+    add_sat(x: t, y: t) -> t where t: Integer;
+
+    hadd(x: t, y: t) -> t where t: Integer;
+
+    rhadd(x: t, y: t) -> t where t: Integer;
+
+    clz(x: t) -> t where t: Integer;
+    
+    mad_hi(a: t, b: t, c: t) -> t where t: Integer;
+
+    mad_sat(a: t, b: t, c: t) -> t where t: Integer;
+
+    mul_sat(x: t, y: t) -> t where t: Integer;
+
+    rotate(v: t, i: t) -> t where t: Integer;
+    
+    sub_sat(x: t, y: t) -> t where t: Integer;
+    
+    popcount(x: t) -> t where t: Integer;    
+};
+
+trait Mad24
+{
+    mad24(x: t, y: t, z: t) -> t where t: Mad24;
+};
+
+trait Mul24
+{
+    mul24(x: t, y: t, z: t) -> t where t: Mul24;
+};
+
+trait FastGeometric
+{
+    fast_distance(p0: t, p1: t) -> Float where t: FastGeometric;
+
+    fast_length(p: t) -> Float where t: FastGeometric;
+
+    fast_normalize(p: t) -> t where t: FastGeometric;
+};
+
+trait RelationalInt
+{
+    isequal_int(x: t, y: t) -> Int where t: RelationalInt;
+
+    isnotequal_int(x: t, y: t) -> Int where t: RelationalInt;
+
+    isgreater_int(x: t, y: t) -> Int where t: RelationalInt;
+
+    isgreaterequal_int(x: t, y: t) -> Int where t: RelationalInt;
+
+    isless_int(x: t, y: t) -> Int where t: RelationalInt;
+
+    islessequal_int(x: t, y: t) -> Int where t: RelationalInt;
+
+    islessgreater_int(x: t, y: t) -> Int where t: RelationalInt;
+    
+    isfinite_int(x: t, y: t) -> Int where t: RelationalInt;
+
+    isinf_int(x: t, y: t) -> Int where t: RelationalInt;
+    
+    isnan_int(x: t, y: t) -> Int where t: RelationalInt;
+
+    isnormal_int(x: t, y: t) -> Int where t: RelationalInt;
+
+    isordered_int(x: t, y: t) -> Int where t: RelationalInt;
+
+    isunordered_int(x: t, y: t) -> Int where t: RelationalInt;
+
+    signbit_int(x: t, y: t) -> Int where t: RelationalInt;
+};
+
+trait RelationalInt2
+{
+    isequal_int2(x: t, y: t) -> Int2 where t: RelationalInt2;
+
+    isnotequal_int2(x: t, y: t) -> Int2 where t: RelationalInt2;
+
+    isgreater_int2(x: t, y: t) -> Int2 where t: RelationalInt2;
+
+    isgreaterequal_int2(x: t, y: t) -> Int2 where t: RelationalInt2;
+
+    isless_int2(x: t, y: t) -> Int2 where t: RelationalInt2;
+
+    islessequal_int2(x: t, y: t) -> Int2 where t: RelationalInt2;
+
+    islessgreater_int2(x: t, y: t) -> Int2 where t: RelationalInt2;
+    
+    isfinite_int2(x: t, y: t) -> Int2 where t: RelationalInt2;
+
+    isinf_int2(x: t, y: t) -> Int2 where t: RelationalInt2;
+    
+    isnan_int2(x: t, y: t) -> Int2 where t: RelationalInt2;
+
+    isnormal_int2(x: t, y: t) -> Int2 where t: RelationalInt2;
+
+    isordered_int2(x: t, y: t) -> Int2 where t: RelationalInt2;
+
+    isunordered_int2(x: t, y: t) -> Int2 where t: RelationalInt2;
+
+    signbit_int2(x: t, y: t) -> Int2 where t: RelationalInt2;
+};
+
+trait RelationalInt3
+{
+    isequal_int3(x: t, y: t) -> Int3 where t: RelationalInt3;
+
+    isnotequal_int3(x: t, y: t) -> Int3 where t: RelationalInt3;
+
+    isgreater_int3(x: t, y: t) -> Int3 where t: RelationalInt3;
+
+    isgreaterequal_int3(x: t, y: t) -> Int3 where t: RelationalInt3;
+
+    isless_int3(x: t, y: t) -> Int3 where t: RelationalInt3;
+
+    islessequal_int3(x: t, y: t) -> Int3 where t: RelationalInt3;
+
+    islessgreater_int3(x: t, y: t) -> Int3 where t: RelationalInt3;
+    
+    isfinite_int3(x: t, y: t) -> Int3 where t: RelationalInt3;
+
+    isinf_int3(x: t, y: t) -> Int3 where t: RelationalInt3;
+    
+    isnan_int3(x: t, y: t) -> Int3 where t: RelationalInt3;
+
+    isnormal_int3(x: t, y: t) -> Int3 where t: RelationalInt3;
+
+    isordered_int3(x: t, y: t) -> Int3 where t: RelationalInt3;
+
+    isunordered_int3(x: t, y: t) -> Int3 where t: RelationalInt3;
+
+    signbit_int3(x: t, y: t) -> Int3 where t: RelationalInt3;
+};
+
+trait RelationalInt4
+{
+    isequal_int4(x: t, y: t) -> Int4 where t: RelationalInt4;
+
+    isnotequal_int4(x: t, y: t) -> Int4 where t: RelationalInt4;
+
+    isgreater_int4(x: t, y: t) -> Int4 where t: RelationalInt4;
+
+    isgreaterequal_int4(x: t, y: t) -> Int4 where t: RelationalInt4;
+
+    isless_int4(x: t, y: t) -> Int4 where t: RelationalInt4;
+
+    islessequal_int4(x: t, y: t) -> Int4 where t: RelationalInt4;
+
+    islessgreater_int4(x: t, y: t) -> Int4 where t: RelationalInt4;
+    
+    isfinite_int4(x: t, y: t) -> Int4 where t: RelationalInt4;
+
+    isinf_int4(x: t, y: t) -> Int4 where t: RelationalInt4;
+    
+    isnan_int4(x: t, y: t) -> Int4 where t: RelationalInt4;
+
+    isnormal_int4(x: t, y: t) -> Int4 where t: RelationalInt4;
+
+    isordered_int4(x: t, y: t) -> Int4 where t: RelationalInt4;
+
+    isunordered_int4(x: t, y: t) -> Int4 where t: RelationalInt4;
+
+    signbit_int4(x: t, y: t) -> Int4 where t: RelationalInt4;
+};
+
+trait RelationalInt8
+{
+    isequal_int8(x: t, y: t) -> Int8 where t: RelationalInt8;
+
+    isnotequal_int8(x: t, y: t) -> Int8 where t: RelationalInt8;
+
+    isgreater_int8(x: t, y: t) -> Int8 where t: RelationalInt8;
+
+    isgreaterequal_int8(x: t, y: t) -> Int8 where t: RelationalInt8;
+
+    isless_int8(x: t, y: t) -> Int8 where t: RelationalInt8;
+
+    islessequal_int8(x: t, y: t) -> Int8 where t: RelationalInt8;
+
+    islessgreater_int8(x: t, y: t) -> Int8 where t: RelationalInt8;
+    
+    isfinite_int8(x: t, y: t) -> Int8 where t: RelationalInt8;
+
+    isinf_int8(x: t, y: t) -> Int8 where t: RelationalInt8;
+    
+    isnan_int8(x: t, y: t) -> Int8 where t: RelationalInt8;
+
+    isnormal_int8(x: t, y: t) -> Int8 where t: RelationalInt8;
+
+    isordered_int8(x: t, y: t) -> Int8 where t: RelationalInt8;
+
+    isunordered_int8(x: t, y: t) -> Int8 where t: RelationalInt8;
+
+    signbit_int8(x: t, y: t) -> Int8 where t: RelationalInt8;
+};
+
+trait RelationalInt16
+{
+    isequal_int16(x: t, y: t) -> Int16 where t: RelationalInt16;
+
+    isnotequal_int16(x: t, y: t) -> Int16 where t: RelationalInt16;
+
+    isgreater_int16(x: t, y: t) -> Int16 where t: RelationalInt16;
+
+    isgreaterequal_int16(x: t, y: t) -> Int16 where t: RelationalInt16;
+
+    isless_int16(x: t, y: t) -> Int16 where t: RelationalInt16;
+
+    islessequal_int16(x: t, y: t) -> Int16 where t: RelationalInt16;
+
+    islessgreater_int16(x: t, y: t) -> Int16 where t: RelationalInt16;
+    
+    isfinite_int16(x: t, y: t) -> Int16 where t: RelationalInt16;
+
+    isinf_int16(x: t, y: t) -> Int16 where t: RelationalInt16;
+    
+    isnan_int16(x: t, y: t) -> Int16 where t: RelationalInt16;
+
+    isnormal_int16(x: t, y: t) -> Int16 where t: RelationalInt16;
+
+    isordered_int16(x: t, y: t) -> Int16 where t: RelationalInt16;
+
+    isunordered_int16(x: t, y: t) -> Int16 where t: RelationalInt16;
+
+    signbit_int16(x: t, y: t) -> Int16 where t: RelationalInt16;
+};
+
+trait RelationalLong2
+{
+    isequal_long2(x: t, y: t) -> Long2 where t: RelationalLong2;
+
+    isnotequal_long2(x: t, y: t) -> Long2 where t: RelationalLong2;
+
+    isgreater_long2(x: t, y: t) -> Long2 where t: RelationalLong2;
+
+    isgreaterequal_long2(x: t, y: t) -> Long2 where t: RelationalLong2;
+
+    isless_long2(x: t, y: t) -> Long2 where t: RelationalLong2;
+
+    islessequal_long2(x: t, y: t) -> Long2 where t: RelationalLong2;
+
+    islessgreater_long2(x: t, y: t) -> Long2 where t: RelationalLong2;
+    
+    isfinite_long2(x: t, y: t) -> Long2 where t: RelationalLong2;
+
+    isinf_long2(x: t, y: t) -> Long2 where t: RelationalLong2;
+    
+    isnan_long2(x: t, y: t) -> Long2 where t: RelationalLong2;
+
+    isnormal_long2(x: t, y: t) -> Long2 where t: RelationalLong2;
+
+    isordered_long2(x: t, y: t) -> Long2 where t: RelationalLong2;
+
+    isunordered_long2(x: t, y: t) -> Long2 where t: RelationalLong2;
+
+    signbit_long2(x: t, y: t) -> Long2 where t: RelationalLong2;
+};
+
+trait RelationalLong3
+{
+    isequal_long3(x: t, y: t) -> Long3 where t: RelationalLong3;
+
+    isnotequal_long3(x: t, y: t) -> Long3 where t: RelationalLong3;
+
+    isgreater_long3(x: t, y: t) -> Long3 where t: RelationalLong3;
+
+    isgreaterequal_long3(x: t, y: t) -> Long3 where t: RelationalLong3;
+
+    isless_long3(x: t, y: t) -> Long3 where t: RelationalLong3;
+
+    islessequal_long3(x: t, y: t) -> Long3 where t: RelationalLong3;
+
+    islessgreater_long3(x: t, y: t) -> Long3 where t: RelationalLong3;
+    
+    isfinite_long3(x: t, y: t) -> Long3 where t: RelationalLong3;
+
+    isinf_long3(x: t, y: t) -> Long3 where t: RelationalLong3;
+    
+    isnan_long3(x: t, y: t) -> Long3 where t: RelationalLong3;
+
+    isnormal_long3(x: t, y: t) -> Long3 where t: RelationalLong3;
+
+    isordered_long3(x: t, y: t) -> Long3 where t: RelationalLong3;
+
+    isunordered_long3(x: t, y: t) -> Long3 where t: RelationalLong3;
+
+    signbit_long3(x: t, y: t) -> Long3 where t: RelationalLong3;
+};
+
+trait RelationalLong4
+{
+    isequal_long4(x: t, y: t) -> Long4 where t: RelationalLong4;
+
+    isnotequal_long4(x: t, y: t) -> Long4 where t: RelationalLong4;
+
+    isgreater_long4(x: t, y: t) -> Long4 where t: RelationalLong4;
+
+    isgreaterequal_long4(x: t, y: t) -> Long4 where t: RelationalLong4;
+
+    isless_long4(x: t, y: t) -> Long4 where t: RelationalLong4;
+
+    islessequal_long4(x: t, y: t) -> Long4 where t: RelationalLong4;
+
+    islessgreater_long4(x: t, y: t) -> Long4 where t: RelationalLong4;
+    
+    isfinite_long4(x: t, y: t) -> Long4 where t: RelationalLong4;
+
+    isinf_long4(x: t, y: t) -> Long4 where t: RelationalLong4;
+    
+    isnan_long4(x: t, y: t) -> Long4 where t: RelationalLong4;
+
+    isnormal_long4(x: t, y: t) -> Long4 where t: RelationalLong4;
+
+    isordered_long4(x: t, y: t) -> Long4 where t: RelationalLong4;
+
+    isunordered_long4(x: t, y: t) -> Long4 where t: RelationalLong4;
+
+    signbit_long4(x: t, y: t) -> Long4 where t: RelationalLong4;
+};
+
+trait RelationalLong8
+{
+    isequal_long8(x: t, y: t) -> Long8 where t: RelationalLong8;
+
+    isnotequal_long8(x: t, y: t) -> Long8 where t: RelationalLong8;
+
+    isgreater_long8(x: t, y: t) -> Long8 where t: RelationalLong8;
+
+    isgreaterequal_long8(x: t, y: t) -> Long8 where t: RelationalLong8;
+
+    isless_long8(x: t, y: t) -> Long8 where t: RelationalLong8;
+
+    islessequal_long8(x: t, y: t) -> Long8 where t: RelationalLong8;
+
+    islessgreater_long8(x: t, y: t) -> Long8 where t: RelationalLong8;
+    
+    isfinite_long8(x: t, y: t) -> Long8 where t: RelationalLong8;
+
+    isinf_long8(x: t, y: t) -> Long8 where t: RelationalLong8;
+    
+    isnan_long8(x: t, y: t) -> Long8 where t: RelationalLong8;
+
+    isnormal_long8(x: t, y: t) -> Long8 where t: RelationalLong8;
+
+    isordered_long8(x: t, y: t) -> Long8 where t: RelationalLong8;
+
+    isunordered_long8(x: t, y: t) -> Long8 where t: RelationalLong8;
+
+    signbit_long8(x: t, y: t) -> Long8 where t: RelationalLong8;
+};
+
+trait RelationalLong16
+{
+    isequal_long16(x: t, y: t) -> Long16 where t: RelationalLong16;
+
+    isnotequal_long16(x: t, y: t) -> Long16 where t: RelationalLong16;
+
+    isgreater_long16(x: t, y: t) -> Long16 where t: RelationalLong16;
+
+    isgreaterequal_long16(x: t, y: t) -> Long16 where t: RelationalLong16;
+
+    isless_long16(x: t, y: t) -> Long16 where t: RelationalLong16;
+
+    islessequal_long16(x: t, y: t) -> Long16 where t: RelationalLong16;
+
+    islessgreater_long16(x: t, y: t) -> Long16 where t: RelationalLong16;
+    
+    isfinite_long16(x: t, y: t) -> Long16 where t: RelationalLong16;
+
+    isinf_long16(x: t, y: t) -> Long16 where t: RelationalLong16;
+    
+    isnan_long16(x: t, y: t) -> Long16 where t: RelationalLong16;
+
+    isnormal_long16(x: t, y: t) -> Long16 where t: RelationalLong16;
+
+    isordered_long16(x: t, y: t) -> Long16 where t: RelationalLong16;
+
+    isunordered_long16(x: t, y: t) -> Long16 where t: RelationalLong16;
+
+    signbit_long16(x: t, y: t) -> Long16 where t: RelationalLong16;
+};
+
+trait MsbAny
+{
+    msb_any(x: t) -> Int where t: MsbAny;
+};
+
+trait MsbAll
+{
+    msb_all(x: t) -> Int where t: MsbAll;
+};
+
+trait Bitselect
+{
+    bitselect(a: t, b: t, c: t) -> t where t: Bitselect;
+};
+
+trait Select
+{
+    select(a: t, b: t, c: t) -> t where t: Select;
+};

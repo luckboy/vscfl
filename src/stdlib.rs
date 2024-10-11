@@ -527,6 +527,8 @@ fn generate_std_impls_source() -> Source
     Source::String(String::from("(stdlib)/std_impls.vscfl"), src)
 }
 
+const OPENCL_SOURCE: &'static str = include_str!("stdlib/opencl.vscfl");
+
 fn generate_opencl_convert_source() -> Source
 {
     let mut src = String::new();
@@ -570,6 +572,20 @@ fn generate_opencl_convert_source() -> Source
 fn generate_opencl_impls_source() -> Source
 {
     let mut src = String::new();
+    // OpNot
+    src += "builtin impl OpNot for ClMemFenceFlags;\n";
+    // Eq
+    src += "builtin impl Eq for ClMemFenceFlags;\n";
+    // OpAnd
+    src += "builtin impl OpAnd for ClMemFenceFlags;\n";
+    // OpXor
+    src += "builtin impl OpXor for ClMemFenceFlags;\n";
+    // OpOr
+    src += "builtin impl OpOr for ClMemFenceFlags;\n";
+    // Zero
+    for s in ["ClMemFenceFlags", "EventT"] {
+        src += format!("builtin impl Zero for {};\n", s).as_str();
+    }
     // ConvertS
     for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
         for t in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
@@ -582,6 +598,96 @@ fn generate_opencl_impls_source() -> Source
             for n in [2, 3, 4, 8, 16] {
                 src += format!("builtin impl Convert{}{} for {}{};\n", s, n, t, n).as_str();
             }
+        }
+    }
+    // HalfMath
+    src += "builtin impl HalfMath for Float;\n";
+    for n in [2, 3, 4, 8, 16] {
+        src += format!("builtin impl HalfMath for Float{};\n", n).as_str();
+    }
+    // NativeMath
+    src += "builtin impl NativeMath for Float;\n";
+    for n in [2, 3, 4, 8, 16] {
+        src += format!("builtin impl NativeMath for Float{};\n", n).as_str();
+    }
+    // Integer
+    for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+        src += format!("builtin impl Integer for {};\n", s).as_str();
+    }
+    for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl Integer for {}{};\n", s, n).as_str();
+        }
+    }
+    // Mad24
+    for s in ["Int", "Uint"] {
+        src += format!("builtin impl Mad24 for {};\n", s).as_str();
+    }
+    for s in ["Int", "Uint"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl Mad24 for {}{};\n", s, n).as_str();
+        }
+    }
+    // Mul24
+    for s in ["Int", "Uint"] {
+        src += format!("builtin impl Mul24 for {};\n", s).as_str();
+    }
+    for s in ["Int", "Uint"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl Mul24 for {}{};\n", s, n).as_str();
+        }
+    }
+    // FastGeometric
+    src += "builtin impl FastGeometric for Float;\n";
+    for n in [2, 3, 4] {
+        src += format!("builtin impl FastGeometric for Float{};\n", n).as_str();
+    }
+    // RelationalInt
+    for s in ["Float", "Double"] {
+        src += format!("builtin impl RelationalInt for {};\n", s).as_str();
+    }
+    // RelationalIntN
+    for n in [2, 3, 4, 8, 16] {
+        src += format!("builtin impl RelationalInt{} for Float{};\n", n, n).as_str();
+    }
+    // RelationalLongN
+    for n in [2, 3, 4, 8, 16] {
+        src += format!("builtin impl RelationalLong{} for Double{};\n", n, n).as_str();
+    }
+    // MsbAny
+    for s in ["Char", "Short", "Int", "Long"] {
+        src += format!("builtin impl MsbAny for {};\n", s).as_str();
+    }
+    for s in ["Char", "Short", "Int", "Long"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl MsbAny for {}{};\n", s, n).as_str();
+        }
+    }
+    // MsbAll
+    for s in ["Char", "Short", "Int", "Long"] {
+        src += format!("builtin impl MsbAll for {};\n", s).as_str();
+    }
+    for s in ["Char", "Short", "Int", "Long"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl MsbAll for {}{};\n", s, n).as_str();
+        }
+    }
+    // Bitselect
+    for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+        src += format!("builtin impl Bitselect for {};\n", s).as_str();
+    }
+    for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl Bitselect for {}{};\n", s, n).as_str();
+        }
+    }
+    // Select
+    for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+        src += format!("builtin impl Select for {};\n", s).as_str();
+    }
+    for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl Select for {}{};\n", s, n).as_str();
         }
     }
     Source::String(String::from("(stdlib)/opencl_impls.vscfl"), src)
@@ -600,6 +706,7 @@ pub fn stdlib_sources() -> Vec<Source>
         Source::String(String::from("(stdlib)/std_range.vscfl"), String::from(STD_RANGE_SOURCE)),
         Source::String(String::from("(stdlib)/std_values.vscfl"), String::from(STD_VALUES_SOURCE)),
         generate_std_impls_source(),
+        Source::String(String::from("(stdlib)/opencl.vscfl"), String::from(OPENCL_SOURCE)),
         generate_opencl_convert_source(),
         generate_opencl_impls_source()
     ]

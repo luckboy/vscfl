@@ -9,6 +9,8 @@ trait Common
 {
     abs(x: t) -> t where t: Common;
 
+    clamp(x: t, min_val: t, max_val: t) -> t where t: Common;
+
     max(x: t, y: t) -> t where t: Common;
 
     min(x: t, y: t) -> t where t: Common;
@@ -16,8 +18,6 @@ trait Common
 
 trait CommonExt
 {
-    clamp(x: t, min_val: t, max_val: t) -> t where t: CommonExt;
-
     degrees(radians: t) -> t where t: CommonExt;
 
     radians(degrees: t) -> t where t: CommonExt;
