@@ -909,7 +909,7 @@ impl Builtins
         }
         for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
             for n in [2, 3, 4, 8, 16] {
-                impl_pairs.insert((String::from("AsycCopy"), TypeName::Name(format!("{}{}", s, n))));
+                impl_pairs.insert((String::from("AsyncCopy"), TypeName::Name(format!("{}{}", s, n))));
             }
         }
         // Prefetch

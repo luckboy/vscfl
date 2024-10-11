@@ -747,6 +747,32 @@ fn generate_opencl_impls_source() -> Source
             src += format!("builtin impl Select for {}{};\n", s, n).as_str();
         }
     }
+    // AsyncCopy
+    for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+        src += format!("builtin impl AsyncCopy for {};\n", s).as_str();
+    }
+    for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl AsyncCopy for {}{};\n", s, n).as_str();
+        }
+    }
+    // Prefetch
+    for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+        src += format!("builtin impl Prefetch for {};\n", s).as_str();
+    }
+    for s in ["Char", "Short", "Int", "Long", "Uchar", "Ushort", "Uint", "Ulong", "Float", "Double"] {
+        for n in [2, 3, 4, 8, 16] {
+            src += format!("builtin impl Prefetch for {}{};\n", s, n).as_str();
+        }
+    }
+    // Atomic
+    for s in ["Int", "Uint"] {
+        src += format!("builtin impl Atomic for {};\n", s).as_str();
+    }
+    // AtomicXchg
+    for s in ["Int", "Uint", "Float"] {
+        src += format!("builtin impl AtomicXchg for {};\n", s).as_str();
+    }
     Source::String(String::from("(stdlib)/opencl_impls.vscfl"), src)
 }
 
