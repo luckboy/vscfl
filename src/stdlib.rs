@@ -173,7 +173,7 @@ fn generate_lang_impls_source() -> Source
 
 const STD_SOURCE: &'static str = include_str!("stdlib/std.vscfl");
 const STD_COMMON_SOURCE: &'static str = include_str!("stdlib/std_common.vscfl");
-const STD_GEOMETRIC_SOURCE: &'static str = include_str!("stdlib/std_geometric.vscfl");
+const STD_GEOMETRY_SOURCE: &'static str = include_str!("stdlib/std_geometry.vscfl");
 const STD_MATH_SOURCE: &'static str = include_str!("stdlib/std_math.vscfl");
 const STD_OPTION_SOURCE: &'static str = include_str!("stdlib/std_option.vscfl");
 const STD_RANGE_SOURCE: &'static str = include_str!("stdlib/std_range.vscfl");
@@ -594,7 +594,7 @@ pub fn stdlib_sources() -> Vec<Source>
         generate_lang_impls_source(),
         Source::String(String::from("(stdlib)/std.vscfl"), String::from(STD_SOURCE)),
         Source::String(String::from("(stdlib)/std_common.vscfl"), String::from(STD_COMMON_SOURCE)),
-        Source::String(String::from("(stdlib)/std_geometric.vscfl"), String::from(STD_GEOMETRIC_SOURCE)),
+        Source::String(String::from("(stdlib)/std_geometry.vscfl"), String::from(STD_GEOMETRY_SOURCE)),
         Source::String(String::from("(stdlib)/std_math.vscfl"), String::from(STD_MATH_SOURCE)),
         Source::String(String::from("(stdlib)/std_option.vscfl"), String::from(STD_OPTION_SOURCE)),
         Source::String(String::from("(stdlib)/std_range.vscfl"), String::from(STD_RANGE_SOURCE)),
