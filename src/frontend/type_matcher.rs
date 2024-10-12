@@ -230,38 +230,26 @@ impl TypeMatcher
         match local_types.eq_root_local_type_and_eq_local_types(root_local_type) {
             Some((eq_root_local_type, eq_local_types)) => {
                 let eq_local_type = LocalType::new(local_types.type_entries().root_of(eq_root_local_type.index()));
-                if eq_local_type != root_local_type1 && eq_local_type != root_local_type2 {
-                    match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, eq_local_type))) {
-                        Some(LocalTypeEntry::Param(_, _, type_param_entry, _)) => {
-                            let old_trait_names = {
-                                let type_param_entry_r = type_param_entry.borrow();
-                                type_param_entry_r.trait_names.clone()
-                            };
-                            if &old_trait_names != trait_names {
+                match local_types.type_entry_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, eq_local_type))) {
+                    Some(LocalTypeEntry::Param(_, _, type_param_entry, local_type)) => {
+                        if local_type != root_local_type1 && local_type != root_local_type2 {
+                            let mut type_param_entry_r = type_param_entry.borrow_mut();
+                            type_param_entry_r.trait_names = trait_names.clone();
+                        }
+                    },
+                    Some(_) => return Err(FrontendInternalError(String::from("set_trait_names_for_local_types: no type parameter entry"))),
+                    None => return Err(FrontendInternalError(String::from("set_trait_names_for_local_types: no local type entry"))),
+                }
+                for eq_local_type2 in eq_local_types {
+                    match local_types.type_entry(*eq_local_type2) {
+                        Some(LocalTypeEntry::Param(_, _, type_param_entry, local_type)) => {
+                            if *local_type != root_local_type1 && *local_type != root_local_type2 {
                                 let mut type_param_entry_r = type_param_entry.borrow_mut();
                                 type_param_entry_r.trait_names = trait_names.clone();
                             }
                         },
                         Some(_) => return Err(FrontendInternalError(String::from("set_trait_names_for_local_types: no type parameter entry"))),
                         None => return Err(FrontendInternalError(String::from("set_trait_names_for_local_types: no local type entry"))),
-                    }
-                }
-                for eq_local_type2 in eq_local_types {
-                    if *eq_local_type2 != root_local_type1 && *eq_local_type2 != root_local_type2 {
-                        match local_types.type_entry(*eq_local_type2) {
-                            Some(LocalTypeEntry::Param(_, _, type_param_entry, _)) => {
-                                let old_trait_names = {
-                                    let type_param_entry_r = type_param_entry.borrow();
-                                    type_param_entry_r.trait_names.clone()
-                                };
-                                if &old_trait_names != trait_names {
-                                    let mut type_param_entry_r = type_param_entry.borrow_mut();
-                                    type_param_entry_r.trait_names = trait_names.clone();
-                                }
-                            },
-                            Some(_) => return Err(FrontendInternalError(String::from("set_trait_names_for_local_types: no type parameter entry"))),
-                            None => return Err(FrontendInternalError(String::from("set_trait_names_for_local_types: no local type entry"))),
-                        }
                     }
                 }
                 Ok(())
@@ -282,103 +270,111 @@ impl TypeMatcher
                     let shared_flag = self.shared_flag_for_type_value2(&Rc::new(TypeValue::Param(uniq_flag, *local_type1)), None, tree, local_types)?;
                     return Ok(Some(shared_flag));
                 }
-                let type_param_entry1_r = type_param_entry1.borrow();
-                let type_param_entry2_r = type_param_entry2.borrow();
                 let mut are_type_values1 = true;
                 let mut are_type_values2 = true;
-                if (type_param_entry1_r.trait_names.is_empty() || (type_param_entry1_r.trait_names.len() == 1 && type_param_entry1_r.trait_names.contains(&TraitName::Shared))) && type_param_entry1_r.type_values.is_empty() {
-                    are_type_values1 = false;
-                }
-                if (type_param_entry2_r.trait_names.is_empty() || (type_param_entry2_r.trait_names.len() == 1 && type_param_entry2_r.trait_names.contains(&TraitName::Shared))) && type_param_entry2_r.type_values.is_empty() {
-                    are_type_values2 = false;
-                }
                 let mut is_success = true;
+                let (type_values1, type_values2) = {
+                    let type_param_entry1_r = type_param_entry1.borrow();
+                    let type_param_entry2_r = type_param_entry2.borrow();
+                    if (type_param_entry1_r.trait_names.is_empty() || (type_param_entry1_r.trait_names.len() == 1 && type_param_entry1_r.trait_names.contains(&TraitName::Shared))) && type_param_entry1_r.type_values.is_empty() {
+                        are_type_values1 = false;
+                    }
+                    if (type_param_entry2_r.trait_names.is_empty() || (type_param_entry2_r.trait_names.len() == 1 && type_param_entry2_r.trait_names.contains(&TraitName::Shared))) && type_param_entry2_r.type_values.is_empty() {
+                        are_type_values2 = false;
+                    }
+                    (type_param_entry1_r.type_values.clone(), type_param_entry2_r.type_values.clone())
+                };
                 if are_type_values1 && are_type_values2 {
-                    if type_param_entry1_r.trait_names.len() != type_param_entry2_r.trait_names.len() {
+                    if type_values1.len() != type_values2.len() {
                         return Ok(None);
                     }
-                    for (type_value3, type_value4) in type_param_entry1_r.type_values.iter().zip(type_param_entry2_r.type_values.iter()) {
+                    for (type_value3, type_value4) in type_values1.iter().zip(type_values2.iter()) {
                         if self.match_type_values_with_infos(type_value3, type_value4, tree, local_types, infos)?.is_none() {
                             is_success = false;
                         }
                     }
-                } else if are_type_values1 && !are_type_values2 {
-                    if type_param_entry2_r.trait_names.contains(&TraitName::Shared) && !type_param_entry1_r.trait_names.contains(&TraitName::Shared) && !type_param_entry1_r.trait_names.contains(&TraitName::Fun) {
-                        let mut type_arg_shared_flag1 = SharedFlag::Shared; 
-                        for type_value3 in &type_param_entry1_r.type_values {
-                            if self.shared_flag_for_type_value2(type_value3, None, tree, local_types)? == SharedFlag::None {
-                                type_arg_shared_flag1 = SharedFlag::None;
+                }
+                {
+                    let type_param_entry1_r = type_param_entry1.borrow();
+                    let type_param_entry2_r = type_param_entry2.borrow();
+                    if are_type_values1 && !are_type_values2 {
+                        if type_param_entry2_r.trait_names.contains(&TraitName::Shared) && !type_param_entry1_r.trait_names.contains(&TraitName::Shared) && !type_param_entry1_r.trait_names.contains(&TraitName::Fun) {
+                            let mut type_arg_shared_flag1 = SharedFlag::Shared; 
+                            for type_value3 in &type_param_entry1_r.type_values {
+                                if self.shared_flag_for_type_value2(type_value3, None, tree, local_types)? == SharedFlag::None {
+                                    type_arg_shared_flag1 = SharedFlag::None;
+                                }
+                            }
+                            if type_arg_shared_flag1 == SharedFlag::None {
+                                infos.push(MismatchedTypeInfo::SharedParam(*local_type1));
+                                is_success = false;
                             }
                         }
-                        if type_arg_shared_flag1 == SharedFlag::None {
-                            infos.push(MismatchedTypeInfo::SharedParam(*local_type1));
-                            is_success = false;
-                        }
-                    }
-                } else if !are_type_values1 && are_type_values2 {
-                    if type_param_entry1_r.trait_names.contains(&TraitName::Shared) && !type_param_entry2_r.trait_names.contains(&TraitName::Shared) && !type_param_entry2_r.trait_names.contains(&TraitName::Fun) {
-                        let mut type_arg_shared_flag2 = SharedFlag::Shared; 
-                        for type_value4 in &type_param_entry2_r.type_values {
-                            if self.shared_flag_for_type_value2(type_value4, None, tree, local_types)? == SharedFlag::None {
-                                type_arg_shared_flag2 = SharedFlag::None;
+                    } else if !are_type_values1 && are_type_values2 {
+                        if type_param_entry1_r.trait_names.contains(&TraitName::Shared) && !type_param_entry2_r.trait_names.contains(&TraitName::Shared) && !type_param_entry2_r.trait_names.contains(&TraitName::Fun) {
+                            let mut type_arg_shared_flag2 = SharedFlag::Shared; 
+                            for type_value4 in &type_param_entry2_r.type_values {
+                                if self.shared_flag_for_type_value2(type_value4, None, tree, local_types)? == SharedFlag::None {
+                                    type_arg_shared_flag2 = SharedFlag::None;
+                                }
+                            }
+                            if type_arg_shared_flag2 == SharedFlag::None {
+                                infos.push(MismatchedTypeInfo::SharedParam(*local_type2));
+                                is_success = false;
                             }
                         }
-                        if type_arg_shared_flag2 == SharedFlag::None {
-                            infos.push(MismatchedTypeInfo::SharedParam(*local_type2));
-                            is_success = false;
-                        }
                     }
-                }
-                if !type_param_entry1_r.trait_names.contains(&TraitName::Shared) && type_param_entry2_r.trait_names.contains(&TraitName::Shared) {
-                    for closure_local_type in &type_param_entry1_r.closure_local_types {
-                        if !self.set_shared(*closure_local_type, tree, local_types)? {
-                            infos.push(MismatchedTypeInfo::SharedClosure(*closure_local_type));
-                            is_success = false;
+                    if !type_param_entry1_r.trait_names.contains(&TraitName::Shared) && type_param_entry2_r.trait_names.contains(&TraitName::Shared) {
+                        for closure_local_type in &type_param_entry1_r.closure_local_types {
+                            if !self.set_shared(*closure_local_type, tree, local_types)? {
+                                infos.push(MismatchedTypeInfo::SharedClosure(*closure_local_type));
+                                is_success = false;
+                            }
                         }
-                    }
-                } else if type_param_entry1_r.trait_names.contains(&TraitName::Shared) && !type_param_entry2_r.trait_names.contains(&TraitName::Shared) {
-                    for closure_local_type in &type_param_entry2_r.closure_local_types {
-                        if !self.set_shared(*closure_local_type, tree, local_types)? {
-                            infos.push(MismatchedTypeInfo::SharedClosure(*closure_local_type));
-                            is_success = false;
+                    } else if type_param_entry1_r.trait_names.contains(&TraitName::Shared) && !type_param_entry2_r.trait_names.contains(&TraitName::Shared) {
+                        for closure_local_type in &type_param_entry2_r.closure_local_types {
+                            if !self.set_shared(*closure_local_type, tree, local_types)? {
+                                infos.push(MismatchedTypeInfo::SharedClosure(*closure_local_type));
+                                is_success = false;
+                            }
                         }
+                    }  
+                    if !is_success {
+                        return Ok(None);
                     }
-                }  
-                if !is_success {
-                    return Ok(None);
-                }
-                let new_trait_names: BTreeSet<TraitName> = type_param_entry1_r.trait_names.union(&type_param_entry2_r.trait_names).map(|e| e.clone()).collect();
-                let new_type_values = if type_param_entry1_r.type_values.len() > type_param_entry2_r.type_values.len() {
-                    type_param_entry1_r.type_values.clone()
-                } else {
-                    type_param_entry2_r.type_values.clone()
-                };
-                let new_closure_local_types: BTreeSet<LocalType> = type_param_entry1_r.closure_local_types.union(&type_param_entry2_r.closure_local_types).map(|e| e.clone()).collect();
-                let new_number = match (type_param_entry1_r.number, type_param_entry2_r.number) {
-                    (Some(num1), Some(num2)) => Some(min(num1, num2)),
-                    (Some(num1), None) => Some(num1),
-                    (None, Some(num2)) => Some(num2),
-                    (None, None) => None,
-                };
-                let mut new_type_param_entry = TypeParamEntry::new();
-                new_type_param_entry.trait_names = new_trait_names.clone();
-                new_type_param_entry.type_values = new_type_values;
-                new_type_param_entry.closure_local_types = new_closure_local_types;
-                new_type_param_entry.number = new_number;
-                let is_in_non_uniq_lambda = local_types.has_in_non_uniq_lambda(*local_type1) | local_types.has_in_non_uniq_lambda(*local_type2);
-                let is_defined_type_param_eq = local_types.has_defined_type_param_eq(*local_type1) | local_types.has_defined_type_param_eq(*local_type2);
-                local_types.set_type_param_entry(*local_type1, self.empty_type_param_entry.clone(), DefinedFlag::Undefined);
-                local_types.set_type_param_entry(*local_type2, self.empty_type_param_entry.clone(), DefinedFlag::Undefined);
-                match local_types.join_local_types(*local_type1, *local_type2) {
-                    Some((root_local_type, eq_root_local_type)) => {
-                        local_types.set_type_param_entry(root_local_type, Rc::new(RefCell::new(new_type_param_entry)), DefinedFlag::Undefined);
-                        local_types.set_in_non_uniq_lambda(eq_root_local_type, is_in_non_uniq_lambda);
-                        local_types.set_defined_type_param_eq(eq_root_local_type, is_defined_type_param_eq);
-                        self.set_trait_names_for_local_types(*local_type1, *local_type2, eq_root_local_type, &new_trait_names, local_types)?;
-                        let shared_flag = self.shared_flag_for_type_value2(&Rc::new(TypeValue::Param(uniq_flag, root_local_type)), None, tree, local_types)?;
-                        Ok(Some(shared_flag))
-                    },
-                    None => Err(FrontendInternalError(String::from("match_local_type_entries_with_infos: can't join local types"))),
+                    let new_trait_names: BTreeSet<TraitName> = type_param_entry1_r.trait_names.union(&type_param_entry2_r.trait_names).map(|e| e.clone()).collect();
+                    let new_type_values = if type_param_entry1_r.type_values.len() > type_param_entry2_r.type_values.len() {
+                        type_param_entry1_r.type_values.clone()
+                    } else {
+                        type_param_entry2_r.type_values.clone()
+                    };
+                    let new_closure_local_types: BTreeSet<LocalType> = type_param_entry1_r.closure_local_types.union(&type_param_entry2_r.closure_local_types).map(|e| e.clone()).collect();
+                    let new_number = match (type_param_entry1_r.number, type_param_entry2_r.number) {
+                        (Some(num1), Some(num2)) => Some(min(num1, num2)),
+                        (Some(num1), None) => Some(num1),
+                        (None, Some(num2)) => Some(num2),
+                        (None, None) => None,
+                    };
+                    let mut new_type_param_entry = TypeParamEntry::new();
+                    new_type_param_entry.trait_names = new_trait_names.clone();
+                    new_type_param_entry.type_values = new_type_values;
+                    new_type_param_entry.closure_local_types = new_closure_local_types;
+                    new_type_param_entry.number = new_number;
+                    let is_in_non_uniq_lambda = local_types.has_in_non_uniq_lambda(*local_type1) | local_types.has_in_non_uniq_lambda(*local_type2);
+                    let is_defined_type_param_eq = local_types.has_defined_type_param_eq(*local_type1) | local_types.has_defined_type_param_eq(*local_type2);
+                    local_types.set_type_param_entry(*local_type1, self.empty_type_param_entry.clone(), DefinedFlag::Undefined);
+                    local_types.set_type_param_entry(*local_type2, self.empty_type_param_entry.clone(), DefinedFlag::Undefined);
+                    match local_types.join_local_types(*local_type1, *local_type2) {
+                        Some((root_local_type, eq_root_local_type)) => {
+                            local_types.set_type_param_entry(root_local_type, Rc::new(RefCell::new(new_type_param_entry)), DefinedFlag::Undefined);
+                            local_types.set_in_non_uniq_lambda(eq_root_local_type, is_in_non_uniq_lambda);
+                            local_types.set_defined_type_param_eq(eq_root_local_type, is_defined_type_param_eq);
+                            self.set_trait_names_for_local_types(*local_type1, *local_type2, eq_root_local_type, &new_trait_names, local_types)?;
+                            let shared_flag = self.shared_flag_for_type_value2(&Rc::new(TypeValue::Param(uniq_flag, root_local_type)), None, tree, local_types)?;
+                            Ok(Some(shared_flag))
+                        },
+                        None => Err(FrontendInternalError(String::from("match_local_type_entries_with_infos: can't join local types"))),
+                    }
                 }
             },
             (LocalTypeEntry::Param(DefinedFlag::Undefined, uniq_flag1, type_param_entry1, local_type1), LocalTypeEntry::Param(DefinedFlag::Defined, uniq_flag2, type_param_entry2, local_type2)) => {
@@ -386,61 +382,68 @@ impl TypeMatcher
                     return Ok(None);
                 }
                 let uniq_flag = *uniq_flag1;
-                let type_param_entry1_r = type_param_entry1.borrow();
-                let type_param_entry2_r = type_param_entry2.borrow();
                 let mut are_type_values1 = true;
-                if (type_param_entry1_r.trait_names.is_empty() || (type_param_entry1_r.trait_names.len() == 1 && type_param_entry1_r.trait_names.contains(&TraitName::Shared))) && type_param_entry1_r.type_values.is_empty() {
-                    are_type_values1 = false;
-                }
                 let mut is_success = true;
+                let (type_values1, type_values2) = {
+                    let type_param_entry1_r = type_param_entry1.borrow();
+                    let type_param_entry2_r = type_param_entry2.borrow();
+                    if (type_param_entry1_r.trait_names.is_empty() || (type_param_entry1_r.trait_names.len() == 1 && type_param_entry1_r.trait_names.contains(&TraitName::Shared))) && type_param_entry1_r.type_values.is_empty() {
+                        are_type_values1 = false;
+                    }
+                    (type_param_entry1_r.type_values.clone(), type_param_entry2_r.type_values.clone())
+                };
                 if are_type_values1 {
-                    if type_param_entry1_r.type_values.len() != type_param_entry2_r.type_values.len() {
+                    if type_values1.len() != type_values2.len() {
                         return Ok(None);
                     }
-                    for (type_value3, type_value4) in type_param_entry1_r.type_values.iter().zip(type_param_entry2_r.type_values.iter()) {
+                    for (type_value3, type_value4) in type_values1.iter().zip(type_values2.iter()) {
                         if self.match_type_values_with_infos(type_value3, type_value4, tree, local_types, infos)?.is_none() {
                             is_success = false;
                         }
                     }
                 }
-                for trait_name in &type_param_entry1_r.trait_names {
-                    if !type_param_entry2_r.trait_names.contains(trait_name) {
-                        infos.push(MismatchedTypeInfo::Param(*local_type2, trait_name.clone(), *local_type1)); 
-                        is_success = false;
-                    }
-                }
-                for i in 0..local_types.orig_eq_type_param_set().len() {
-                    let local_type = LocalType::new(i);
-                    if !local_types.has_eq_type_params(*local_type2, local_type) {
-                        if local_types.has_eq_type_params(*local_type1, local_type) {
-                            infos.push(MismatchedTypeInfo::Eq(*local_type1, local_type, *local_type2));
+                {
+                    let type_param_entry1_r = type_param_entry1.borrow();
+                    let type_param_entry2_r = type_param_entry2.borrow();
+                    for trait_name in &type_param_entry1_r.trait_names {
+                        if !type_param_entry2_r.trait_names.contains(trait_name) {
+                            infos.push(MismatchedTypeInfo::Param(*local_type2, trait_name.clone(), *local_type1)); 
                             is_success = false;
                         }
                     }
-                }
-                for closure_local_type in &type_param_entry1_r.closure_local_types {
-                    if !type_param_entry2_r.closure_local_types.contains(closure_local_type) {
-                        infos.push(MismatchedTypeInfo::NoClosure(*closure_local_type, *local_type2));
-                        is_success = false;
+                    for i in 0..local_types.orig_eq_type_param_set().len() {
+                        let local_type = LocalType::new(i);
+                        if !local_types.has_eq_type_params(*local_type2, local_type) {
+                            if local_types.has_eq_type_params(*local_type1, local_type) {
+                                infos.push(MismatchedTypeInfo::Eq(*local_type1, local_type, *local_type2));
+                                is_success = false;
+                            }
+                        }
                     }
-                }
-                if !is_success {
-                    return Ok(None);
-                }
-                let is_in_non_uniq_lambda = local_types.has_in_non_uniq_lambda(*local_type1) | local_types.has_in_non_uniq_lambda(*local_type2);
-                let is_defined_type_param_eq = local_types.has_defined_type_param_eq(*local_type1) | local_types.has_defined_type_param_eq(*local_type2);
-                local_types.set_type_param_entry(*local_type1, self.empty_type_param_entry.clone(), DefinedFlag::Undefined);
-                local_types.set_type_param_entry(*local_type2, self.empty_type_param_entry.clone(), DefinedFlag::Undefined);
-                match local_types.join_local_types(*local_type1, *local_type2) {
-                    Some((root_local_type, eq_root_local_type)) => {
-                        local_types.set_type_param_entry(root_local_type, type_param_entry2.clone(), DefinedFlag::Defined);
-                        local_types.set_in_non_uniq_lambda(eq_root_local_type, is_in_non_uniq_lambda);
-                        local_types.set_defined_type_param_eq(eq_root_local_type, is_defined_type_param_eq);
-                        self.set_trait_names_for_local_types(*local_type1, *local_type2, eq_root_local_type, &type_param_entry2_r.trait_names, local_types)?;
-                        let shared_flag = self.shared_flag_for_type_value2(&Rc::new(TypeValue::Param(uniq_flag, root_local_type)), None, tree, local_types)?;
-                        Ok(Some(shared_flag))
-                    },
-                    None => Err(FrontendInternalError(String::from("match_local_type_entries_with_infos: can't join local types"))),
+                    for closure_local_type in &type_param_entry1_r.closure_local_types {
+                        if !type_param_entry2_r.closure_local_types.contains(closure_local_type) {
+                            infos.push(MismatchedTypeInfo::NoClosure(*closure_local_type, *local_type2));
+                            is_success = false;
+                        }
+                    }
+                    if !is_success {
+                        return Ok(None);
+                    }
+                    let is_in_non_uniq_lambda = local_types.has_in_non_uniq_lambda(*local_type1) | local_types.has_in_non_uniq_lambda(*local_type2);
+                    let is_defined_type_param_eq = local_types.has_defined_type_param_eq(*local_type1) | local_types.has_defined_type_param_eq(*local_type2);
+                    local_types.set_type_param_entry(*local_type1, self.empty_type_param_entry.clone(), DefinedFlag::Undefined);
+                    local_types.set_type_param_entry(*local_type2, self.empty_type_param_entry.clone(), DefinedFlag::Undefined);
+                    match local_types.join_local_types(*local_type1, *local_type2) {
+                        Some((root_local_type, eq_root_local_type)) => {
+                            local_types.set_type_param_entry(root_local_type, type_param_entry2.clone(), DefinedFlag::Defined);
+                            local_types.set_in_non_uniq_lambda(eq_root_local_type, is_in_non_uniq_lambda);
+                            local_types.set_defined_type_param_eq(eq_root_local_type, is_defined_type_param_eq);
+                            self.set_trait_names_for_local_types(*local_type1, *local_type2, eq_root_local_type, &type_param_entry2_r.trait_names, local_types)?;
+                            let shared_flag = self.shared_flag_for_type_value2(&Rc::new(TypeValue::Param(uniq_flag, root_local_type)), None, tree, local_types)?;
+                            Ok(Some(shared_flag))
+                        },
+                        None => Err(FrontendInternalError(String::from("match_local_type_entries_with_infos: can't join local types"))),
+                    }
                 }
             },
             (LocalTypeEntry::Param(DefinedFlag::Undefined, uniq_flag1, type_param_entry1, local_type1), LocalTypeEntry::Type(type_value2)) => {
@@ -450,18 +453,21 @@ impl TypeMatcher
                         if *uniq_flag1 == UniqFlag::Uniq && *uniq_flag2 == UniqFlag::None {
                             return Ok(None);
                         }
-                        let type_param_entry1_r = type_param_entry1.borrow();
                         let mut are_type_values1 = true;
-                        if (type_param_entry1_r.trait_names.is_empty() || (type_param_entry1_r.trait_names.len() == 1 && type_param_entry1_r.trait_names.contains(&TraitName::Shared))) && type_param_entry1_r.type_values.is_empty() {
-                            are_type_values1 = false;
-                        }
+                        let mut type_arg_shared_flag = SharedFlag::Shared;
                         let mut is_success = true;
-                        let shared_flag = if are_type_values1 {
-                            if type_param_entry1_r.type_values.len() != type_values2.len() {
+                        let type_values1 = {
+                            let type_param_entry1_r = type_param_entry1.borrow();
+                            if (type_param_entry1_r.trait_names.is_empty() || (type_param_entry1_r.trait_names.len() == 1 && type_param_entry1_r.trait_names.contains(&TraitName::Shared))) && type_param_entry1_r.type_values.is_empty() {
+                                are_type_values1 = false;
+                            }
+                            type_param_entry1_r.type_values.clone()
+                        };
+                        if are_type_values1 {
+                            if type_values1.len() != type_values2.len() {
                                 return Ok(None);
                             }
-                            let mut type_arg_shared_flag = SharedFlag::Shared;
-                            for (type_value3, type_value4) in type_param_entry1_r.type_values.iter().zip(type_values2.iter()) {
+                            for (type_value3, type_value4) in type_values1.iter().zip(type_values2.iter()) {
                                 match self.match_type_values_with_infos(type_value3, type_value4, tree, local_types, infos)? {
                                     Some(tmp_shared_flag) => {
                                         if tmp_shared_flag == SharedFlag::None {
@@ -471,81 +477,86 @@ impl TypeMatcher
                                     None => is_success = false,
                                 }
                             }
-                            self.shared_flag_for_type_value2(type_value2, Some(type_arg_shared_flag), tree, local_types)?
-                        } else {
-                            self.shared_flag_for_type_value2(type_value2, None, tree, local_types)?
-                        };
-                        for trait_name in &type_param_entry1_r.trait_names {
-                            let type_name = match type_value2.type_name() {
-                                Some(tmp_type_name) => tmp_type_name,
-                                None => return Err(FrontendInternalError(String::from("no type name"))),
+                        }
+                        {
+                            let type_param_entry1_r = type_param_entry1.borrow();
+                            let shared_flag = if are_type_values1 {
+                                self.shared_flag_for_type_value2(type_value2, Some(type_arg_shared_flag), tree, local_types)?
+                            } else {
+                                self.shared_flag_for_type_value2(type_value2, None, tree, local_types)?
                             };
-                            match trait_name {
-                                TraitName::Shared => {
-                                    if shared_flag == SharedFlag::None {
-                                        infos.push(MismatchedTypeInfo::Type(type_name, trait_name.clone(), *local_type1));
-                                        is_success = false;
-                                    }
-                                },
-                                TraitName::Fun => {
-                                    match type_value_name2 {
-                                        TypeValueName::Fun => (),
-                                        _ => {
+                            for trait_name in &type_param_entry1_r.trait_names {
+                                let type_name = match type_value2.type_name() {
+                                    Some(tmp_type_name) => tmp_type_name,
+                                    None => return Err(FrontendInternalError(String::from("no type name"))),
+                                };
+                                match trait_name {
+                                    TraitName::Shared => {
+                                        if shared_flag == SharedFlag::None {
                                             infos.push(MismatchedTypeInfo::Type(type_name, trait_name.clone(), *local_type1));
                                             is_success = false;
-                                        },
-                                    }
-                                },
-                                TraitName::Name(ident) => {
-                                    match tree.trait1(ident) {
-                                        Some(trait1) => {
-                                            let trait_r = trait1.borrow();
-                                            match &*trait_r {
-                                                Trait(_, _, Some(trait_vars)) => {
-                                                    if trait_vars.impl1(&type_name).is_none() {
-                                                        match type_name {
-                                                            TypeName::Array(Some(_)) => {
-                                                                if trait_vars.impl1(&TypeName::Array(None)).is_none() {
+                                        }
+                                    },
+                                    TraitName::Fun => {
+                                        match type_value_name2 {
+                                            TypeValueName::Fun => (),
+                                            _ => {
+                                                infos.push(MismatchedTypeInfo::Type(type_name, trait_name.clone(), *local_type1));
+                                                is_success = false;
+                                            },
+                                        }
+                                    },
+                                    TraitName::Name(ident) => {
+                                        match tree.trait1(ident) {
+                                            Some(trait1) => {
+                                                let trait_r = trait1.borrow();
+                                                match &*trait_r {
+                                                    Trait(_, _, Some(trait_vars)) => {
+                                                        if trait_vars.impl1(&type_name).is_none() {
+                                                            match type_name {
+                                                                TypeName::Array(Some(_)) => {
+                                                                    if trait_vars.impl1(&TypeName::Array(None)).is_none() {
+                                                                        infos.push(MismatchedTypeInfo::Type(type_name, trait_name.clone(), *local_type1));
+                                                                        is_success = false;
+                                                                    }
+                                                                },
+                                                                _ => {
                                                                     infos.push(MismatchedTypeInfo::Type(type_name, trait_name.clone(), *local_type1));
                                                                     is_success = false;
-                                                                }
-                                                            },
-                                                            _ => {
-                                                                infos.push(MismatchedTypeInfo::Type(type_name, trait_name.clone(), *local_type1));
-                                                                is_success = false;
-                                                            },
+                                                                },
+                                                            }
                                                         }
-                                                    }
-                                                },
-                                                _ => return Err(FrontendInternalError(String::from("no trait variables")))
-                                            }
-                                        },
-                                        _ => return Err(FrontendInternalError(String::from("no trait"))),
-                                    }
-                                },
-                            }
-                        }
-                        if !type_param_entry1_r.trait_names.contains(&TraitName::Shared) && shared_flag == SharedFlag::Shared {
-                            for closure_local_type in &type_param_entry1_r.closure_local_types {
-                                if !self.set_shared(*closure_local_type, tree, local_types)? {
-                                    infos.push(MismatchedTypeInfo::SharedClosure(*closure_local_type));
-                                    is_success = false;
+                                                    },
+                                                    _ => return Err(FrontendInternalError(String::from("no trait variables")))
+                                                }
+                                            },
+                                            _ => return Err(FrontendInternalError(String::from("no trait"))),
+                                        }
+                                    },
                                 }
                             }
+                            if !type_param_entry1_r.trait_names.contains(&TraitName::Shared) && shared_flag == SharedFlag::Shared {
+                                for closure_local_type in &type_param_entry1_r.closure_local_types {
+                                    if !self.set_shared(*closure_local_type, tree, local_types)? {
+                                        infos.push(MismatchedTypeInfo::SharedClosure(*closure_local_type));
+                                        is_success = false;
+                                    }
+                                }
+                            }
+                            if local_types.has_in_non_uniq_lambda(*local_type1) && shared_flag == SharedFlag::None {
+                                infos.push(MismatchedTypeInfo::InNonUniqLambda);
+                                is_success = false;
+                            }
+                            if local_types.has_defined_type_param_eq(*local_type1) {
+                                infos.push(MismatchedTypeInfo::DefinedTypeParamEq);
+                                is_success = false;
+                            }
+                            if !is_success {
+                                return Ok(None);
+                            }
+                            local_types.set_type_value(*local_type1, type_value2.clone());
+                            Ok(Some(shared_flag))
                         }
-                        if local_types.has_in_non_uniq_lambda(*local_type1) && shared_flag == SharedFlag::None {
-                            infos.push(MismatchedTypeInfo::InNonUniqLambda);
-                            is_success = false;
-                        }
-                        if local_types.has_defined_type_param_eq(*local_type1) {
-                            infos.push(MismatchedTypeInfo::DefinedTypeParamEq);
-                            is_success = false;
-                        }
-                        if !is_success {
-                            return Ok(None);
-                        }
-                        local_types.set_type_value(*local_type1, type_value2.clone());
-                        Ok(Some(shared_flag))
                     },
                 }
             },
