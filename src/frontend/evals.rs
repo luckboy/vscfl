@@ -223,6 +223,42 @@ fn global_ref(arg_values: &[Value], ref_values: &mut RefValues, _pos: &Pos) -> F
     }
 }
 
+fn ref_from_global(arg_values: &[Value], _ref_values: &mut RefValues, _pos: &Pos) -> FrontendResult<Value>
+{
+    if arg_values.len() == 1 {
+        match &arg_values[0] {
+            Value::Object(_, object) => {
+                let object_r = object.borrow();
+                match &*object_r {
+                    Object::Ref(_, _) => Ok(arg_values[0].clone()),
+                    _ => Err(FrontendError::Internal(String::from("ref_from_global: invalid object"))),
+                }
+            },
+            _ => Err(FrontendError::Internal(String::from("ref_from_global: invalid value"))),
+        }
+    } else {
+        Err(FrontendError::Internal(String::from("ref_from_global: number of function arguments isn't equal to number of applied arguments")))
+    }
+}
+
+fn slice_from_global(arg_values: &[Value], _ref_values: &mut RefValues, _pos: &Pos) -> FrontendResult<Value>
+{
+    if arg_values.len() == 1 {
+        match &arg_values[0] {
+            Value::Object(_, object) => {
+                let object_r = object.borrow();
+                match &*object_r {
+                    Object::Slice(_, _, _) => Ok(arg_values[0].clone()),
+                    _ => Err(FrontendError::Internal(String::from("slice_from_global: invalid object"))),
+                }
+            },
+            _ => Err(FrontendError::Internal(String::from("slice_from_global: invalid value"))),
+        }
+    } else {
+        Err(FrontendError::Internal(String::from("slice_from_global: number of function arguments isn't equal to number of applied arguments")))
+    }
+}
+
 fn op_neg(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> FrontendResult<Value>
 {
     if arg_values.len() == 1 {
@@ -1926,6 +1962,10 @@ impl Evals
         funs.insert((String::from("ref"), None), reference);
         // global_ref
         funs.insert((String::from("global_ref"), None), global_ref);
+        // ref_from_global_ref
+        funs.insert((String::from("ref_from_global"), None), ref_from_global);
+        // slice_from_global_slice
+        funs.insert((String::from("slice_from_global"), None), slice_from_global);
         // op_neg
         for s in ["Char", "Short", "Int", "Long", "Float", "Double", "PtrdiffT", "IntptrT"] {
             funs.insert((String::from("op_neg"), Some(TypeName::Name(String::from(s)))), op_neg);

@@ -183,6 +183,18 @@ impl Builtins
         vars.insert(String::from("private_slice_from_uniq"), BuiltinVar::new(String::from("(UniqPrivateSlice<t>) -> PrivateSlice<t>"), String::new()));
         vars.insert(String::from("local_slice_from_uniq"), BuiltinVar::new(String::from("(UniqLocalSlice<t>) -> LocalSlice<t>"), String::new()));
         vars.insert(String::from("global_slice_from_uniq"), BuiltinVar::new(String::from("(UniqGlobalSlice<t>) -> GlobalSlice<t>"), String::new()));
+        vars.insert(String::from("ref_from_private"), BuiltinVar::new(String::from("(PrivateRef<t>) -> Ref<t>"), String::new()));
+        vars.insert(String::from("ref_from_local"), BuiltinVar::new(String::from("(LocalRef<t>) -> Ref<t>"), String::new()));
+        vars.insert(String::from("ref_from_global"), BuiltinVar::new(String::from("(GlobalRef<t>) -> Ref<t>"), String::new()));
+        vars.insert(String::from("uniq_ref_from_uniq_private"), BuiltinVar::new(String::from("(UniqPrivateRef<t>) -> UniqRef<t>"), String::new()));
+        vars.insert(String::from("uniq_ref_from_uniq_local"), BuiltinVar::new(String::from("(UniqLocalRef<t>) -> UniqRef<t>"), String::new()));
+        vars.insert(String::from("uniq_ref_from_uniq_global"), BuiltinVar::new(String::from("(UniqGlobalRef<t>) -> UniqRef<t>"), String::new()));
+        vars.insert(String::from("slice_from_private"), BuiltinVar::new(String::from("(PrivateSlice<t>) -> Slice<t>"), String::new()));
+        vars.insert(String::from("slice_from_local"), BuiltinVar::new(String::from("(LocalSlice<t>) -> Slice<t>"), String::new()));
+        vars.insert(String::from("slice_from_global"), BuiltinVar::new(String::from("(GlobalSlice<t>) -> Slice<t>"), String::new()));
+        vars.insert(String::from("uniq_slice_from_uniq_private"), BuiltinVar::new(String::from("(UniqPrivateSlice<t>) -> UniqSlice<t>"), String::new()));
+        vars.insert(String::from("uniq_slice_from_uniq_local"), BuiltinVar::new(String::from("(UniqLocalSlice<t>) -> UniqSlice<t>"), String::new()));
+        vars.insert(String::from("uniq_slice_from_uniq_global"), BuiltinVar::new(String::from("(UniqGlobalSlice<t>) -> UniqSlice<t>"), String::new()));
         vars.insert(String::from("uninit"), BuiltinVar::new(String::from("() -> t"), String::new()));
         // Variables for standard library.
         vars.insert(String::from("zero"), BuiltinVar::new(String::from("() -> t"), String::from("t: Zero")));
