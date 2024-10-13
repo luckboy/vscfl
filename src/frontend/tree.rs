@@ -1027,19 +1027,23 @@ impl LocalTypes
         for i in 0..typ.eq_type_param_set.len() {
             for j in (i + 1)..typ.eq_type_param_set.len() {
                 if typ.eq_type_param_set.is_joined(i, j) {
-                    self.eq_type_param_entries.join(i, j);
-                    let eq_root_idx = self.eq_type_param_entries.root_of(i);
-                    if eq_root_idx == i {
-                        self.eq_type_param_entries[j].local_types.clear();
-                        self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(j));
-                    } else if eq_root_idx == j {
-                        self.eq_type_param_entries[i].local_types.clear();
-                        self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(i));
-                    } else {
-                        self.eq_type_param_entries[i].local_types.clear();
-                        self.eq_type_param_entries[j].local_types.clear();
-                        self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(i));
-                        self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(j));
+                    if !self.eq_type_param_entries.is_joined(i, j) {
+                        let eq_root_idx1 = self.eq_type_param_entries.root_of(i);
+                        let eq_root_idx2 = self.eq_type_param_entries.root_of(j);
+                        self.eq_type_param_entries.join(i, j);
+                        let eq_root_idx = self.eq_type_param_entries.root_of(i);
+                        let local_types: BTreeSet<LocalType> = self.eq_type_param_entries[eq_root_idx1].local_types.union(&self.eq_type_param_entries[eq_root_idx2].local_types).map(|lt| *lt).collect();
+                        self.eq_type_param_entries[eq_root_idx1].local_types.clear();
+                        self.eq_type_param_entries[eq_root_idx2].local_types.clear();
+                        self.eq_type_param_entries[eq_root_idx].local_types = local_types;
+                        self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(eq_root_idx2));
+                        self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(eq_root_idx1));
+                        if eq_root_idx == eq_root_idx1 {
+                            self.eq_type_param_entries[eq_root_idx].local_types.remove(&LocalType::new(eq_root_idx1));
+                        }
+                        if eq_root_idx == eq_root_idx2 {
+                            self.eq_type_param_entries[eq_root_idx].local_types.remove(&LocalType::new(eq_root_idx2));
+                        }
                     }
                 }
             }
@@ -1104,19 +1108,23 @@ impl LocalTypes
             for i in idx..(idx + typ.eq_type_param_set.len()) {
                 for j in (i + 1)..(idx + typ.eq_type_param_set.len()) {
                     if typ.eq_type_param_set.is_joined(i - idx, j - idx) {
-                        self.eq_type_param_entries.join(i, j);
-                        let eq_root_idx = self.eq_type_param_entries.root_of(i);
-                        if eq_root_idx == i {
-                            self.eq_type_param_entries[j].local_types.clear();
-                            self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(j));
-                        } else if eq_root_idx == j {
-                            self.eq_type_param_entries[i].local_types.clear();
-                            self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(i));
-                        } else {
-                            self.eq_type_param_entries[i].local_types.clear();
-                            self.eq_type_param_entries[j].local_types.clear();
-                            self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(i));
-                            self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(j));
+                        if !self.eq_type_param_entries.is_joined(i, j) {
+                            let eq_root_idx1 = self.eq_type_param_entries.root_of(i);
+                            let eq_root_idx2 = self.eq_type_param_entries.root_of(j);
+                            self.eq_type_param_entries.join(i, j);
+                            let eq_root_idx = self.eq_type_param_entries.root_of(i);
+                            let local_types: BTreeSet<LocalType> = self.eq_type_param_entries[eq_root_idx1].local_types.union(&self.eq_type_param_entries[eq_root_idx2].local_types).map(|lt| *lt).collect();
+                            self.eq_type_param_entries[eq_root_idx1].local_types.clear();
+                            self.eq_type_param_entries[eq_root_idx2].local_types.clear();
+                            self.eq_type_param_entries[eq_root_idx].local_types = local_types;
+                            self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(eq_root_idx2));
+                            self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(eq_root_idx1));
+                            if eq_root_idx == eq_root_idx1 {
+                                self.eq_type_param_entries[eq_root_idx].local_types.remove(&LocalType::new(eq_root_idx1));
+                            }
+                            if eq_root_idx == eq_root_idx2 {
+                                self.eq_type_param_entries[eq_root_idx].local_types.remove(&LocalType::new(eq_root_idx2));
+                            }
                         }
                     }
                 }
