@@ -949,8 +949,11 @@ impl LocalTypes
         match &**type_value {
             TypeValue::Param(uniq_flag, local_type) => {
                 if local_type.index() < self.type_entries.len() {
-                    let root_idx = self.type_entries.root_of(local_type.index());
-                    match &self.type_entries[root_idx] {
+                    let idx = match &self.type_entries[local_type.index()] {
+                        LocalTypeEntry::Type(_) => local_type.index(), 
+                        _ => self.type_entries.root_of(local_type.index()),
+                    };
+                    match &self.type_entries[idx] {
                         LocalTypeEntry::Param(defined_flag, uniq_flag2, type_param_entry, local_type) => {
                             let new_uniq_flag = if *uniq_flag == UniqFlag::Uniq || *uniq_flag2 == UniqFlag::Uniq {
                                 UniqFlag::Uniq
@@ -1201,6 +1204,14 @@ impl LocalTypes
     {
         if local_type.index() < self.type_entries.len() {
             let root_idx = self.type_entries.root_of(local_type.index());
+            match &self.type_entries[root_idx] {
+                LocalTypeEntry::Param(_, _, _, _) => {
+                    if local_type.index() != root_idx {
+                        self.type_entries[local_type.index()] = LocalTypeEntry::Type(Rc::new(TypeValue::Param(UniqFlag::None, LocalType::new(root_idx))));
+                    }
+                },
+                _ => (),
+            }
             match &self.type_entries[root_idx] {
                 LocalTypeEntry::Param(defined_flag, uniq_flag, type_param_entry, _) => {
                     let eq_root_idx = self.eq_type_param_entries.root_of(local_type.index());
