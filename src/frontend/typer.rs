@@ -3704,7 +3704,6 @@ impl Typer
                                                     self.match_type_values(&Rc::new(TypeValue::Param(UniqFlag::None, field_local_type)), type_value, pattern_pos(&**pattern2), tree, local_types, errs)?;
                                                 }
                                             }
-                                            local_types.set_type_value(*con_local_type, type_value.clone());
                                             local_types.set_type_value(*local_type, type_values[type_values.len() - 1].clone());
                                         } else {
                                             return Err(FrontendErrors::new(vec![FrontendError::Internal(String::from("infer_types_for_patterns: no return type value"))]))
