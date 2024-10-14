@@ -348,7 +348,7 @@ impl TypeMatcher
                     } else {
                         type_param_entry2_r.type_values.clone()
                     };
-                    let new_closure_local_types: BTreeSet<LocalType> = type_param_entry1_r.closure_local_types.union(&type_param_entry2_r.closure_local_types).map(|e| e.clone()).collect();
+                    let new_closure_local_types: BTreeSet<LocalType> = type_param_entry1_r.closure_local_types.union(&type_param_entry2_r.closure_local_types).map(|e| *e).collect();
                     let new_number = match (type_param_entry1_r.number, type_param_entry2_r.number) {
                         (Some(num1), Some(num2)) => Some(min(num1, num2)),
                         (Some(num1), None) => Some(num1),
