@@ -1036,8 +1036,8 @@ impl LocalTypes
                         self.eq_type_param_entries[eq_root_idx1].local_types.clear();
                         self.eq_type_param_entries[eq_root_idx2].local_types.clear();
                         self.eq_type_param_entries[eq_root_idx].local_types = eq_local_types;
-                        self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(eq_root_idx2));
                         self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(eq_root_idx1));
+                        self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(eq_root_idx2));
                         if eq_root_idx == eq_root_idx1 {
                             self.eq_type_param_entries[eq_root_idx].local_types.remove(&LocalType::new(eq_root_idx1));
                         }
@@ -1117,8 +1117,8 @@ impl LocalTypes
                             self.eq_type_param_entries[eq_root_idx1].local_types.clear();
                             self.eq_type_param_entries[eq_root_idx2].local_types.clear();
                             self.eq_type_param_entries[eq_root_idx].local_types = eq_local_types;
-                            self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(eq_root_idx2));
                             self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(eq_root_idx1));
+                            self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(eq_root_idx2));
                             if eq_root_idx == eq_root_idx1 {
                                 self.eq_type_param_entries[eq_root_idx].local_types.remove(&LocalType::new(eq_root_idx1));
                             }
