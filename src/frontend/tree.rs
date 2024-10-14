@@ -1032,10 +1032,10 @@ impl LocalTypes
                         let eq_root_idx2 = self.eq_type_param_entries.root_of(j);
                         self.eq_type_param_entries.join(i, j);
                         let eq_root_idx = self.eq_type_param_entries.root_of(i);
-                        let local_types: BTreeSet<LocalType> = self.eq_type_param_entries[eq_root_idx1].local_types.union(&self.eq_type_param_entries[eq_root_idx2].local_types).map(|lt| *lt).collect();
+                        let eq_local_types: BTreeSet<LocalType> = self.eq_type_param_entries[eq_root_idx1].local_types.union(&self.eq_type_param_entries[eq_root_idx2].local_types).map(|lt| *lt).collect();
                         self.eq_type_param_entries[eq_root_idx1].local_types.clear();
                         self.eq_type_param_entries[eq_root_idx2].local_types.clear();
-                        self.eq_type_param_entries[eq_root_idx].local_types = local_types;
+                        self.eq_type_param_entries[eq_root_idx].local_types = eq_local_types;
                         self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(eq_root_idx2));
                         self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(eq_root_idx1));
                         if eq_root_idx == eq_root_idx1 {
@@ -1113,10 +1113,10 @@ impl LocalTypes
                             let eq_root_idx2 = self.eq_type_param_entries.root_of(j);
                             self.eq_type_param_entries.join(i, j);
                             let eq_root_idx = self.eq_type_param_entries.root_of(i);
-                            let local_types: BTreeSet<LocalType> = self.eq_type_param_entries[eq_root_idx1].local_types.union(&self.eq_type_param_entries[eq_root_idx2].local_types).map(|lt| *lt).collect();
+                            let eq_local_types: BTreeSet<LocalType> = self.eq_type_param_entries[eq_root_idx1].local_types.union(&self.eq_type_param_entries[eq_root_idx2].local_types).map(|lt| *lt).collect();
                             self.eq_type_param_entries[eq_root_idx1].local_types.clear();
                             self.eq_type_param_entries[eq_root_idx2].local_types.clear();
-                            self.eq_type_param_entries[eq_root_idx].local_types = local_types;
+                            self.eq_type_param_entries[eq_root_idx].local_types = eq_local_types;
                             self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(eq_root_idx2));
                             self.eq_type_param_entries[eq_root_idx].local_types.insert(LocalType::new(eq_root_idx1));
                             if eq_root_idx == eq_root_idx1 {
