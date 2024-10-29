@@ -416,28 +416,28 @@ fn op_div(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Front
         match (&arg_values[0], &arg_values[1]) {
             (Value::Char(c1), Value::Char(c2)) => {
                 if *c2 != 0 {
-                    Ok(Value::Char(*c1 / *c2))
+                    Ok(Value::Char(((*c1 as i16) / (*c2 as i16)) as i8))
                 } else {
                     Err(FrontendError::Message(pos.clone(), String::from("division by zero")))
                 }
             },
             (Value::Short(n1), Value::Short(n2)) => {
                 if *n2 != 0 {
-                    Ok(Value::Short(*n1 / *n2))
+                    Ok(Value::Short(((*n1 as i32) / (*n2 as i32)) as i16))
                 } else {
                     Err(FrontendError::Message(pos.clone(), String::from("division by zero")))
                 }
             },
             (Value::Int(n1), Value::Int(n2)) => {
                 if *n2 != 0 {
-                    Ok(Value::Int(*n1 / *n2))
+                    Ok(Value::Int(((*n1 as i64) / (*n2 as i64)) as i32))
                 } else {
                     Err(FrontendError::Message(pos.clone(), String::from("division by zero")))
                 }
             },
             (Value::Long(n1), Value::Long(n2)) => {
                 if *n2 != 0 {
-                    Ok(Value::Long(*n1 / *n2))
+                    Ok(Value::Long(((*n1 as i128) / (*n2 as i128)) as i64))
                 } else {
                     Err(FrontendError::Message(pos.clone(), String::from("division by zero")))
                 }
@@ -488,7 +488,7 @@ fn op_div(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Front
                             let mut cs: Vec<i8> = Vec::new();
                             for (c1, c2) in cs1.iter().zip(cs2.iter()) {
                                 if *c2 != 0 {
-                                    cs.push(*c1 / *c2);
+                                    cs.push(((*c1 as i16) / (*c2 as i16)) as i8);
                                 } else {
                                     return Err(FrontendError::Message(pos.clone(), String::from("division by zero")));
                                 }
@@ -499,7 +499,7 @@ fn op_div(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Front
                             let mut ns: Vec<i16> = Vec::new();
                             for (n1, n2) in ns1.iter().zip(ns2.iter()) {
                                 if *n2 != 0 {
-                                    ns.push(*n1 / *n2);
+                                    ns.push(((*n1 as i32) / (*n2 as i32)) as i16);
                                 } else {
                                     return Err(FrontendError::Message(pos.clone(), String::from("division by zero")));
                                 }
@@ -510,7 +510,7 @@ fn op_div(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Front
                             let mut ns: Vec<i32> = Vec::new();
                             for (n1, n2) in ns1.iter().zip(ns2.iter()) {
                                 if *n2 != 0 {
-                                    ns.push(*n1 / *n2);
+                                    ns.push(((*n1 as i64) / (*n2 as i64)) as i32);
                                 } else {
                                     return Err(FrontendError::Message(pos.clone(), String::from("division by zero")));
                                 }
@@ -521,7 +521,7 @@ fn op_div(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Front
                             let mut ns: Vec<i64> = Vec::new();
                             for (n1, n2) in ns1.iter().zip(ns2.iter()) {
                                 if *n2 != 0 {
-                                    ns.push(*n1 / *n2);
+                                    ns.push(((*n1 as i128) / (*n2 as i128)) as i64);
                                 } else {
                                     return Err(FrontendError::Message(pos.clone(), String::from("division by zero")));
                                 }
@@ -608,28 +608,28 @@ fn op_rem(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Front
         match (&arg_values[0], &arg_values[1]) {
             (Value::Char(c1), Value::Char(c2)) => {
                 if *c2 != 0 {
-                    Ok(Value::Char(*c1 % *c2))
+                    Ok(Value::Char(((*c1 as i16) % (*c2 as i16)) as i8))
                 } else {
                     Err(FrontendError::Message(pos.clone(), String::from("division by zero")))
                 }
             },
             (Value::Short(n1), Value::Short(n2)) => {
                 if *n2 != 0 {
-                    Ok(Value::Short(*n1 % *n2))
+                    Ok(Value::Short(((*n1 as i32) % (*n2 as i32)) as i16))
                 } else {
                     Err(FrontendError::Message(pos.clone(), String::from("division by zero")))
                 }
             },
             (Value::Int(n1), Value::Int(n2)) => {
                 if *n2 != 0 {
-                    Ok(Value::Int(*n1 % *n2))
+                    Ok(Value::Int(((*n1 as i64) % (*n2 as i64)) as i32))
                 } else {
                     Err(FrontendError::Message(pos.clone(), String::from("division by zero")))
                 }
             },
             (Value::Long(n1), Value::Long(n2)) => {
                 if *n2 != 0 {
-                    Ok(Value::Long(*n1 % *n2))
+                    Ok(Value::Long(((*n1 as i128) % (*n2 as i128)) as i64))
                 } else {
                     Err(FrontendError::Message(pos.clone(), String::from("division by zero")))
                 }
@@ -678,7 +678,7 @@ fn op_rem(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Front
                             let mut cs: Vec<i8> = Vec::new();
                             for (c1, c2) in cs1.iter().zip(cs2.iter()) {
                                 if *c2 != 0 {
-                                    cs.push(*c1 % *c2);
+                                    cs.push(((*c1 as i16) % (*c2 as i16)) as i8);
                                 } else {
                                     return Err(FrontendError::Message(pos.clone(), String::from("division by zero")));
                                 }
@@ -689,7 +689,7 @@ fn op_rem(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Front
                             let mut ns: Vec<i16> = Vec::new();
                             for (n1, n2) in ns1.iter().zip(ns2.iter()) {
                                 if *n2 != 0 {
-                                    ns.push(*n1 % *n2);
+                                    ns.push(((*n1 as i32) % (*n2 as i32)) as i16);
                                 } else {
                                     return Err(FrontendError::Message(pos.clone(), String::from("division by zero")));
                                 }
@@ -700,7 +700,7 @@ fn op_rem(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Front
                             let mut ns: Vec<i32> = Vec::new();
                             for (n1, n2) in ns1.iter().zip(ns2.iter()) {
                                 if *n2 != 0 {
-                                    ns.push(*n1 % *n2);
+                                    ns.push(((*n1 as i64) % (*n2 as i64)) as i32);
                                 } else {
                                     return Err(FrontendError::Message(pos.clone(), String::from("division by zero")));
                                 }
@@ -711,7 +711,7 @@ fn op_rem(arg_values: &[Value], _ref_values: &mut RefValues, pos: &Pos) -> Front
                             let mut ns: Vec<i64> = Vec::new();
                             for (n1, n2) in ns1.iter().zip(ns2.iter()) {
                                 if *n2 != 0 {
-                                    ns.push(*n1 % *n2);
+                                    ns.push(((*n1 as i128) % (*n2 as i128)) as i64);
                                 } else {
                                     return Err(FrontendError::Message(pos.clone(), String::from("division by zero")));
                                 }
