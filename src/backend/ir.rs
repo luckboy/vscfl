@@ -173,13 +173,13 @@ pub enum IrArgVar
 {
     Global(String, Vec<IrArgOp>),
     Local(usize, Vec<IrArgOp>),
-    LambdaArg(usize, Vec<IrArgOp>),
+    CallerFunArg(usize, Vec<IrArgOp>),
     PrivateClosure(usize, Vec<IrArgOp>),
     LocalClosure(usize, Vec<IrArgOp>),
     GlobalClosure(usize, Vec<IrArgOp>),
     RefGlobal(String, Vec<IrArgOp>),
     RefLocal(usize, Vec<IrArgOp>),
-    RefLambdaArg(usize, Vec<IrArgOp>),
+    RefCallerFunArg(usize, Vec<IrArgOp>),
     RefPrivateClosure(usize, Vec<IrArgOp>),
     RefLocalClosure(usize, Vec<IrArgOp>),
     RefGlobalClosure(usize, Vec<IrArgOp>),
@@ -194,7 +194,7 @@ pub enum IrArgOp
     Index(Option<Box<IrType>>, u64),
     GlobalIndex(Option<Box<IrType>>, String),
     LocalIndex(Option<Box<IrType>>, usize),
-    LambdaArgIndex(Option<Box<IrType>>, usize),
+    CallerFunArgIndex(Option<Box<IrType>>, usize),
     PrivateClosureIndex(Option<Box<IrType>>, usize),
     LocalClosureIndex(Option<Box<IrType>>, usize),
     GlobalClosureIndex(Option<Box<IrType>>, usize),
@@ -220,7 +220,7 @@ pub struct IrLocalVarPair(pub IrLocalVarModifier, pub Box<IrType>);
 pub enum IrInstr
 {
     Op(IrOp),
-    Assign(IrAssignVar, IrOp),
+    Assign(IrInstrVar, IrOp),
     Retern(IrOp),
     Break,
     Continue,
@@ -258,11 +258,11 @@ pub enum IrOp
 }
 
 #[derive(Clone, Debug)]
-pub enum IrAssignVar
+pub enum IrInstrVar
 {
     Global(String, Vec<IrArgOp>),
     Local(usize, Vec<IrArgOp>),
-    LambdaArg(usize, Vec<IrArgOp>),
+    CallerFunArg(usize, Vec<IrArgOp>),
     PrivateClosure(usize, Vec<IrArgOp>),
     LocalClosure(usize, Vec<IrArgOp>),
     GlobalClosure(usize, Vec<IrArgOp>),
