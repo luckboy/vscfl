@@ -55,30 +55,41 @@ pub enum IrAccessModifier
 pub struct IrTree
 {
     defs: Vec<IrDef>,
-    type_vars: HashMap<String, Rc<RefCell<IrTypeVar>>>,
+    structs: HashMap<String, Rc<RefCell<IrStruct>>>,
+    unions: HashMap<String, Rc<RefCell<IrUnion>>>,
     vars: HashMap<String, Rc<RefCell<IrVar>>>,
 }
 
 impl IrTree
 {
     pub fn new() -> Self
-    { IrTree { defs: Vec::new(), type_vars: HashMap::new(), vars: HashMap::new(), } }
+    {
+        IrTree {
+            defs: Vec::new(),
+            structs: HashMap::new(),
+            unions: HashMap::new(),
+            vars: HashMap::new(),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
 pub enum IrDef
 {
-    Type(String, Rc<RefCell<IrTypeVar>>),
+    Struct(String, Rc<RefCell<IrStruct>>),
+    Union(String, Rc<RefCell<IrUnion>>),
     Var(String, Rc<RefCell<IrVar>>),
 }
 
 #[derive(Clone, Debug)]
-pub enum IrTypeVar
+pub enum IrStruct
 {
     Struct(Vec<Box<IrType>>),
-    Union(Vec<Box<IrType>>),
     Closure(BTreeMap<usize, Box<IrType>>),
 }
+    
+#[derive(Clone, Debug)]
+pub struct IrUnion(pub Vec<Box<IrType>>);
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum IrType
@@ -108,7 +119,8 @@ pub enum IrType
     UlongN(usize),
     FloatN(usize),
     DoubleN(usize),
-    Var(String),
+    Struct(String),
+    Union(String),
     Array(Box<IrType>, usize),
     Ptr(IrPtrModifier, Box<IrType>),
 }
