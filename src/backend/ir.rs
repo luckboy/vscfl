@@ -124,7 +124,7 @@ pub enum IrVar
 pub enum IrObject<T>
 {
     String(Vec<u8>),
-    BuiltinVar(String, Option<Box<IrType>>),
+    BuiltinVar(String, Option<Box<IrType>>, Option<Box<IrType>>),
     Var(T, Option<Box<IrType>>),
     Vector(Vec<IrValue<T>>, Box<IrType>),
     Array(Vec<IrValue<T>>, Option<Box<IrType>>),
@@ -254,7 +254,7 @@ pub enum IrOp
     Xor(IrValue<IrArgVar>, IrValue<IrArgVar>),
     Or(IrValue<IrArgVar>, IrValue<IrArgVar>),
     CallBuiltinFun(String, Vec<IrValue<IrArgVar>>),
-    CallFun(String, Vec<IrValue<IrArgVar>>, Pos),
+    CallFun(String, Option<Box<IrType>>, Vec<IrValue<IrArgVar>>, Pos),
     CallFunWithoutPanic(String, Vec<IrValue<IrArgVar>>, Pos),
 }
 
@@ -287,7 +287,7 @@ pub enum IrCaseValue
     PtrdiffT(i64, Option<Box<IrType>>),
     IntptrT(i64, Option<Box<IrType>>),
     UintptrT(u64, Option<Box<IrType>>),
-    BuiltinVar(String, Option<Box<IrType>>),
+    BuiltinVar(String, Option<Box<IrType>>, Option<Box<IrType>>),
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
