@@ -109,7 +109,7 @@ pub enum IrType
     FloatN(usize),
     DoubleN(usize),
     Var(String),
-    Array(Box<IrType>),
+    Array(Box<IrType>, usize),
     Ptr(IrPtrModifier, Box<IrType>),
 }
 
