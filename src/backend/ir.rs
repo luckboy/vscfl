@@ -224,6 +224,7 @@ pub enum IrInstr
     Retern(IrOp),
     Break,
     Continue,
+    Block(Box<IrBlock>),
     If(IrOp, Box<IrBlock>, Box<IrBlock>),
     Switch(IrOp, Vec<IrCase>),
     Loop(Box<IrBlock>),
