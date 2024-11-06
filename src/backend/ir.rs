@@ -83,6 +83,7 @@ pub enum IrTypeVar
 #[derive(Clone, PartialEq, Debug)]
 pub enum IrType
 {
+    Void,
     Char,
     Short,
     Int,
@@ -221,7 +222,7 @@ pub enum IrInstr
 {
     Op(IrOp),
     Assign(IrInstrVar, IrOp),
-    Retern(IrOp),
+    Return(Option<IrOp>),
     Break,
     Continue,
     Block(Box<IrBlock>),
