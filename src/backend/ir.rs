@@ -44,6 +44,13 @@ pub enum IrFunModifier
     Kernel,
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub enum IrAccessModifier
+{
+    None,
+    Const,
+}
+
 #[derive(Clone, Debug)]
 pub struct IrTree
 {
@@ -109,7 +116,7 @@ pub enum IrType
 pub enum IrVar
 {
     Const(Box<IrType>, IrValue<IrValueVar>),
-    Var(IrGlobalVarModifier, Box<IrType>, IrValue<IrValueVar>),
+    Var(IrGlobalVarModifier, IrAccessModifier, Box<IrType>, IrValue<IrValueVar>),
     Fun(Box<IrFun>),
 }
 
@@ -120,6 +127,7 @@ pub enum IrObject<T>
     BuiltinVar(String, Option<Box<IrType>>),
     Var(T, Option<Box<IrType>>),
     Vector(Vec<IrValue<T>>, Box<IrType>),
+    Array(Vec<IrValue<T>>, Option<Box<IrType>>),
     Struct(Vec<IrValue<T>>, Vec<IrFieldPair<T>>, Option<Box<IrType>>),
     Union(usize, IrValue<T>, Option<Box<IrType>>),
     Closure(Vec<IrFieldPair<T>>, Option<Box<IrType>>),
@@ -196,14 +204,17 @@ pub enum IrArgOp
 pub enum IrFun
 {
     Fun(IrFunModifier, Vec<Box<IrType>>, Box<IrType>, Box<IrBlock>, IrPrivateHeapFlag, IrLocalHeapFlag, IrGlobalHeapFlag, IrPanicFlag),
-    LambdaCaller(Vec<Box<IrType>>, Box<IrType>, BTreeMap<usize, IrLambda>, IrPrivateHeapFlag, IrLocalHeapFlag, IrGlobalHeapFlag, IrPanicFlag),
+    Caller(Vec<Box<IrType>>, Box<IrType>, BTreeMap<usize, IrCallerFun>, IrPrivateHeapFlag, IrLocalHeapFlag, IrGlobalHeapFlag, IrPanicFlag),
 }
 
 #[derive(Clone, Debug)]
-pub struct IrLambda(pub usize, pub Box<IrBlock>);
+pub struct IrCallerFun(pub Option<Box<IrType>>, pub Option<Box<IrType>>, pub Option<Box<IrType>>, pub usize, pub Box<IrBlock>);
 
 #[derive(Clone, Debug)]
-pub struct IrBlock(pub Vec<(IrLocalVarModifier, Box<IrType>)>, Vec<IrInstr>);
+pub struct IrBlock(pub Vec<IrLocalVarPair>, Vec<IrInstr>);
+
+#[derive(Clone, Debug)]
+pub struct IrLocalVarPair(pub IrLocalVarModifier, pub Box<IrType>);
 
 #[derive(Clone, Debug)]
 pub enum IrInstr
@@ -216,7 +227,7 @@ pub enum IrInstr
     If(IrOp, Box<IrBlock>, Box<IrBlock>),
     Switch(IrOp, Vec<IrCase>),
     Loop(Box<IrBlock>),
-    Panic(Pos, String),
+    Panic(String, Vec<Pos>),
 }
 
 #[derive(Clone, Debug)]
@@ -243,6 +254,7 @@ pub enum IrOp
     Or(IrValue<IrArgVar>, IrValue<IrArgVar>),
     CallBuiltinFun(String, Vec<IrValue<IrArgVar>>),
     CallFun(String, Vec<IrValue<IrArgVar>>, Pos),
+    CallFunWithoutPanic(String, Vec<IrValue<IrArgVar>>, Pos),
 }
 
 #[derive(Clone, Debug)]
