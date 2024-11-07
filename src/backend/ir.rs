@@ -91,7 +91,7 @@ pub enum IrStruct
 #[derive(Clone, Debug)]
 pub struct IrUnion(pub Vec<Box<IrType>>);
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum IrType
 {
     Void,
@@ -285,7 +285,7 @@ pub enum IrInstrVar
 #[derive(Clone, Debug)]
 pub struct IrCase(pub IrCaseValue, pub Box<IrBlock>);
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum IrCaseValue
 {
     Char(i8, Option<Box<IrType>>),
