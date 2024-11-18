@@ -11,14 +11,17 @@ use std::result;
 use crate::frontend::error::Pos;
 
 #[derive(Debug)]
-pub struct BackendErrorMessage(pub Pos, pub String);
+pub struct BackendMessageError(pub Pos, pub String);
 
-impl fmt::Display for BackendErrorMessage
+impl error::Error for BackendMessageError
+{}
+
+impl fmt::Display for BackendMessageError
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
     {
         match self {
-            BackendErrorMessage(pos, msg) => write!(f, "{}: {}.{}: {}", pos.path, pos.line, pos.column, msg),
+            BackendMessageError(pos, msg) => write!(f, "{}: {}.{}: {}", pos.path, pos.line, pos.column, msg),
         }
     }
 }
@@ -26,7 +29,7 @@ impl fmt::Display for BackendErrorMessage
 #[derive(Debug)]
 pub enum BackendError
 {
-    Messages(Vec<BackendErrorMessage>),
+    Messages(Vec<BackendMessageError>),
     Internal(String),
 }
 
@@ -38,13 +41,13 @@ impl fmt::Display for BackendError
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
     {
         match self {
-            BackendError::Messages(msgs) => {
+            BackendError::Messages(msg_errs) => {
                 let mut is_first = true;
-                for msg in msgs {
+                for msg_err in msg_errs {
                     if !is_first {
                         write!(f, "\n")?;
                     }
-                    write!(f, "{}", msg)?;
+                    write!(f, "{}", msg_err)?;
                     is_first = false;
                 }
                 Ok(())
