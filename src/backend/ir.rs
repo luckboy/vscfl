@@ -54,7 +54,7 @@ pub enum IrAccessModifier
 #[derive(Clone, Debug)]
 pub struct IrTree
 {
-    defs: Vec<IrDef>,
+    defs: Vec<Box<IrDef>>,
     structs: HashMap<String, Rc<RefCell<IrStruct>>>,
     unions: HashMap<String, Rc<RefCell<IrUnion>>>,
     vars: HashMap<String, Rc<RefCell<IrVar>>>,
@@ -71,6 +71,39 @@ impl IrTree
             vars: HashMap::new(),
         }
     }
+
+    pub fn defs(&self) -> &[Box<IrDef>]
+    { self.defs.as_slice() }
+    
+    pub fn add_def(&mut self, def: IrDef)
+    { self.defs.push(Box::new(def)); }
+
+    pub fn structs(&self) -> &HashMap<String, Rc<RefCell<IrStruct>>>
+    { &self.structs }
+    
+    pub fn struct1(&self, ident: &String) -> Option<&Rc<RefCell<IrStruct>>>
+    { self.structs.get(ident) }
+
+    pub fn add_struct(&mut self, ident: String, struct1: Rc<RefCell<IrStruct>>)
+    { self.structs.insert(ident, struct1); }
+
+    pub fn unions(&self) -> &HashMap<String, Rc<RefCell<IrUnion>>>
+    { &self.unions }
+    
+    pub fn union(&self, ident: &String) -> Option<&Rc<RefCell<IrUnion>>>
+    { self.unions.get(ident) }
+
+    pub fn add_union(&mut self, ident: String, union: Rc<RefCell<IrUnion>>)
+    { self.unions.insert(ident, union); }
+
+    pub fn vars(&self) -> &HashMap<String, Rc<RefCell<IrVar>>>
+    { &self.vars }
+    
+    pub fn var(&self, ident: &String) -> Option<&Rc<RefCell<IrVar>>>
+    { self.vars.get(ident) }
+
+    pub fn add_var(&mut self, ident: String, var: Rc<RefCell<IrVar>>)
+    { self.vars.insert(ident, var); }
 }
 
 #[derive(Clone, Debug)]
