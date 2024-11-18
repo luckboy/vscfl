@@ -233,7 +233,7 @@ pub struct IrLocalVarPair(pub IrLocalVarModifier, pub Box<IrType>);
 pub enum IrInstr
 {
     Op(IrOp),
-    Assign(IrInstrVar, IrOp),
+    Assign(Box<IrInstrVar>, IrOp),
     Return(Option<IrOp>),
     Break,
     Continue,
