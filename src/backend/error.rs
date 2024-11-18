@@ -7,6 +7,7 @@
 //
 use std::error;
 use std::fmt;
+use std::result;
 use crate::frontend::error::Pos;
 
 #[derive(Debug)]
@@ -52,3 +53,5 @@ impl fmt::Display for BackendError
         }
     }
 }
+
+pub type BackendResult<T> = result::Result<T, BackendError>;
