@@ -274,7 +274,7 @@ pub enum IrInstr
     If(IrOp, Box<IrBlock>, Box<IrBlock>),
     Switch(IrOp, Vec<IrCase>),
     Loop(Box<IrBlock>),
-    Panic(String, Vec<Pos>),
+    Panic(String, Vec<Pos>, Option<IrValue<IrArgVar>>),
 }
 
 #[derive(Clone, Debug)]
