@@ -300,7 +300,7 @@ pub enum IrOp
     Xor(IrValue<IrArgVar>, IrValue<IrArgVar>),
     Or(IrValue<IrArgVar>, IrValue<IrArgVar>),
     CallBuiltinFun(String, Option<Box<IrType>>, Vec<IrValue<IrArgVar>>),
-    CallFun(String, Vec<IrValue<IrArgVar>>, Pos),
+    CallFun(String, Vec<IrValue<IrArgVar>>, Pos, Option<IrValue<IrArgVar>>),
     CallFunWithoutPanic(String, Vec<IrValue<IrArgVar>>, Pos),
 }
 
