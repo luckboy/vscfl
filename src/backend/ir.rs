@@ -274,7 +274,7 @@ pub enum IrInstr
     If(IrOp, Box<IrBlock>, Box<IrBlock>),
     Switch(IrOp, Vec<IrCase>),
     Loop(Box<IrBlock>),
-    Panic(String, Vec<Pos>, Option<IrValue<IrArgVar>>),
+    Panic(String, Pos, Vec<Pos>, Option<IrValue<IrArgVar>>),
 }
 
 #[derive(Clone, Debug)]
@@ -300,7 +300,7 @@ pub enum IrOp
     Xor(IrValue<IrArgVar>, IrValue<IrArgVar>),
     Or(IrValue<IrArgVar>, IrValue<IrArgVar>),
     CallBuiltinFun(String, Option<Box<IrType>>, Vec<IrValue<IrArgVar>>),
-    CallFun(String, Vec<IrValue<IrArgVar>>, Pos, Option<IrValue<IrArgVar>>),
+    CallFun(String, Vec<IrValue<IrArgVar>>, Pos, Vec<Pos>, Option<IrValue<IrArgVar>>),
     CallFunWithoutPanic(String, Vec<IrValue<IrArgVar>>, Pos),
 }
 
