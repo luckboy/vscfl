@@ -223,12 +223,18 @@ pub enum IrArgVar
     PrivateClosure(usize, Vec<IrArgOp>),
     LocalClosure(usize, Vec<IrArgOp>),
     GlobalClosure(usize, Vec<IrArgOp>),
+    PrivateHeap(usize, Vec<IrArgOp>),
+    LocalHeap(usize, Vec<IrArgOp>),
+    GlobalHeap(usize, Vec<IrArgOp>),
     RefGlobal(String, Vec<IrArgOp>, Option<Box<IrType>>),
     RefLocal(usize, Vec<IrArgOp>, Option<Box<IrType>>),
     RefCallerFunArg(usize, Vec<IrArgOp>, Option<Box<IrType>>),
     RefPrivateClosure(usize, Vec<IrArgOp>, Option<Box<IrType>>),
     RefLocalClosure(usize, Vec<IrArgOp>, Option<Box<IrType>>),
     RefGlobalClosure(usize, Vec<IrArgOp>, Option<Box<IrType>>),
+    RefPrivateHeap(usize, Vec<IrArgOp>, Option<Box<IrType>>),
+    RefLocalHeap(usize, Vec<IrArgOp>, Option<Box<IrType>>),
+    RefGlobalHeap(usize, Vec<IrArgOp>, Option<Box<IrType>>),
 }
 
 #[derive(Clone, PartialEq, Debug)]
