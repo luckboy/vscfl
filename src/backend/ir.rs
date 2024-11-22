@@ -177,6 +177,7 @@ pub enum IrObject<T>
     Struct(Vec<IrValue<T>>, Vec<IrFieldPair<T>>, Option<Box<IrType>>),
     Union(usize, IrValue<T>, Option<Box<IrType>>),
     Closure(Vec<IrFieldPair<T>>, Option<Box<IrType>>),
+    Sizeof(Box<IrType>, Option<Box<IrType>>),
 }
 
 #[derive(Clone, PartialEq, Debug)]
