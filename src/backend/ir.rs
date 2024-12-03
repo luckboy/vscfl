@@ -264,7 +264,36 @@ pub enum IrFun
 pub struct IrCallerFun(pub Option<Box<IrType>>, pub Option<Box<IrType>>, pub Option<Box<IrType>>, pub usize, pub Box<IrBlock>);
 
 #[derive(Clone, Debug)]
-pub struct IrBlock(pub Vec<IrLocalVarPair>, Vec<IrInstr>);
+pub struct IrBlock
+{
+    local_var_pairs: Vec<IrLocalVarPair>,
+    instrs: Vec<IrInstr>,
+    block_count: usize,
+}
+
+impl IrBlock
+{
+    pub fn new() -> Self
+    { IrBlock { local_var_pairs: Vec::new(), instrs: Vec::new(), block_count: 0, } }
+    
+    pub fn local_var_pairs(&self) -> &[IrLocalVarPair]
+    { self.local_var_pairs.as_slice() }
+    
+    pub fn add_local_var_pair(&mut self, local_var_pair: IrLocalVarPair)
+    { self.local_var_pairs.push(local_var_pair); }
+
+    pub fn instrs(&self) -> &[IrInstr]
+    { self.instrs.as_slice() }
+    
+    pub fn add_instr(&mut self, instr: IrInstr)
+    {
+        self.block_count += instr.block_count();
+        self.instrs.push(instr);
+    }
+
+    pub fn block_count(&self) -> usize
+    { self.block_count }
+}
 
 #[derive(Clone, Debug)]
 pub struct IrLocalVarPair(pub IrLocalVarModifier, pub Box<IrType>);
@@ -282,6 +311,20 @@ pub enum IrInstr
     Switch(IrOp, Vec<IrCase>),
     Loop(Box<IrBlock>),
     Panic(String, Pos, Vec<Pos>, Option<IrValue<IrArgVar>>),
+}
+
+impl IrInstr
+{
+    pub fn block_count(&self) -> usize
+    {
+        match self {
+            IrInstr::Block(block) => block.block_count() + 1,
+            IrInstr::If(_, block1, block2) => block1.block_count() + block2.block_count() + 2,
+            IrInstr::Switch(_, cases) => cases.iter().fold(0usize, |n, c| n + c.1.block_count() + 1),
+            IrInstr::Loop(block) => block.block_count() + 1,
+            _ => 0,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
