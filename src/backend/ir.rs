@@ -257,7 +257,31 @@ pub enum IrArgOp
 pub enum IrFun
 {
     Fun(IrFunModifier, Vec<Box<IrType>>, Box<IrType>, Box<IrBlock>, IrPrivateHeapFlag, IrLocalHeapFlag, IrGlobalHeapFlag, IrPanicFlag),
-    Caller(Vec<Box<IrType>>, Box<IrType>, BTreeMap<usize, IrCallerFun>, IrPrivateHeapFlag, IrLocalHeapFlag, IrGlobalHeapFlag, IrPanicFlag),
+    Caller(Vec<Box<IrType>>, Box<IrType>, Box<IrCallerFuns>, IrPrivateHeapFlag, IrLocalHeapFlag, IrGlobalHeapFlag, IrPanicFlag),
+}
+
+#[derive(Clone, Debug)]
+pub struct IrCallerFuns
+{
+    funs: BTreeMap<usize, IrCallerFun>,
+}
+
+impl IrCallerFuns
+{
+    pub fn new() -> Self
+    { IrCallerFuns { funs: BTreeMap::new(), } }
+    
+    pub fn funs(&self) -> &BTreeMap<usize, IrCallerFun>
+    { &self.funs }
+
+    pub fn fun(&self, idx: usize) -> Option<&IrCallerFun>
+    { self.funs.get(&idx) }
+
+    pub fn add_fun(&mut self, idx: usize, fun: IrCallerFun)
+    { self.funs.insert(idx, fun); }
+
+    pub fn remove_fun(&mut self, idx: usize) -> bool
+    { self.funs.remove(&idx).is_some() }
 }
 
 #[derive(Clone, Debug)]
