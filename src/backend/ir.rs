@@ -41,6 +41,7 @@ pub enum IrPtrModifier
 pub enum IrFunModifier
 {
     None,
+    Inline,
     Kernel,
 }
 
