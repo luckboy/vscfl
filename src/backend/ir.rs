@@ -170,6 +170,7 @@ pub enum IrVar
 #[derive(Clone, PartialEq, Debug)]
 pub enum IrObject<T>
 {
+    CallerFunIndex(String, usize, Option<Box<IrType>>),
     String(Vec<u8>),
     BuiltinVar(String, Option<Box<IrType>>, Option<Box<IrType>>),
     Var(T, Option<Box<IrType>>),
@@ -258,15 +259,13 @@ pub enum IrArgOp
 pub enum IrFun
 {
     Fun(IrFunModifier, Vec<Box<IrType>>, Box<IrType>, Box<IrBlock>, IrPrivateHeapFlag, IrLocalHeapFlag, IrGlobalHeapFlag, IrPanicFlag),
-    Caller(Vec<Box<IrType>>, Box<IrType>, Box<IrCallerFuns>, IrPrivateHeapFlag, IrLocalHeapFlag, IrGlobalHeapFlag, IrPanicFlag),
+    Caller(Box<IrType>, Vec<Box<IrType>>, Box<IrType>, Box<IrCallerFuns>, IrPrivateHeapFlag, IrLocalHeapFlag, IrGlobalHeapFlag, IrPanicFlag),
 }
 
 #[derive(Clone, Debug)]
 pub struct IrCallerFuns
 {
     funs: BTreeMap<usize, IrCallerFun>,
-    op_pairs: BTreeMap<IrCallerFunOp, (usize, usize)>,
-    builtin_fun_pairs: BTreeMap<String, (usize, usize)>,
     fun_pairs: BTreeMap<String, (usize, usize)>,
     index_counter: usize,
 }
@@ -277,8 +276,6 @@ impl IrCallerFuns
     {
         IrCallerFuns {
             funs: BTreeMap::new(),
-            op_pairs: BTreeMap::new(),
-            builtin_fun_pairs: BTreeMap::new(),
             fun_pairs: BTreeMap::new(),
             index_counter: 1,
         }
@@ -293,29 +290,18 @@ impl IrCallerFuns
     pub fn add_fun(&mut self, fun: IrCallerFun) -> usize
     {
         match &fun {
-            IrCallerFun::Op(op) => {
-                match self.op_pairs.get_mut(op) {
-                    Some((idx, ref_count)) => {
-                        *ref_count += 1;
-                        return *idx;
-                    },
-                    None => {
-                        self.op_pairs.insert(*op, (self.index_counter, 1));
-                    },
-                }
-            },
-            IrCallerFun::BuiltinFun(ident) =>  {
-                match self.builtin_fun_pairs.get_mut(ident) {
-                    Some((idx, ref_count)) => {
-                        *ref_count += 1;
-                        return *idx;
-                    },
-                    None => {
-                        self.builtin_fun_pairs.insert(ident.clone(), (self.index_counter, 1));
-                    },
-                }
-            },
             IrCallerFun::Fun(ident) => {
+                match self.fun_pairs.get_mut(ident) {
+                    Some((idx, ref_count)) => {
+                        *ref_count += 1;
+                        return *idx;
+                    },
+                    None => {
+                        self.fun_pairs.insert(ident.clone(), (self.index_counter, 1));
+                    },
+                }
+            },
+            IrCallerFun::InlineFun(ident, _) => {
                 match self.fun_pairs.get_mut(ident) {
                     Some((idx, ref_count)) => {
                         *ref_count += 1;
@@ -337,31 +323,19 @@ impl IrCallerFuns
     pub fn remove_fun(&mut self, idx: usize) -> bool
     {
         match self.funs.get(&idx) {
-            Some(IrCallerFun::Op(op)) => {
-                match self.op_pairs.get_mut(op) {
-                    Some((_, ref_count)) => {
-                        *ref_count -= 1;
-                        if *ref_count > 0 {
-                            return false;
-                        }
-                        self.op_pairs.remove(op);
-                    },
-                    None => (),
-                }
-            },
-            Some(IrCallerFun::BuiltinFun(ident)) =>  {
-                match self.builtin_fun_pairs.get_mut(ident) {
-                    Some((_, ref_count)) => {
-                        *ref_count -= 1;
-                        if *ref_count > 0 {
-                            return false;
-                        }
-                        self.builtin_fun_pairs.remove(ident);
-                    },
-                    None => (),
-                }
-            },
             Some(IrCallerFun::Fun(ident)) => {
+                match self.fun_pairs.get_mut(ident) {
+                    Some((_, ref_count)) => {
+                        *ref_count -= 1;
+                        if *ref_count > 0 {
+                            return false;
+                        }
+                        self.fun_pairs.remove(ident);
+                    },
+                    None => (),
+                }
+            },
+            Some(IrCallerFun::InlineFun(ident, _)) => {
                 match self.fun_pairs.get_mut(ident) {
                     Some((_, ref_count)) => {
                         *ref_count -= 1;
@@ -383,33 +357,9 @@ impl IrCallerFuns
 #[derive(Clone, Debug)]
 pub enum IrCallerFun
 {
-    Op(IrCallerFunOp),
-    BuiltinFun(String),
     Fun(String),
+    InlineFun(String, Box<IrBlock>),
     Lambda(Option<Box<IrType>>, Option<Box<IrType>>, Option<Box<IrType>>, usize, Box<IrBlock>)
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub enum IrCallerFunOp
-{
-    Neg,
-    Not,
-    Mul,
-    Div,
-    Rem,
-    Add,
-    Sub,
-    Shl,
-    Shr,
-    Eq,
-    Ne,
-    Lt,
-    Ge,
-    Gt,
-    Le,
-    And,
-    Xor,
-    Or,
 }
 
 #[derive(Clone, Debug)]
