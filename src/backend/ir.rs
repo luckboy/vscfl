@@ -170,7 +170,6 @@ pub enum IrVar
 #[derive(Clone, PartialEq, Debug)]
 pub enum IrObject<T>
 {
-    CallerFunIndex(String, usize, Option<Box<IrType>>),
     String(Vec<u8>),
     BuiltinVar(String, Option<Box<IrType>>, Option<Box<IrType>>),
     Var(T, Option<Box<IrType>>),
@@ -180,6 +179,7 @@ pub enum IrObject<T>
     Union(usize, IrValue<T>, Option<Box<IrType>>),
     Closure(Vec<IrFieldPair<T>>, Option<Box<IrType>>),
     Sizeof(Box<IrType>, Option<Box<IrType>>),
+    CallerFunIndex(String, usize, Option<Box<IrType>>),
 }
 
 #[derive(Clone, PartialEq, Debug)]
