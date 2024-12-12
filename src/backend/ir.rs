@@ -459,7 +459,7 @@ impl IrBlock
 
     fn var_value_and_var_type(&self, var_idx: usize, old_start_var_idx: usize, new_start_var_idx: usize, substitutions: &BTreeMap<(usize, usize), VarSubstitution>, is_caller_fun_arg_change: bool, is_closure_var_change: bool, var_tuples: &[VarTuple], var_idxs: &BTreeMap<usize, usize>) -> Result<(Option<IrValue<IrArgVar>>, IrType), IrBlockError>
     {
-        match var_idxs.get(&(var_idx)) {
+        match var_idxs.get(&var_idx) {
             Some(new_var_idx) => {
                 match var_tuples.get(new_var_idx - new_start_var_idx) {
                     Some(var_tuple) => {
@@ -572,7 +572,7 @@ impl IrBlock
                             IrValue::Object(object) => Err(IrBlockError::NoFun),
                             value3 => {
                                 if !ops.is_empty() {
-                                    match new_var_idxs.get(&(var_idx)) {
+                                    match new_var_idxs.get(&var_idx) {
                                         Some(new_var_idx) => {
                                             if new_var_idx - new_start_var_idx - var_tuples.len() < new_var_tuples.len() {
                                                 match vector_elem_ptr_type {
