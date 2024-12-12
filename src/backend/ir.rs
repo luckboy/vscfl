@@ -8,6 +8,8 @@
 use std::cell::*;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
+use std::error;
+use std::fmt;
 use std::rc::*;
 use crate::frontend::error::Pos;
 
@@ -363,6 +365,55 @@ pub enum IrCallerFun
 }
 
 #[derive(Clone, Debug)]
+pub struct VarSubstitution
+{
+    arg_substitutions: Vec<ArgSubstitution>,
+    has_var: bool,
+}
+
+impl VarSubstitution
+{
+    pub fn new(arg_substitutions: Vec<ArgSubstitution>, has_var: bool) -> Self
+    { VarSubstitution { arg_substitutions, has_var, } }
+
+    pub fn arg_substitutions(&self) -> &[ArgSubstitution]
+    { self.arg_substitutions.as_slice() }
+    
+    pub fn has_var(&self) -> bool
+    { self.has_var }
+}
+
+#[derive(Clone, Debug)]
+pub enum ArgSubstitution
+{
+    Value(IrValue<IrArgVar>),
+    Fun(String),
+    Lambda(usize, Vec<Box<IrType>>, Box<IrBlock>),
+}
+
+#[derive(Clone, Debug)]
+struct VarTuple
+{
+    typ: Box<IrType>,
+    old_block_index: usize,
+    new_var_index: Option<usize>,
+    assign_index: Option<usize>,
+}
+
+impl VarTuple
+{
+    pub fn new(typ: Box<IrType>, old_block_idx: usize, new_var_idx: Option<usize>) -> Self
+    {
+        VarTuple {
+            typ,
+            old_block_index: old_block_idx,
+            new_var_index: new_var_idx,
+            assign_index: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct IrBlock
 {
     local_var_pairs: Vec<IrLocalVarPair>,
@@ -392,6 +443,116 @@ impl IrBlock
 
     pub fn block_count(&self) -> usize
     { self.block_count }
+    
+    fn substitute_value(&self, value: &IrValue<IrArgVar>, old_start_var_idx: usize, new_start_var_idx: usize, substitutions: &BTreeMap<(usize, usize), VarSubstitution>, is_lambda_arg_change: bool, is_closure_var_change: bool, current_block_idx: usize, var_tuples: &[VarTuple], new_var_tuples: &mut Vec<VarTuple>, new_var_idxs: &mut BTreeMap<(usize, usize), usize>) -> Result<IrValue<IrArgVar>, IrBlockError>
+    {
+        match value {
+            IrValue::Object(object) => {
+                match &**object {
+                    IrObject::Var(var, typ) => Err(IrBlockError::NoFun),
+                    IrObject::Vector(values, typ) => {
+                        let mut new_values: Vec<IrValue<IrArgVar>> = Vec::new();
+                        for value2 in values {
+                            new_values.push(self.substitute_value(value2, old_start_var_idx, new_start_var_idx, substitutions, is_lambda_arg_change, is_closure_var_change, current_block_idx, var_tuples, new_var_tuples, new_var_idxs)?);
+                        }
+                        Ok(IrValue::Object(Box::new(IrObject::Vector(new_values, typ.clone()))))
+                    },
+                    IrObject::Array(values, typ) => {
+                        let mut new_values: Vec<IrValue<IrArgVar>> = Vec::new();
+                        for value2 in values {
+                            new_values.push(self.substitute_value(value2, old_start_var_idx, new_start_var_idx, substitutions, is_lambda_arg_change, is_closure_var_change, current_block_idx, var_tuples, new_var_tuples, new_var_idxs)?);
+                        }
+                        Ok(IrValue::Object(Box::new(IrObject::Array(new_values, typ.clone()))))
+                    },
+                    IrObject::Struct(values, field_pairs, typ) => {
+                        let mut new_values: Vec<IrValue<IrArgVar>> = Vec::new();
+                        for value2 in values {
+                            new_values.push(self.substitute_value(value2, old_start_var_idx, new_start_var_idx, substitutions, is_lambda_arg_change, is_closure_var_change, current_block_idx, var_tuples, new_var_tuples, new_var_idxs)?);
+                        }
+                        let mut new_field_pairs: Vec<IrFieldPair<IrArgVar>> = Vec::new();
+                        for field_pair in field_pairs {
+                            match field_pair {
+                                IrFieldPair(var_idx, value) => new_field_pairs.push(IrFieldPair(*var_idx, self.substitute_value(value, old_start_var_idx, new_start_var_idx, substitutions, is_lambda_arg_change, is_closure_var_change, current_block_idx, var_tuples, new_var_tuples, new_var_idxs)?)),
+                            }
+                        }
+                        Ok(IrValue::Object(Box::new(IrObject::Struct(new_values, new_field_pairs, typ.clone()))))
+                    },
+                    IrObject::Union(var_idx, value2, typ) => {
+                        let new_value = self.substitute_value(value2, old_start_var_idx, new_start_var_idx, substitutions, is_lambda_arg_change, is_closure_var_change, current_block_idx, var_tuples, new_var_tuples, new_var_idxs)?;
+                        Ok(IrValue::Object(Box::new(IrObject::Union(*var_idx, new_value, typ.clone()))))
+                    },
+                    IrObject::Closure(field_pairs, typ) => {
+                        let mut new_field_pairs: Vec<IrFieldPair<IrArgVar>> = Vec::new();
+                        for field_pair in field_pairs {
+                            match field_pair {
+                                IrFieldPair(var_idx, value) => new_field_pairs.push(IrFieldPair(*var_idx, self.substitute_value(value, old_start_var_idx, new_start_var_idx, substitutions, is_lambda_arg_change, is_closure_var_change, current_block_idx, var_tuples, new_var_tuples, new_var_idxs)?)),
+                            }
+                        }
+                        Ok(IrValue::Object(Box::new(IrObject::Closure(new_field_pairs, typ.clone()))))
+                    },
+                    _ => Ok(value.clone()),
+                }
+            },
+            _ => Ok(value.clone()),
+        }
+    }
+    
+    fn substitute_from(&self, old_start_var_idx: usize, new_start_var_idx: usize, substitutions: &BTreeMap<(usize, usize), VarSubstitution>, ret_var: Option<&IrInstrVar>, poses: &[Pos], tree: &IrTree, is_lambda_arg_change: bool, is_closure_var_change: bool, old_var_idx: usize, new_var_idx: usize, block_idx: &mut usize, var_tuples: &mut Vec<VarTuple>) -> Result<IrBlock, IrBlockError>
+    {
+        let mut new_block = IrBlock::new();
+        let current_block_idx = *block_idx;
+        let mut old_var_idx2 = old_var_idx;
+        let mut new_var_idx2 = new_var_idx;
+        for local_var_pair in &self.local_var_pairs {
+            let is_var = match  substitutions.get(&(old_var_idx2, current_block_idx)) {
+                Some(substitution) => substitution.has_var(),
+                None => true,
+            };
+            if is_var {
+                var_tuples.push(VarTuple::new(local_var_pair.1.clone(), current_block_idx, Some(new_var_idx2)));
+                new_block.add_local_var_pair(local_var_pair.clone());
+                new_var_idx2 += 1;
+            } else {
+                var_tuples.push(VarTuple::new(local_var_pair.1.clone(), current_block_idx, None));
+            }
+            old_var_idx2 += 1;
+        }
+        for instr in &self.instrs {
+        }
+        for _ in 0..(new_var_idx2 - new_var_idx) {
+            var_tuples.pop();
+        }
+        Ok(new_block)
+    }
+
+    pub fn substitute(&self, old_start_var_idx: usize, var_types: &[Box<IrType>], new_start_var_idx: usize, substitutions: &BTreeMap<(usize, usize), VarSubstitution>, ret_var: Option<&IrInstrVar>, poses: &[Pos], tree: &IrTree, is_lambda_arg_change: bool, is_closure_var_change: bool) -> Result<IrBlock, IrBlockError>
+    {
+        let mut var_tuples: Vec<VarTuple> = Vec::new();
+        for i in 0..var_types.len() {
+            var_tuples.push(VarTuple::new(var_types[i].clone(), 0, Some(i + new_start_var_idx)));
+        }
+        let mut block_idx = 1usize;
+        self.substitute_from(old_start_var_idx, new_start_var_idx, substitutions, ret_var, poses, tree, is_lambda_arg_change, is_closure_var_change, old_start_var_idx + var_types.len(), new_start_var_idx + var_types.len(), &mut block_idx, &mut var_tuples)
+    }
+}
+
+#[derive(Debug)]
+pub enum IrBlockError
+{
+    NoFun,
+}
+
+impl error::Error for IrBlockError
+{}
+
+impl fmt::Display for IrBlockError
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+    { 
+        match self {
+          IrBlockError::NoFun => write!(f, "no function"),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
