@@ -396,30 +396,27 @@ struct VarTuple
 {
     typ: Box<IrType>,
     old_block_index: Option<usize>,
-    new_var_index: Option<usize>,
     assign_index: Option<usize>,
     value: Option<IrValue<IrArgVar>>,
 }
 
 impl VarTuple
 {
-    fn new(typ: Box<IrType>, old_block_idx: Option<usize>, new_var_idx: Option<usize>) -> Self
+    fn new(typ: Box<IrType>, old_block_idx: Option<usize>) -> Self
     {
         VarTuple {
             typ,
             old_block_index: old_block_idx,
-            new_var_index: new_var_idx,
             assign_index: None,
             value: None,
         }
     }
 
-    fn new_with_value(typ: Box<IrType>, old_block_idx: Option<usize>, new_var_idx: Option<usize>, value: IrValue<IrArgVar>) -> Self
+    fn new_with_value(typ: Box<IrType>, old_block_idx: Option<usize>, value: IrValue<IrArgVar>) -> Self
     {
         VarTuple {
             typ,
             old_block_index: old_block_idx,
-            new_var_index: new_var_idx,
             assign_index: None,
             value: Some(value),
         }
@@ -522,7 +519,7 @@ impl IrBlock
                 None => {
                     let value4 = self.substitute_arg_ops_for_value(&value3, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?;
                     let new_var_idx = new_start_var_idx + var_tuples.len() + new_var_tuples.len();
-                    new_var_tuples.push(VarTuple::new_with_value(type2.clone(), None, Some(new_var_idx), value4));
+                    new_var_tuples.push(VarTuple::new_with_value(type2.clone(), None, value4));
                     new_var_idxs.insert(var_idx, new_var_idx);
                     match vector_elem_ptr_type {
                         Some(vector_elem_ptr_type) => Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::RefLocal(new_var_idx, ops.clone(), vector_elem_ptr_type.clone()), typ.clone())))),
@@ -788,7 +785,7 @@ impl IrBlock
             None => {
                 let value2 = self.substitute_value(&value, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?;
                 let new_var_idx = new_start_var_idx + var_tuples.len() + new_var_tuples.len();
-                new_var_tuples.push(VarTuple::new_with_value(type2.clone(), None, Some(new_var_idx), value2));
+                new_var_tuples.push(VarTuple::new_with_value(type2.clone(), None, value2));
                 new_var_idxs.insert(var_idx, new_var_idx);
                 Ok((Some(IrArgOp::LocalIndex(typ.clone(), new_var_idx)), new_var_idx, false))
             },
@@ -1347,7 +1344,7 @@ impl IrBlock
             Some(None) => (None, None),
             None => {
                 let new_var_idx = new_start_var_idx + var_tuples.len() + new_var_tuples.len();
-                new_var_tuples.push(VarTuple::new(fun_ret_type.clone(), None, Some(new_var_idx)));
+                new_var_tuples.push(VarTuple::new(fun_ret_type.clone(), None));
                 (Some(IrOp::Load(IrValue::Object(Box::new(IrObject::Var(IrArgVar::Local(new_var_idx, Vec::new()), None))))), Some(Box::new(IrInstrVar::Local(new_var_idx, Vec::new()))))
             },
         };
@@ -1359,7 +1356,7 @@ impl IrBlock
         let mut new_poses = vec![pos.clone()];
         new_poses.extend_from_slice(panic_poses);
         new_poses.extend_from_slice(poses);
-        let new_fun_block = fun_block.substitute(fun_old_start_var_idx, fun_arg_types, fun_new_start_var_idx, substitutions, new_ret_var2, new_poses.as_slice(), tree, true, true)?;
+        let new_fun_block = fun_block.substitute(fun_old_start_var_idx, fun_arg_types, fun_new_start_var_idx, &BTreeMap::new(), new_ret_var2, new_poses.as_slice(), tree, true, true)?;
         if !arg_values.is_empty() {
             let mut new_fun_block2 = IrBlock::new();
             for fun_arg_type in fun_arg_types {
@@ -1572,12 +1569,12 @@ impl IrBlock
                 None => true,
             };
             if is_var {
-                var_tuples.push(VarTuple::new(local_var_pair.1.clone(), Some(current_block_idx), Some(new_var_idx2)));
+                var_tuples.push(VarTuple::new(local_var_pair.1.clone(), Some(current_block_idx)));
                 var_idxs.insert(old_var_idx2, new_var_idx2);
                 new_block.add_local_var_pair(local_var_pair.clone());
                 new_var_idx2 += 1;
             } else {
-                var_tuples.push(VarTuple::new(local_var_pair.1.clone(), None, None));
+                var_tuples.push(VarTuple::new(local_var_pair.1.clone(), None));
             }
             old_var_idx2 += 1;
         }
@@ -1593,12 +1590,24 @@ impl IrBlock
     {
         let mut var_tuples: Vec<VarTuple> = Vec::new();
         let mut var_idxs: BTreeMap<usize, usize> = BTreeMap::new();
-        for i in 0..var_types.len() {
-            var_tuples.push(VarTuple::new(var_types[i].clone(), Some(0), Some(i + new_start_var_idx)));
-            var_idxs.insert(i + old_start_var_idx, i + new_start_var_idx);
+        let mut old_var_idx = old_start_var_idx;
+        let mut new_var_idx = new_start_var_idx;
+        for var_type in var_types {
+            let is_var = match  substitutions.get(&(old_var_idx, 0)) {
+                Some(substitution) => substitution.has_var(),
+                None => true,
+            };
+            if is_var {
+                let mut var_tuple = VarTuple::new(var_type.clone(), Some(0));
+                var_tuple.assign_index = Some(0);
+                var_tuples.push(var_tuple);
+                var_idxs.insert(old_var_idx, new_var_idx);
+                new_var_idx += 1;
+            }
+            old_var_idx += 1;
         }
         let mut block_idx = 1usize;
-        self.substitute_from(old_start_var_idx, new_start_var_idx, substitutions, ret_var, poses, tree, is_caller_fun_arg_change, is_closure_var_change, old_start_var_idx + var_types.len(), new_start_var_idx + var_types.len(), &mut block_idx, &mut var_tuples, &mut var_idxs)
+        self.substitute_from(old_start_var_idx, new_start_var_idx, substitutions, ret_var, poses, tree, is_caller_fun_arg_change, is_closure_var_change, old_start_var_idx + var_types.len(), new_start_var_idx + var_tuples.len(), &mut block_idx, &mut var_tuples, &mut var_idxs)
     }
 }
 
