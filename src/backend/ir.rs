@@ -1178,7 +1178,7 @@ impl IrBlock
                             IrArgVar::Local(var_idx, ops) => {
                                 if ops.is_empty() {
                                     match self.var_arg_substitution_tuple(*var_idx, new_start_var_idx, substitutions, var_tuples, var_idxs)? {
-                                        (Some(ArgSubstitution::Value(value2)), _, new_var_idx) => self.arg_substitution(&value2, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs),
+                                        (Some(ArgSubstitution::Value(value2)), _, _) => self.arg_substitution(&value2, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs),
                                         (Some(substitution), _, _) => Ok(substitution),
                                         (None, _, _) => Ok(ArgSubstitution::Value(self.substitute_value(value, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?)),
                                     }
@@ -1189,7 +1189,7 @@ impl IrBlock
                             IrArgVar::CallerFunArg(var_idx, ops) => {
                                 if ops.is_empty() {
                                     match self.var_arg_substitution_tuple(*var_idx, new_start_var_idx, substitutions, var_tuples, var_idxs)? {
-                                        (Some(ArgSubstitution::Value(value2)), _, new_var_idx) => self.arg_substitution(&value2, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs),
+                                        (Some(ArgSubstitution::Value(value2)), _, _) => self.arg_substitution(&value2, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs),
                                         (Some(substitution), _, _) => Ok(substitution),
                                         (None, _, _) => Ok(ArgSubstitution::Value(self.substitute_value(value, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?)),
                                     }
@@ -1200,7 +1200,7 @@ impl IrBlock
                             IrArgVar::PrivateClosure(var_idx, ops) => {
                                 if ops.is_empty() {
                                     match self.var_arg_substitution_tuple(*var_idx, new_start_var_idx, substitutions, var_tuples, var_idxs)? {
-                                        (Some(ArgSubstitution::Value(value2)), _, new_var_idx) => self.arg_substitution(&value2, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs),
+                                        (Some(ArgSubstitution::Value(value2)), _, _) => self.arg_substitution(&value2, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs),
                                         (Some(substitution), _, _) => Ok(substitution),
                                         (None, _, _) => Ok(ArgSubstitution::Value(self.substitute_value(value, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?)),
                                     }
@@ -1211,7 +1211,7 @@ impl IrBlock
                             IrArgVar::LocalClosure(var_idx, ops) => {
                                 if ops.is_empty() {
                                     match self.var_arg_substitution_tuple(*var_idx, new_start_var_idx, substitutions, var_tuples, var_idxs)? {
-                                        (Some(ArgSubstitution::Value(value2)), _, new_var_idx) => self.arg_substitution(&value2, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs),
+                                        (Some(ArgSubstitution::Value(value2)), _, _) => self.arg_substitution(&value2, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs),
                                         (Some(substitution), _, _) => Ok(substitution),
                                         (None, _, _) => Ok(ArgSubstitution::Value(self.substitute_value(value, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?)),
                                     }
@@ -1222,7 +1222,7 @@ impl IrBlock
                             IrArgVar::GlobalClosure(var_idx, ops) => {
                                 if ops.is_empty() {
                                     match self.var_arg_substitution_tuple(*var_idx, new_start_var_idx, substitutions, var_tuples, var_idxs)? {
-                                        (Some(ArgSubstitution::Value(value2)), _, new_var_idx) => self.arg_substitution(&value2, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs),
+                                        (Some(ArgSubstitution::Value(value2)), _, _) => self.arg_substitution(&value2, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs),
                                         (Some(substitution), _, _) => Ok(substitution),
                                         (None, _, _) => Ok(ArgSubstitution::Value(self.substitute_value(value, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?)),
                                     }
@@ -1410,7 +1410,7 @@ impl IrBlock
                                                 new_values.push(self.substitute_value(value, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?);
                                             },
                                             ArgSubstitution::Lambda(fun_old_start_var_idx, fun_arg_types, fun_ret_type, fun_block) => {
-                                                return self.fun_block_and_fun_op(0, fun_arg_types.as_slice(), &fun_ret_type, &fun_block, &values[1..], pos, panic_poses, new_start_var_idx, substitutions, ret_var, poses, tree, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs);
+                                                return self.fun_block_and_fun_op(fun_old_start_var_idx, fun_arg_types.as_slice(), &fun_ret_type, &fun_block, &values[1..], pos, panic_poses, new_start_var_idx, substitutions, ret_var, poses, tree, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs);
                                             },
                                         }
                                         for value2 in &values[1..] {
