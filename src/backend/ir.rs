@@ -403,7 +403,7 @@ struct VarTuple
 
 impl VarTuple
 {
-    pub fn new(typ: Box<IrType>, old_block_idx: Option<usize>, new_var_idx: Option<usize>) -> Self
+    fn new(typ: Box<IrType>, old_block_idx: Option<usize>, new_var_idx: Option<usize>) -> Self
     {
         VarTuple {
             typ,
@@ -414,7 +414,7 @@ impl VarTuple
         }
     }
 
-    pub fn new_with_value(typ: Box<IrType>, old_block_idx: Option<usize>, new_var_idx: Option<usize>, value: IrValue<IrArgVar>) -> Self
+    fn new_with_value(typ: Box<IrType>, old_block_idx: Option<usize>, new_var_idx: Option<usize>, value: IrValue<IrArgVar>) -> Self
     {
         VarTuple {
             typ,
