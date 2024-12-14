@@ -457,14 +457,14 @@ impl IrBlock
     pub fn block_count(&self) -> usize
     { self.block_count }
 
-    fn var_value_tuple(&self, var_idx: usize, new_start_var_idx: usize, substitutions: &BTreeMap<(usize, usize), VarSubstitution>, var_tuples: &[VarTuple], var_idxs: &BTreeMap<usize, usize>) -> Result<(Option<IrValue<IrArgVar>>, Box<IrType>, usize), IrBlockError>
+    fn var_arg_substitution_tuple(&self, var_idx: usize, new_start_var_idx: usize, substitutions: &BTreeMap<(usize, usize), VarSubstitution>, var_tuples: &[VarTuple], var_idxs: &BTreeMap<usize, usize>) -> Result<(Option<ArgSubstitution>, Box<IrType>, usize), IrBlockError>
     {
         match var_idxs.get(&var_idx) {
             Some(new_var_idx) => {
                 match var_tuples.get(new_var_idx - new_start_var_idx) {
                     Some(var_tuple) => {
                         match &var_tuple.value {
-                            Some(new_value) => Ok((Some(new_value.clone()), var_tuple.typ.clone(), *new_var_idx)),
+                            Some(new_value) => Ok((Some(ArgSubstitution::Value(new_value.clone())), var_tuple.typ.clone(), *new_var_idx)),
                             None => {
                                 match var_tuple.old_block_index {
                                     Some(old_block_idx) => {
@@ -473,10 +473,7 @@ impl IrBlock
                                                 match var_tuple.assign_index {
                                                     Some(assign_index) => {
                                                         if assign_index < substitution.arg_substitutions.len() {
-                                                            match &substitution.arg_substitutions[assign_index] {
-                                                                ArgSubstitution::Value(new_value) => Ok((Some(new_value.clone()), var_tuple.typ.clone(), *new_var_idx)),
-                                                                _ => Err(IrBlockError::InvalidArgSubstitution),
-                                                            }
+                                                            Ok((Some(substitution.arg_substitutions[assign_index].clone()), var_tuple.typ.clone(), *new_var_idx))
                                                         } else {
                                                             Ok((None, var_tuple.typ.clone(), *new_var_idx))
                                                         }
@@ -499,6 +496,15 @@ impl IrBlock
         }
     }
 
+    fn var_value_tuple(&self, var_idx: usize, new_start_var_idx: usize, substitutions: &BTreeMap<(usize, usize), VarSubstitution>, var_tuples: &[VarTuple], var_idxs: &BTreeMap<usize, usize>) -> Result<(Option<IrValue<IrArgVar>>, Box<IrType>, usize), IrBlockError>
+    {
+        match self.var_arg_substitution_tuple(var_idx, new_start_var_idx, substitutions, var_tuples, var_idxs)? {
+            (Some(ArgSubstitution::Value(new_value)), typ, new_var_idx) => Ok((Some(new_value.clone()), typ, new_var_idx)),
+            (Some(_), _, _) => Err(IrBlockError::InvalidArgSubstitution),
+            (None, typ, new_var_idx) => Ok((None, typ, new_var_idx)),
+        }
+    }
+    
     fn new_var_value(&self, typ: &Option<Box<IrType>>, var_idx: usize, ops: &Vec<IrArgOp>, vector_elem_ptr_type: Option<&Option<Box<IrType>>>, value3: &IrValue<IrArgVar>, type2: &Box<IrType>, new_start_var_idx: usize, substitutions: &BTreeMap<(usize, usize), VarSubstitution>, is_caller_fun_arg_change: bool, is_closure_var_change: bool, var_tuples: &[VarTuple], var_idxs: &BTreeMap<usize, usize>, new_var_tuples: &mut Vec<VarTuple>, new_var_idxs: &mut BTreeMap<usize, usize>) -> Result<IrValue<IrArgVar>, IrBlockError>
     {
         if !ops.is_empty() {
@@ -1121,7 +1127,79 @@ impl IrBlock
         self.substitute_arg_ops_for_value(&value2, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)
     }
     
-    fn substitute_from(&self, old_start_var_idx: usize, new_start_var_idx: usize, substitutions: &BTreeMap<(usize, usize), VarSubstitution>, ret_var: Option<&IrInstrVar>, poses: &[Pos], tree: &IrTree, is_caller_fun_arg_change: bool, is_closure_var_change: bool, old_var_idx: usize, new_var_idx: usize, block_idx: &mut usize, var_tuples: &mut Vec<VarTuple>, var_idxs: &mut BTreeMap<(usize, usize), usize>) -> Result<IrBlock, IrBlockError>
+    fn arg_substitution(&self, value: &IrValue<IrArgVar>, new_start_var_idx: usize, substitutions: &BTreeMap<(usize, usize), VarSubstitution>, is_caller_fun_arg_change: bool, is_closure_var_change: bool, var_tuples: &[VarTuple], var_idxs: &BTreeMap<usize, usize>, new_var_tuples: &mut Vec<VarTuple>, new_var_idxs: &mut BTreeMap<usize, usize>) -> Result<ArgSubstitution, IrBlockError>
+    {
+        match value {
+            IrValue::Object(object) => {
+                match &**object {
+                    IrObject::Var(var, None) => {
+                        match var {
+                            IrArgVar::Local(var_idx, ops) => {
+                                if ops.is_empty() {
+                                    match self.var_arg_substitution_tuple(*var_idx, new_start_var_idx, substitutions, var_tuples, var_idxs)? {
+                                        (Some(ArgSubstitution::Value(value2)), _, new_var_idx) => self.arg_substitution(&value2, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs),
+                                        (Some(substitution), _, _) => Ok(substitution),
+                                        (None, _, _) => Ok(ArgSubstitution::Value(self.substitute_value(value, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?)),
+                                    }
+                                } else {
+                                    Ok(ArgSubstitution::Value(self.substitute_value(value, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?))
+                                }
+                            },
+                            IrArgVar::CallerFunArg(var_idx, ops) => {
+                                if ops.is_empty() {
+                                    match self.var_arg_substitution_tuple(*var_idx, new_start_var_idx, substitutions, var_tuples, var_idxs)? {
+                                        (Some(ArgSubstitution::Value(value2)), _, new_var_idx) => self.arg_substitution(&value2, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs),
+                                        (Some(substitution), _, _) => Ok(substitution),
+                                        (None, _, _) => Ok(ArgSubstitution::Value(self.substitute_value(value, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?)),
+                                    }
+                                } else {
+                                    Ok(ArgSubstitution::Value(self.substitute_value(value, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?))
+                                }
+                            },
+                            IrArgVar::PrivateClosure(var_idx, ops) => {
+                                if ops.is_empty() {
+                                    match self.var_arg_substitution_tuple(*var_idx, new_start_var_idx, substitutions, var_tuples, var_idxs)? {
+                                        (Some(ArgSubstitution::Value(value2)), _, new_var_idx) => self.arg_substitution(&value2, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs),
+                                        (Some(substitution), _, _) => Ok(substitution),
+                                        (None, _, _) => Ok(ArgSubstitution::Value(self.substitute_value(value, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?)),
+                                    }
+                                } else {
+                                    Ok(ArgSubstitution::Value(self.substitute_value(value, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?))
+                                }
+                            },
+                            IrArgVar::LocalClosure(var_idx, ops) => {
+                                if ops.is_empty() {
+                                    match self.var_arg_substitution_tuple(*var_idx, new_start_var_idx, substitutions, var_tuples, var_idxs)? {
+                                        (Some(ArgSubstitution::Value(value2)), _, new_var_idx) => self.arg_substitution(&value2, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs),
+                                        (Some(substitution), _, _) => Ok(substitution),
+                                        (None, _, _) => Ok(ArgSubstitution::Value(self.substitute_value(value, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?)),
+                                    }
+                                } else {
+                                    Ok(ArgSubstitution::Value(self.substitute_value(value, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?))
+                                }
+                            },
+                            IrArgVar::GlobalClosure(var_idx, ops) => {
+                                if ops.is_empty() {
+                                    match self.var_arg_substitution_tuple(*var_idx, new_start_var_idx, substitutions, var_tuples, var_idxs)? {
+                                        (Some(ArgSubstitution::Value(value2)), _, new_var_idx) => self.arg_substitution(&value2, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs),
+                                        (Some(substitution), _, _) => Ok(substitution),
+                                        (None, _, _) => Ok(ArgSubstitution::Value(self.substitute_value(value, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?)),
+                                    }
+                                } else {
+                                    Ok(ArgSubstitution::Value(self.substitute_value(value, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?))
+                                }
+                            },
+                            _ => Ok(ArgSubstitution::Value(self.substitute_value(value, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?)),
+                        }
+                    },
+                    _ => Ok(ArgSubstitution::Value(self.substitute_value(value, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?)),
+                }
+            },
+            _ => Ok(ArgSubstitution::Value(self.substitute_value(value, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?)),
+        }
+    }
+    
+    fn substitute_from(&self, old_start_var_idx: usize, new_start_var_idx: usize, substitutions: &BTreeMap<(usize, usize), VarSubstitution>, ret_var: Option<Option<&IrInstrVar>>, poses: &[Pos], tree: &IrTree, is_caller_fun_arg_change: bool, is_closure_var_change: bool, old_var_idx: usize, new_var_idx: usize, block_idx: &mut usize, var_tuples: &mut Vec<VarTuple>, var_idxs: &mut BTreeMap<(usize, usize), usize>) -> Result<IrBlock, IrBlockError>
     {
         let mut new_block = IrBlock::new();
         let current_block_idx = *block_idx;
@@ -1150,7 +1228,7 @@ impl IrBlock
         Ok(new_block)
     }
 
-    pub fn substitute(&self, old_start_var_idx: usize, var_types: &[Box<IrType>], new_start_var_idx: usize, substitutions: &BTreeMap<(usize, usize), VarSubstitution>, ret_var: Option<&IrInstrVar>, poses: &[Pos], tree: &IrTree, is_caller_fun_arg_change: bool, is_closure_var_change: bool) -> Result<IrBlock, IrBlockError>
+    pub fn substitute(&self, old_start_var_idx: usize, var_types: &[Box<IrType>], new_start_var_idx: usize, substitutions: &BTreeMap<(usize, usize), VarSubstitution>, ret_var: Option<Option<&IrInstrVar>>, poses: &[Pos], tree: &IrTree, is_caller_fun_arg_change: bool, is_closure_var_change: bool) -> Result<IrBlock, IrBlockError>
     {
         let mut var_tuples: Vec<VarTuple> = Vec::new();
         let mut var_idxs: BTreeMap<(usize, usize), usize> = BTreeMap::new();
