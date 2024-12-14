@@ -1029,6 +1029,27 @@ impl IrBlock
                                 }
                                 Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::GlobalClosure(*var_idx, new_ops), typ.clone()))))
                             },
+                            IrArgVar::PrivateHeap(ops) => {
+                                let mut new_ops: Vec<IrArgOp> = Vec::new();
+                                for op in ops {
+                                    new_ops.push(self.substitute_arg_op(op, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?);
+                                }
+                                Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::PrivateHeap(new_ops), typ.clone()))))
+                            },
+                            IrArgVar::LocalHeap(ops) => {
+                                let mut new_ops: Vec<IrArgOp> = Vec::new();
+                                for op in ops {
+                                    new_ops.push(self.substitute_arg_op(op, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?);
+                                }
+                                Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::LocalHeap(new_ops), typ.clone()))))
+                            },
+                            IrArgVar::GlobalHeap(ops) => {
+                                let mut new_ops: Vec<IrArgOp> = Vec::new();
+                                for op in ops {
+                                    new_ops.push(self.substitute_arg_op(op, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?);
+                                }
+                                Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::GlobalHeap(new_ops), typ.clone()))))
+                            },
                             IrArgVar::RefGlobal(ident, ops, vector_elem_ptr_type) => {
                                 let mut new_ops: Vec<IrArgOp> = Vec::new();
                                 for op in ops {
@@ -1071,7 +1092,27 @@ impl IrBlock
                                 }
                                 Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::RefGlobalClosure(*var_idx, new_ops, vector_elem_ptr_type.clone()), typ.clone()))))
                             },
-                            _ => Ok(value.clone()),
+                            IrArgVar::RefPrivateHeap(ops, vector_elem_ptr_type) => {
+                                let mut new_ops: Vec<IrArgOp> = Vec::new();
+                                for op in ops {
+                                    new_ops.push(self.substitute_arg_op(op, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?);
+                                }
+                                Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::RefPrivateHeap(new_ops, vector_elem_ptr_type.clone()), typ.clone()))))
+                            },
+                            IrArgVar::RefLocalHeap(ops, vector_elem_ptr_type) => {
+                                let mut new_ops: Vec<IrArgOp> = Vec::new();
+                                for op in ops {
+                                    new_ops.push(self.substitute_arg_op(op, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?);
+                                }
+                                Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::RefLocalHeap(new_ops, vector_elem_ptr_type.clone()), typ.clone()))))
+                            },
+                            IrArgVar::RefGlobalHeap(ops, vector_elem_ptr_type) => {
+                                let mut new_ops: Vec<IrArgOp> = Vec::new();
+                                for op in ops {
+                                    new_ops.push(self.substitute_arg_op(op, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?);
+                                }
+                                Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::RefGlobalHeap(new_ops, vector_elem_ptr_type.clone()), typ.clone()))))
+                            },
                         }
                     },
                     IrObject::Vector(values, typ) => {
