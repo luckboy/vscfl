@@ -1335,6 +1335,10 @@ impl IrBlock
     
     fn fun_block_and_fun_op(&self, fun_old_start_var_idx: usize, fun_arg_types: &[Box<IrType>], fun_ret_type: &Box<IrType>, fun_block: &Box<IrBlock>, arg_values: &[IrValue<IrArgVar>], pos: &Pos, panic_poses: &[Pos], new_start_var_idx: usize, substitutions: &BTreeMap<(usize, usize), VarSubstitution>, ret_var: Option<Option<&Box<IrInstrVar>>>, poses: &[Pos], tree: &IrTree, is_caller_fun_arg_change: bool, is_closure_var_change: bool, var_tuples: &[VarTuple], var_idxs: &BTreeMap<usize, usize>, new_var_tuples: &mut Vec<VarTuple>, new_var_idxs: &mut BTreeMap<usize, usize>) -> Result<(Option<IrBlock>, Option<IrOp>), IrBlockError>
     {
+        let mut new_arg_values: Vec<IrValue<IrArgVar>> = Vec::new();
+        for arg_value in arg_values {
+            new_arg_values.push(self.substitute_value(arg_value, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?);
+        }
         let (new_op, new_ret_var) = match ret_var {
             Some(Some(ret_var)) => {
                 let new_ret_var = Box::new(self.substitute_instr_var(ret_var, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?);
@@ -1351,10 +1355,6 @@ impl IrBlock
             Some(new_ret_var) => Some(Some(new_ret_var)),
             None => Some(None),
         };
-        let mut new_arg_values: Vec<IrValue<IrArgVar>> = Vec::new();
-        for arg_value in arg_values {
-            new_arg_values.push(self.substitute_value(arg_value, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs)?);
-        }
         let fun_new_start_var_idx = new_start_var_idx + var_tuples.len() + new_var_tuples.len();
         let mut new_poses = vec![pos.clone()];
         new_poses.extend_from_slice(panic_poses);
