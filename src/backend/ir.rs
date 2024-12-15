@@ -471,30 +471,25 @@ impl IrBlock
             Some(new_var_idx) => {
                 match var_tuples.get(new_var_idx - new_start_var_idx) {
                     Some(var_tuple) => {
-                        match &var_tuple.value {
-                            Some(new_value) => Ok((Some(ArgSubstitution::Value(new_value.clone())), var_tuple.typ.clone(), *new_var_idx)),
-                            None => {
-                                match var_tuple.old_block_index {
-                                    Some(old_block_idx) => {
-                                        match substitutions.get(&(var_idx, old_block_idx)) {
-                                            Some(substitution) => {
-                                                match var_tuple.assign_index {
-                                                    Some(assign_index) => {
-                                                        if assign_index < substitution.arg_substitutions.len() {
-                                                            Ok((Some(substitution.arg_substitutions[assign_index].clone()), var_tuple.typ.clone(), *new_var_idx))
-                                                        } else {
-                                                            Ok((None, var_tuple.typ.clone(), *new_var_idx))
-                                                        }
-                                                    },
-                                                    None => Ok((None, var_tuple.typ.clone(), *new_var_idx)),
+                        match var_tuple.old_block_index {
+                            Some(old_block_idx) => {
+                                match substitutions.get(&(var_idx, old_block_idx)) {
+                                    Some(substitution) => {
+                                        match var_tuple.assign_index {
+                                            Some(assign_index) => {
+                                                if assign_index < substitution.arg_substitutions.len() {
+                                                    Ok((Some(substitution.arg_substitutions[assign_index].clone()), var_tuple.typ.clone(), *new_var_idx))
+                                                } else {
+                                                    Ok((None, var_tuple.typ.clone(), *new_var_idx))
                                                 }
                                             },
                                             None => Ok((None, var_tuple.typ.clone(), *new_var_idx)),
                                         }
                                     },
-                                    None => Err(IrBlockError::NoOldBlockIndex),
+                                    None => Ok((None, var_tuple.typ.clone(), *new_var_idx)),
                                 }
                             },
+                            None => Err(IrBlockError::NoOldBlockIndex),
                         }
                     },
                     None => Err(IrBlockError::NoVarTuple),
