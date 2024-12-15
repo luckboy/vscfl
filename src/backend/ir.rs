@@ -1760,7 +1760,7 @@ impl IrBlock
                     new_panic_poses.extend_from_slice(poses);
                     (None, Some(IrInstr::Panic(msg.clone(), pos.clone(), new_panic_poses, new_value)))
                 },
-                _ => (None::<IrBlock>, Some(instr.clone())),
+                _ => (None, Some(instr.clone())),
             };
             if new_block2.is_some() || new_instr.is_some() {
                 if new_var_tuples.is_empty() {
