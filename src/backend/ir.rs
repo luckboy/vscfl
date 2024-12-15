@@ -1742,8 +1742,6 @@ impl IrBlock
                 var_idxs.insert(old_var_idx2, new_var_idx2);
                 new_block.add_local_var_pair(local_var_pair.clone());
                 new_var_idx2 += 1;
-            } else {
-                var_tuples.push(VarTuple::new(local_var_pair.1.clone(), None));
             }
             old_var_idx2 += 1;
         }
