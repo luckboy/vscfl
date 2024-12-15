@@ -451,6 +451,17 @@ impl IrBlock
         self.instrs.push(instr);
     }
 
+    pub fn add_block(&mut self, block: IrBlock)
+    {
+        if !block.local_var_pairs.is_empty() {
+            self.add_instr(IrInstr::Block(Box::new(block)));
+        } else {
+            for instr in &block.instrs {
+                self.add_instr(instr.clone());
+            }
+        }
+    }
+    
     pub fn block_count(&self) -> usize
     { self.block_count }
 
