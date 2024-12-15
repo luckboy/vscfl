@@ -722,7 +722,154 @@ impl IrBlock
                                                     }
                                                 }
                                             },
-                                            _ => Err(IrBlockError::InvalidArgVar),
+                                            IrArgVar::PrivateHeap(ops2) => {
+                                                let mut ops3 = ops2.clone();
+                                                if are_ops {
+                                                    self.add_arg_ops(&mut ops3, &type3, ops.as_slice());
+                                                }
+                                                match vector_elem_ptr_type {
+                                                    Some(vector_elem_ptr_type) => Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::RefPrivateHeap(ops3, vector_elem_ptr_type.clone()), typ.clone())))),
+                                                    None => Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::PrivateHeap(ops3), typ.clone())))),
+                                                }
+                                            },
+                                            IrArgVar::LocalHeap(ops2) => {
+                                                let mut ops3 = ops2.clone();
+                                                if are_ops {
+                                                    self.add_arg_ops(&mut ops3, &type3, ops.as_slice());
+                                                }
+                                                match vector_elem_ptr_type {
+                                                    Some(vector_elem_ptr_type) => Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::RefLocalHeap(ops3, vector_elem_ptr_type.clone()), typ.clone())))),
+                                                    None => Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::LocalHeap(ops3), typ.clone())))),
+                                                }
+                                            },
+                                            IrArgVar::GlobalHeap(ops2) => {
+                                                let mut ops3 = ops2.clone();
+                                                if are_ops {
+                                                    self.add_arg_ops(&mut ops3, &type3, ops.as_slice());
+                                                }
+                                                match vector_elem_ptr_type {
+                                                    Some(vector_elem_ptr_type) => Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::RefGlobalHeap(ops3, vector_elem_ptr_type.clone()), typ.clone())))),
+                                                    None => Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::GlobalHeap(ops3), typ.clone())))),
+                                                }
+                                            },
+                                            IrArgVar::RefGlobal(ident, ops2, vector_elem_ptr_type2) => {
+                                                if !are_ops || ops.is_empty() {
+                                                    match vector_elem_ptr_type {
+                                                        Some(_) => Err(IrBlockError::InvalidArgVar),
+                                                        None => Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::RefGlobal(ident.clone(), ops2.clone(), vector_elem_ptr_type2.clone()), typ.clone())))),
+                                                    }
+                                                } else {
+                                                    Err(IrBlockError::InvalidArgVar)
+                                                }
+                                            },
+                                            IrArgVar::RefLocal(new_var_idx3, ops2, vector_elem_ptr_type2) => {
+                                                if !are_ops || ops.is_empty() {
+                                                    match vector_elem_ptr_type {
+                                                        Some(_) => Err(IrBlockError::InvalidArgVar),
+                                                        None => Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::RefLocal(new_var_idx2.unwrap_or(*new_var_idx3), ops2.clone(), vector_elem_ptr_type2.clone()), typ.clone())))),
+                                                    }
+                                                } else {
+                                                    Err(IrBlockError::InvalidArgVar)
+                                                }
+                                            },
+                                            IrArgVar::RefCallerFunArg(new_var_idx3, ops2, vector_elem_ptr_type2) => {
+                                                if !are_ops || ops.is_empty() {
+                                                    if is_caller_fun_arg_change {
+                                                        match vector_elem_ptr_type {
+                                                            Some(_) => Err(IrBlockError::InvalidArgVar),
+                                                            None => Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::RefLocal(new_var_idx2.unwrap_or(*new_var_idx3), ops2.clone(), vector_elem_ptr_type2.clone()), typ.clone())))),
+                                                        }
+                                                    } else {
+                                                        match vector_elem_ptr_type {
+                                                            Some(_) => Err(IrBlockError::InvalidArgVar),
+                                                            None => Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::RefCallerFunArg(new_var_idx2.unwrap_or(*new_var_idx3), ops2.clone(), vector_elem_ptr_type2.clone()), typ.clone())))),
+                                                        }
+                                                    }
+                                                } else {
+                                                    Err(IrBlockError::InvalidArgVar)
+                                                }
+                                            },
+                                            IrArgVar::RefPrivateClosure(new_var_idx3, ops2, vector_elem_ptr_type2) => {
+                                                if !are_ops || ops.is_empty() {
+                                                    if is_closure_var_change {
+                                                        match vector_elem_ptr_type {
+                                                            Some(_) => Err(IrBlockError::InvalidArgVar),
+                                                            None => Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::RefLocal(new_var_idx2.unwrap_or(*new_var_idx3), ops2.clone(), vector_elem_ptr_type2.clone()), typ.clone())))),
+                                                        }
+                                                    } else {
+                                                        match vector_elem_ptr_type {
+                                                            Some(_) => Err(IrBlockError::InvalidArgVar),
+                                                            None => Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::RefPrivateClosure(new_var_idx2.unwrap_or(*new_var_idx3), ops2.clone(), vector_elem_ptr_type2.clone()), typ.clone())))),
+                                                        }
+                                                    }
+                                                } else {
+                                                    Err(IrBlockError::InvalidArgVar)
+                                                }
+                                            },
+                                            IrArgVar::RefLocalClosure(new_var_idx3, ops2, vector_elem_ptr_type2) => {
+                                                if !are_ops || ops.is_empty() {
+                                                    if is_closure_var_change {
+                                                        match vector_elem_ptr_type {
+                                                            Some(_) => Err(IrBlockError::InvalidArgVar),
+                                                            None => Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::RefLocal(new_var_idx2.unwrap_or(*new_var_idx3), ops2.clone(), vector_elem_ptr_type2.clone()), typ.clone())))),
+                                                        }
+                                                    } else {
+                                                        match vector_elem_ptr_type {
+                                                            Some(_) => Err(IrBlockError::InvalidArgVar),
+                                                            None => Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::RefLocalClosure(new_var_idx2.unwrap_or(*new_var_idx3), ops2.clone(), vector_elem_ptr_type2.clone()), typ.clone())))),
+                                                        }
+                                                    }
+                                                } else {
+                                                    Err(IrBlockError::InvalidArgVar)
+                                                }
+                                            },
+                                            IrArgVar::RefGlobalClosure(new_var_idx3, ops2, vector_elem_ptr_type2) => {
+                                                if !are_ops || ops.is_empty() {
+                                                    if is_closure_var_change {
+                                                        match vector_elem_ptr_type {
+                                                            Some(_) => Err(IrBlockError::InvalidArgVar),
+                                                            None => Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::RefLocal(new_var_idx2.unwrap_or(*new_var_idx3), ops2.clone(), vector_elem_ptr_type2.clone()), typ.clone())))),
+                                                        }
+                                                    } else {
+                                                        match vector_elem_ptr_type {
+                                                            Some(_) => Err(IrBlockError::InvalidArgVar),
+                                                            None => Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::RefGlobalClosure(new_var_idx2.unwrap_or(*new_var_idx3), ops2.clone(), vector_elem_ptr_type2.clone()), typ.clone())))),
+                                                        }
+                                                    }
+                                                } else {
+                                                    Err(IrBlockError::InvalidArgVar)
+                                                }
+                                            },
+                                            IrArgVar::RefPrivateHeap(ops2, vector_elem_ptr_type2) => {
+                                                if !are_ops || ops.is_empty() {
+                                                    match vector_elem_ptr_type {
+                                                        Some(_) => Err(IrBlockError::InvalidArgVar),
+                                                        None => Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::RefPrivateHeap(ops2.clone(), vector_elem_ptr_type2.clone()), typ.clone())))),
+                                                    }
+                                                } else {
+                                                    Err(IrBlockError::InvalidArgVar)
+                                                }
+                                            },
+                                            IrArgVar::RefLocalHeap(ops2, vector_elem_ptr_type2) => {
+                                                if !are_ops || ops.is_empty() {
+                                                    match vector_elem_ptr_type {
+                                                        Some(_) => Err(IrBlockError::InvalidArgVar),
+                                                        None => Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::RefLocalHeap(ops2.clone(), vector_elem_ptr_type2.clone()), typ.clone())))),
+                                                    }
+                                                } else {
+                                                    Err(IrBlockError::InvalidArgVar)
+                                                }
+                                            },
+                                            IrArgVar::RefGlobalHeap(ops2, vector_elem_ptr_type2) => {
+                                                if !are_ops || ops.is_empty() {
+                                                    match vector_elem_ptr_type {
+                                                        Some(_) => Err(IrBlockError::InvalidArgVar),
+                                                        None => Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::RefGlobalHeap(ops2.clone(), vector_elem_ptr_type2.clone()), typ.clone())))),
+                                                    }
+                                                } else {
+                                                    Err(IrBlockError::InvalidArgVar)
+                                                }
+                                            },
                                         }
                                     },
                                     _ => self.new_var_value(typ, var_idx, &ops, vector_elem_ptr_type, value3, &type2, new_start_var_idx, substitutions, is_caller_fun_arg_change, is_closure_var_change, var_tuples, var_idxs, new_var_tuples, new_var_idxs),
