@@ -1582,6 +1582,7 @@ impl IrBlock
     {
         let mut new_block = IrBlock::new();
         let current_block_idx = *block_idx;
+        *block_idx += 1;
         let mut old_var_idx2 = old_var_idx;
         let mut new_var_idx2 = new_var_idx;
         for local_var_pair in &self.local_var_pairs {
@@ -1772,7 +1773,7 @@ impl IrBlock
                     for new_var_tuple in &new_var_tuples {
                         match &new_var_tuple.value {
                             Some(value) => new_block3.add_instr(IrInstr::Assign(Box::new(IrInstrVar::Local(new_var_idx3, Vec::new())), IrOp::Load(value.clone()))),
-                            None => return Err(IrBlockError::NoValue), 
+                            None => (), 
                         }
                         new_var_idx3 += 1;
                     }
@@ -1847,7 +1848,6 @@ pub enum IrBlockError
     NoVarIndex,
     NoVarTuple,
     NoOldBlockIndex,
-    NoValue,
     NoFun,
     ConstOrVar,
     NoFirstValue,
@@ -1870,7 +1870,6 @@ impl fmt::Display for IrBlockError
           IrBlockError::NoVarIndex => write!(f, "no variable index"),
           IrBlockError::NoVarTuple => write!(f, "no variable tuple"),
           IrBlockError::NoOldBlockIndex => write!(f, "no old block index"),
-          IrBlockError::NoValue => write!(f, "no value"),
           IrBlockError::NoFun => write!(f, "no function"),
           IrBlockError::ConstOrVar => write!(f, "variable isn't function"),
           IrBlockError::NoFirstValue => write!(f, "no first value"),
