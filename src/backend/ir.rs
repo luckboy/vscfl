@@ -534,8 +534,9 @@ impl IrBlock
                 None => {
                     let value4 = self.substitute_arg_ops_for_value(&value3, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, current_var_tuple_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?;
                     let new_var_idx = current_new_var_idx + new_var_tuples.len();
+                    let new_var_tuple_idx = current_var_tuple_idx + new_var_tuples.len();
                     new_var_tuples.push(VarTuple::new_with_value(type2.clone(), None, Some(new_var_idx), value4));
-                    new_var_tuple_idxs.insert(var_idx, new_var_idx);
+                    new_var_tuple_idxs.insert(var_idx, new_var_tuple_idx);
                     match vector_elem_ptr_type {
                         Some(vector_elem_ptr_type) => Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::RefLocal(new_var_idx, ops.clone(), vector_elem_ptr_type.clone()), typ.clone())))),
                         None => Ok(IrValue::Object(Box::new(IrObject::Var(IrArgVar::Local(new_var_idx, ops.clone()), typ.clone())))),
@@ -960,8 +961,9 @@ impl IrBlock
             None => {
                 let value2 = self.substitute_value(&value, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, current_var_tuple_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?;
                 let new_var_idx = current_new_var_idx + new_var_tuples.len();
+                let new_var_tuple_idx = current_var_tuple_idx + new_var_tuples.len();
                 new_var_tuples.push(VarTuple::new_with_value(type2.clone(), None, Some(new_var_idx), value2));
-                new_var_tuple_idxs.insert(var_idx, new_var_idx);
+                new_var_tuple_idxs.insert(var_idx, new_var_tuple_idx);
                 Ok((Some(IrArgOp::LocalIndex(typ.clone(), new_var_idx)), Some(new_var_idx), false))
             },
         }
