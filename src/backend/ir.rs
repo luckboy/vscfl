@@ -1376,6 +1376,7 @@ impl IrBlock
             for (i, new_arg_value) in new_arg_values.iter().enumerate() {
                 new_fun_block2.add_instr(IrInstr::Assign(Box::new(IrInstrVar::Local(fun_new_start_var_idx + i, Vec::new())), IrOp::Load(new_arg_value.clone())));
             }
+            new_fun_block2.add_block(new_fun_block);
             Ok((Some(new_fun_block2), new_op))
         } else {
             Ok((Some(new_fun_block), new_op))
