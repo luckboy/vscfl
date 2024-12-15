@@ -503,7 +503,7 @@ impl IrBlock
     {
         match self.var_arg_substitution_tuple(var_idx, new_start_var_idx, substitutions, var_tuples, var_idxs)? {
             (Some(ArgSubstitution::Value(new_value)), typ, new_var_idx) => Ok((Some(new_value.clone()), typ, new_var_idx)),
-            (Some(_), _, _) => Err(IrBlockError::InvalidArgSubstitution),
+            (Some(_), typ, new_var_idx) => Ok((None, typ, new_var_idx)),
             (None, typ, new_var_idx) => Ok((None, typ, new_var_idx)),
         }
     }
@@ -1987,7 +1987,6 @@ impl IrBlock
 #[derive(Debug)]
 pub enum IrBlockError
 {
-    InvalidArgSubstitution,
     InvalidArgVar,
     InvalidValue,
     InvalidObject,
@@ -2009,7 +2008,6 @@ impl fmt::Display for IrBlockError
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
     { 
         match self {
-          IrBlockError::InvalidArgSubstitution => write!(f, "invalid argument substitution"),
           IrBlockError::InvalidArgVar => write!(f, "invalid argument variable"),
           IrBlockError::InvalidValue => write!(f, "invalid value"),
           IrBlockError::InvalidObject => write!(f, "invalid object"),
