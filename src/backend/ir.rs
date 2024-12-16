@@ -1758,7 +1758,7 @@ impl IrBlock
         new_var_idx - new_tuple_count
     }
     
-    fn substitute_from(&self, old_start_var_idx: usize, substitutions: &BTreeMap<(usize, usize), VarSubstitution>, ret_var: Option<Option<&Box<IrInstrVar>>>, poses: &[Pos], tree: &IrTree, is_caller_fun_arg_change: bool, is_closure_var_change: bool, old_var_idx: usize, new_var_idx: usize, block_idx: &mut usize, var_tuples: &mut Vec<VarTuple>, var_tuple_idxs: &mut BTreeMap<usize, usize>) -> Result<IrBlock, IrBlockError>
+    fn substitute_from(&self, substitutions: &BTreeMap<(usize, usize), VarSubstitution>, ret_var: Option<Option<&Box<IrInstrVar>>>, poses: &[Pos], tree: &IrTree, is_caller_fun_arg_change: bool, is_closure_var_change: bool, old_var_idx: usize, new_var_idx: usize, block_idx: &mut usize, var_tuples: &mut Vec<VarTuple>, var_tuple_idxs: &mut BTreeMap<usize, usize>) -> Result<IrBlock, IrBlockError>
     {
         let mut new_block = IrBlock::new();
         let current_block_idx = *block_idx;
@@ -1891,7 +1891,7 @@ impl IrBlock
                     }
                 },
                 IrInstr::Block(block) => {
-                    new_block.add_block(block.substitute_from(old_start_var_idx, substitutions, ret_var, poses, tree, is_caller_fun_arg_change, is_closure_var_change, old_var_idx2, new_var_idx2, block_idx, var_tuples, var_tuple_idxs)?);
+                    new_block.add_block(block.substitute_from(substitutions, ret_var, poses, tree, is_caller_fun_arg_change, is_closure_var_change, old_var_idx2, new_var_idx2, block_idx, var_tuples, var_tuple_idxs)?);
                     (None, None)
                 },
                 IrInstr::If(op, block1, block2) => {
@@ -1899,8 +1899,8 @@ impl IrBlock
                     match new_op {
                         Some(new_op) => {
                             new_var_idx2 = self.push_new_tuples(var_tuples, new_var_idx2, new_var_tuples.as_slice());
-                            let new_block1 = block1.substitute_from(old_start_var_idx, substitutions, ret_var, poses, tree, is_caller_fun_arg_change, is_closure_var_change, old_var_idx2, new_var_idx2, block_idx, var_tuples, var_tuple_idxs)?;
-                            let new_block2 = block2.substitute_from(old_start_var_idx, substitutions, ret_var, poses, tree, is_caller_fun_arg_change, is_closure_var_change, old_var_idx2, new_var_idx2, block_idx, var_tuples, var_tuple_idxs)?;
+                            let new_block1 = block1.substitute_from(substitutions, ret_var, poses, tree, is_caller_fun_arg_change, is_closure_var_change, old_var_idx2, new_var_idx2, block_idx, var_tuples, var_tuple_idxs)?;
+                            let new_block2 = block2.substitute_from(substitutions, ret_var, poses, tree, is_caller_fun_arg_change, is_closure_var_change, old_var_idx2, new_var_idx2, block_idx, var_tuples, var_tuple_idxs)?;
                             new_var_idx2 = self.pop_tuples(var_tuples, new_var_idx2, new_var_tuples.len());
                             (tmp_new_block, Some(IrInstr::If(new_op, Box::new(new_block1), Box::new(new_block2))))
                         },
@@ -1916,10 +1916,10 @@ impl IrBlock
                             for case in cases {
                                 match case {
                                     IrCase::Case(value, block) => {
-                                        new_cases.push(IrCase::Case(value.clone(), Box::new(block.substitute_from(old_start_var_idx, substitutions, ret_var, poses, tree, is_caller_fun_arg_change, is_closure_var_change, old_var_idx2, new_var_idx2, block_idx, var_tuples, var_tuple_idxs)?)));
+                                        new_cases.push(IrCase::Case(value.clone(), Box::new(block.substitute_from(substitutions, ret_var, poses, tree, is_caller_fun_arg_change, is_closure_var_change, old_var_idx2, new_var_idx2, block_idx, var_tuples, var_tuple_idxs)?)));
                                     },
                                     IrCase::Default(block) => {
-                                        new_cases.push(IrCase::Default(Box::new(block.substitute_from(old_start_var_idx, substitutions, ret_var, poses, tree, is_caller_fun_arg_change, is_closure_var_change, old_var_idx2, new_var_idx2, block_idx, var_tuples, var_tuple_idxs)?)));
+                                        new_cases.push(IrCase::Default(Box::new(block.substitute_from(substitutions, ret_var, poses, tree, is_caller_fun_arg_change, is_closure_var_change, old_var_idx2, new_var_idx2, block_idx, var_tuples, var_tuple_idxs)?)));
                                     },
                                 }
                             }
@@ -1930,7 +1930,7 @@ impl IrBlock
                     }
                 },
                 IrInstr::Loop(block) => {
-                    (None, Some(IrInstr::Loop(Box::new(block.substitute_from(old_start_var_idx, substitutions, ret_var, poses, tree, is_caller_fun_arg_change, is_closure_var_change, old_var_idx2, new_var_idx2, block_idx, var_tuples, var_tuple_idxs)?))))
+                    (None, Some(IrInstr::Loop(Box::new(block.substitute_from(substitutions, ret_var, poses, tree, is_caller_fun_arg_change, is_closure_var_change, old_var_idx2, new_var_idx2, block_idx, var_tuples, var_tuple_idxs)?))))
                 },
                 IrInstr::Panic(msg, pos, panic_poses, value) => {
                     let new_value = match value {
@@ -2017,7 +2017,7 @@ impl IrBlock
             old_var_idx += 1;
         }
         let mut block_idx = 1usize;
-        self.substitute_from(old_start_var_idx, substitutions, ret_var, poses, tree, is_caller_fun_arg_change, is_closure_var_change, old_start_var_idx + var_types.len(), new_start_var_idx + var_tuples.len(), &mut block_idx, &mut var_tuples, &mut var_tuple_idxs)
+        self.substitute_from(substitutions, ret_var, poses, tree, is_caller_fun_arg_change, is_closure_var_change, old_start_var_idx + var_types.len(), new_start_var_idx + var_tuples.len(), &mut block_idx, &mut var_tuples, &mut var_tuple_idxs)
     }
 }
 
