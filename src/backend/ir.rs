@@ -515,8 +515,8 @@ impl IrBlock
     {
         if !ops.is_empty() {
             match new_var_tuple_idxs.get(&var_idx) {
-                Some(var_tuple_idx) => {
-                    match var_tuples.get(*var_tuple_idx - var_tuples.len()) {
+                Some(new_var_tuple_idx) => {
+                    match var_tuples.get(*new_var_tuple_idx - var_tuples.len()) {
                         Some(new_var_tuple) => {
                             match new_var_tuple.new_var_index {
                                 Some(new_var_idx) => {
@@ -947,8 +947,8 @@ impl IrBlock
     fn new_var_arg_op_tuple(&self, typ: &Option<Box<IrType>>, var_idx: usize, value: &IrValue<IrArgVar>, type2: &Box<IrType>, substitutions: &BTreeMap<(usize, usize), VarSubstitution>, is_caller_fun_arg_change: bool, is_closure_var_change: bool, current_new_var_idx: usize, var_tuples: &[VarTuple], var_tuple_idxs: &BTreeMap<usize, usize>, new_var_tuples: &mut Vec<VarTuple>, new_var_tuple_idxs: &mut BTreeMap<usize, usize>) -> Result<(Option<IrArgOp>, Option<usize>, bool), IrBlockError>
     {
         match new_var_tuple_idxs.get(&var_idx) {
-            Some(var_tuple_idx) => {
-                match var_tuples.get(*var_tuple_idx - var_tuples.len()) {
+            Some(new_var_tuple_idx) => {
+                match var_tuples.get(*new_var_tuple_idx - var_tuples.len()) {
                     Some(new_var_tuple) => {
                         match new_var_tuple.new_var_index {
                             Some(new_var_idx) => Ok((Some(IrArgOp::LocalIndex(typ.clone(), new_var_idx)), Some(new_var_idx), false)),
