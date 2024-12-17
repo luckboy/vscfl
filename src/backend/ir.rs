@@ -919,20 +919,20 @@ impl IrBlock
                         let mut new_field_pairs: Vec<IrFieldPair<IrArgVar>> = Vec::new();
                         for field_pair in field_pairs {
                             match field_pair {
-                                IrFieldPair(var_idx, value2) => new_field_pairs.push(IrFieldPair(*var_idx, self.substitute_value_without_arg_ops(value2, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?)),
+                                IrFieldPair(field_idx, value2) => new_field_pairs.push(IrFieldPair(*field_idx, self.substitute_value_without_arg_ops(value2, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?)),
                             }
                         }
                         Ok(IrValue::Object(Box::new(IrObject::Struct(new_values, new_field_pairs, typ.clone()))))
                     },
-                    IrObject::Union(var_idx, value2, typ) => {
+                    IrObject::Union(field_idx, value2, typ) => {
                         let new_value = self.substitute_value_without_arg_ops(value2, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?;
-                        Ok(IrValue::Object(Box::new(IrObject::Union(*var_idx, new_value, typ.clone()))))
+                        Ok(IrValue::Object(Box::new(IrObject::Union(*field_idx, new_value, typ.clone()))))
                     },
                     IrObject::Closure(field_pairs, typ) => {
                         let mut new_field_pairs: Vec<IrFieldPair<IrArgVar>> = Vec::new();
                         for field_pair in field_pairs {
                             match field_pair {
-                                IrFieldPair(var_idx, value2) => new_field_pairs.push(IrFieldPair(*var_idx, self.substitute_value_without_arg_ops(value2, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?)),
+                                IrFieldPair(field_idx, value2) => new_field_pairs.push(IrFieldPair(*field_idx, self.substitute_value_without_arg_ops(value2, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?)),
                             }
                         }
                         Ok(IrValue::Object(Box::new(IrObject::Closure(new_field_pairs, typ.clone()))))
@@ -1320,20 +1320,20 @@ impl IrBlock
                         let mut new_field_pairs: Vec<IrFieldPair<IrArgVar>> = Vec::new();
                         for field_pair in field_pairs {
                             match field_pair {
-                                IrFieldPair(var_idx, value2) => new_field_pairs.push(IrFieldPair(*var_idx, self.substitute_arg_ops_for_value(value2, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?)),
+                                IrFieldPair(field_idx, value2) => new_field_pairs.push(IrFieldPair(*field_idx, self.substitute_arg_ops_for_value(value2, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?)),
                             }
                         }
                         Ok(IrValue::Object(Box::new(IrObject::Struct(new_values, new_field_pairs, typ.clone()))))
                     },
-                    IrObject::Union(var_idx, value2, typ) => {
+                    IrObject::Union(field_idx, value2, typ) => {
                         let new_value = self.substitute_arg_ops_for_value(value2, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?;
-                        Ok(IrValue::Object(Box::new(IrObject::Union(*var_idx, new_value, typ.clone()))))
+                        Ok(IrValue::Object(Box::new(IrObject::Union(*field_idx, new_value, typ.clone()))))
                     },
                     IrObject::Closure(field_pairs, typ) => {
                         let mut new_field_pairs: Vec<IrFieldPair<IrArgVar>> = Vec::new();
                         for field_pair in field_pairs {
                             match field_pair {
-                                IrFieldPair(var_idx, value2) => new_field_pairs.push(IrFieldPair(*var_idx, self.substitute_arg_ops_for_value(value2, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?)),
+                                IrFieldPair(field_idx, value2) => new_field_pairs.push(IrFieldPair(*field_idx, self.substitute_arg_ops_for_value(value2, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?)),
                             }
                         }
                         Ok(IrValue::Object(Box::new(IrObject::Closure(new_field_pairs, typ.clone()))))
