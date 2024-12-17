@@ -158,6 +158,7 @@ pub enum IrType
     Struct(String),
     Union(String),
     Array(Box<IrType>, usize),
+    ConstPtr(IrPtrModifier, Box<IrType>),
     Ptr(IrPtrModifier, Box<IrType>),
 }
 
