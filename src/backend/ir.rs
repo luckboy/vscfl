@@ -1924,7 +1924,7 @@ impl IrBlock
                                         None => return Err(IrBlockError::NoVarTuple),
                                     }
                                 },
-                                None => return Err(IrBlockError::NoVarTupleIndex),
+                                None => true,
                             }
                         },
                         _ => true,
@@ -2118,7 +2118,6 @@ pub enum IrBlockError
     InvalidValue,
     InvalidObject,
     InvalidType,
-    NoVarTupleIndex,
     NoVarTuple,
     NoOldBlockIndex,
     NoNewVarIndex,
@@ -2142,7 +2141,6 @@ impl fmt::Display for IrBlockError
           IrBlockError::InvalidValue => write!(f, "invalid value"),
           IrBlockError::InvalidObject => write!(f, "invalid object"),
           IrBlockError::InvalidType => write!(f, "invalid type"),
-          IrBlockError::NoVarTupleIndex => write!(f, "no variable tuple index"),
           IrBlockError::NoVarTuple => write!(f, "no variable tuple"),
           IrBlockError::NoOldBlockIndex => write!(f, "no old block index"),
           IrBlockError::NoNewVarIndex => write!(f, "no new variable index"),
