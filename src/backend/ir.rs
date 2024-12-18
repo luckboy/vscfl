@@ -1625,6 +1625,9 @@ impl IrBlock
             Some(None) => Some(None),
             None => None,
         };
+        if fun_arg_types.len() != arg_values.len() {
+            return Err(IrBlockError::ArgCountsAreNotEqual);
+        }
         let fun_new_start_var_idx = current_new_var_idx + new_var_tuples.len();
         let mut new_poses = vec![pos.clone()];
         new_poses.extend_from_slice(panic_poses);
@@ -2124,6 +2127,7 @@ pub enum IrBlockError
     ConstOrVar,
     NoFirstValue,
     NoOp,
+    ArgCountsAreNotEqual,
 }
 
 impl error::Error for IrBlockError
@@ -2147,6 +2151,7 @@ impl fmt::Display for IrBlockError
           IrBlockError::ConstOrVar => write!(f, "variable isn't function"),
           IrBlockError::NoFirstValue => write!(f, "no first value"),
           IrBlockError::NoOp => write!(f, "no operation"),
+          IrBlockError::ArgCountsAreNotEqual => write!(f, "numbers of arguments aren't equal"),
         }
     }
 }
