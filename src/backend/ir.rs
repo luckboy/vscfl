@@ -2096,11 +2096,122 @@ impl IrBlock
         let mut block_idx = 1usize;
         self.substitute_from(substitutions, ret_var, poses, tree, is_caller_fun_arg_change, is_closure_var_change, old_start_var_idx + var_types.len(), new_start_var_idx + var_tuples.len(), &mut block_idx, &mut var_tuples, &mut var_tuple_idxs)
     }
+    
+    fn add_inline_fun(&mut self, fun_old_start_var_idx: usize, fun_arg_types: &[Box<IrType>], fun_block: &Box<IrBlock>, new_start_var_idx: usize, arg_substitutions: &[ArgSubstitution], ret_var: Option<Option<&Box<IrInstrVar>>>, pos: &Pos, panic_poses: &[Pos], tree: &IrTree) -> Result<(), IrBlockError>
+    {
+        if fun_arg_types.len() != arg_substitutions.len() {
+            return Err(IrBlockError::ArgCountsAreNotEqual);
+        }
+        let mut substitutions: BTreeMap<(usize, usize), VarSubstitution> = BTreeMap::new();
+        for (i, arg_substitution) in arg_substitutions.iter().enumerate() {
+            match arg_substitution {
+                ArgSubstitution::Value(_) => (),
+                _ => {
+                    substitutions.insert((fun_old_start_var_idx + i, 0), VarSubstitution::new(vec![arg_substitution.clone()], false));
+                },
+            }
+        }
+        let mut new_poses = vec![pos.clone()];
+        new_poses.extend_from_slice(panic_poses);
+        let new_fun_block = fun_block.substitute(fun_old_start_var_idx, fun_arg_types, new_start_var_idx, &substitutions, ret_var, new_poses.as_slice(), tree, true, true)?;
+        if !arg_substitutions.is_empty() {
+            let mut new_fun_block2 = IrBlock::new();
+            for (arg_substitution, fun_arg_type) in arg_substitutions.iter().zip(fun_arg_types.iter()) {
+                match arg_substitution {
+                    ArgSubstitution::Value(_) => new_fun_block2.add_local_var_pair(IrLocalVarPair(IrLocalVarModifier::None, fun_arg_type.clone())),
+                    _ => (),
+                }
+            }
+            let mut i = 0usize;
+            for arg_substitution in arg_substitutions {
+                match arg_substitution {
+                    ArgSubstitution::Value(arg_value) => {
+                        new_fun_block2.add_instr(IrInstr::Assign(Box::new(IrInstrVar::Local(new_start_var_idx + i, Vec::new())), IrOp::Load(arg_value.clone())));                        
+                        i += 1;
+                    },
+                    _ => (),
+                }
+            }
+            new_fun_block2.add_block(new_fun_block);
+            self.add_block(new_fun_block2);
+        } else {
+            self.add_block(new_fun_block);
+        }
+        Ok(())
+    }
+    
+    fn arg_substitutions_to_arg_values(&self, arg_substitutions: &[ArgSubstitution]) -> Result<Vec<IrValue<IrArgVar>>, IrBlockError>
+    {
+        let mut new_arg_values: Vec<IrValue<IrArgVar>> = Vec::new();
+        for arg_substitution in arg_substitutions {
+            match arg_substitution {
+                ArgSubstitution::Value(arg_value) => new_arg_values.push(arg_value.clone()),
+                _ => return Err(IrBlockError::InvalidArgSubstitution),
+            }
+        }
+        Ok(new_arg_values)
+    }
+    
+    pub fn add_fun_call(&mut self, fun_substitution: &ArgSubstitution, fun_type: &Box<IrType>, new_start_var_idx: usize, arg_substitutions: &[ArgSubstitution], ret_var: Option<Option<&Box<IrInstrVar>>>, pos: &Pos, panic_poses: &[Pos], tree: &IrTree) -> Result<(), IrBlockError>
+    {
+        let op = match fun_substitution {
+            ArgSubstitution::Value(fun_value) => {
+                match &**fun_type {
+                    IrType::Struct(type_ident) => {
+                        if type_ident.starts_with("_S") {
+                            let mut new_caller_arg_values = vec![fun_value.clone()];
+                            new_caller_arg_values.extend(self.arg_substitutions_to_arg_values(arg_substitutions)?);
+                            Some(IrOp::CallFun(String::from("_C") + &type_ident[2..], new_caller_arg_values, pos.clone(), panic_poses.to_vec()))
+                        } else {
+                            return Err(IrBlockError::InvalidType);
+                        }
+                    },
+                    _ => return Err(IrBlockError::InvalidType),
+                }
+            },
+            ArgSubstitution::Fun(ident) => {
+                match tree.var(&ident) {
+                    Some(var) => {
+                        let var_r = var.borrow();
+                        match &*var_r {
+                            IrVar::Fun(fun) => {
+                                match &**fun {
+                                    IrFun::Fun(IrFunModifier::Inline, fun_arg_types, _, fun_block, _, _, _, _) => {
+                                        self.add_inline_fun(0, fun_arg_types, fun_block, new_start_var_idx, arg_substitutions, ret_var, pos, panic_poses, tree)?;
+                                        None
+                                    },
+                                    _ => Some(IrOp::CallFun(ident.clone(), self.arg_substitutions_to_arg_values(arg_substitutions)?, pos.clone(), panic_poses.to_vec())),
+                                }
+                            },
+                            _ => return Err(IrBlockError::ConstOrVar),
+                        }
+                    },
+                    None => return Err(IrBlockError::NoFun),
+                }
+            },
+            ArgSubstitution::Lambda(fun_old_start_var_idx, fun_arg_types, _, fun_block) => {
+                self.add_inline_fun(*fun_old_start_var_idx, fun_arg_types, fun_block, new_start_var_idx, arg_substitutions, ret_var, pos, panic_poses, tree)?;
+                None
+            },
+        };
+        match op {
+            Some(op) => {
+                match ret_var {
+                    Some(Some(ret_var)) => self.add_instr(IrInstr::Assign(ret_var.clone(), op.clone())),
+                    Some(None) => self.add_instr(IrInstr::Op(op.clone())),
+                    None => self.add_instr(IrInstr::Return(Some(op.clone()))),
+                }
+            },
+            None => (),
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
 pub enum IrBlockError
 {
+    InvalidArgSubstitution,
     InvalidArgVar,
     InvalidValue,
     InvalidObject,
@@ -2124,6 +2235,7 @@ impl fmt::Display for IrBlockError
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
     { 
         match self {
+          IrBlockError::InvalidArgSubstitution => write!(f, "invalid argument substitution"),
           IrBlockError::InvalidArgVar => write!(f, "invalid argument variable"),
           IrBlockError::InvalidValue => write!(f, "invalid value"),
           IrBlockError::InvalidObject => write!(f, "invalid object"),
