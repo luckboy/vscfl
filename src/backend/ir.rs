@@ -1649,7 +1649,7 @@ impl IrBlock
     }
     
     fn substitute_fun_op<F>(&self, ident: &String, values: &[IrValue<IrArgVar>], pos: &Pos, panic_poses: &[Pos], substitutions: &BTreeMap<(usize, usize), VarSubstitution>, ret_var: Option<Option<&Box<IrInstrVar>>>, poses: &[Pos], tree: &IrTree, is_orig_ret: bool, is_caller_fun_arg_change: bool, is_closure_var_change: bool, current_new_var_idx: usize, var_tuples: &[VarTuple], var_tuple_idxs: &BTreeMap<usize, usize>, new_var_tuples: &mut Vec<VarTuple>, new_var_tuple_idxs: &mut BTreeMap<usize, usize>, mut f: F) -> Result<(Option<IrBlock>, Option<IrOp>), IrBlockError>
-        where F: FnMut(String, Vec<IrValue<IrArgVar>>, Pos, Vec<Pos>, &mut Vec<VarTuple>, &mut BTreeMap<usize, usize>) -> Result<IrOp, IrBlockError>
+        where F: FnMut(String, Vec<IrValue<IrArgVar>>, Pos, Vec<Pos>) -> IrOp
     {
         match tree.var(ident) {
             Some(var) => {
@@ -1692,7 +1692,7 @@ impl IrBlock
                                         }
                                         let mut new_panic_poses = panic_poses.to_vec();
                                         new_panic_poses.extend_from_slice(poses);
-                                        Ok((None, Some(f(ident.clone(), new_values, pos.clone(), new_panic_poses, new_var_tuples, new_var_tuple_idxs)?)))
+                                        Ok((None, Some(f(ident.clone(), new_values, pos.clone(), new_panic_poses))))
                                     },
                                     None => Err(IrBlockError::NoFirstValue),
                                 }
@@ -1704,7 +1704,7 @@ impl IrBlock
                                 }
                                 let mut new_panic_poses = panic_poses.to_vec();
                                 new_panic_poses.extend_from_slice(poses);
-                                Ok((None, Some(f(ident.clone(), new_values, pos.clone(), new_panic_poses, new_var_tuples, new_var_tuple_idxs)?)))
+                                Ok((None, Some(f(ident.clone(), new_values, pos.clone(), new_panic_poses))))
                             },
                         }
                     },
@@ -1817,18 +1817,14 @@ impl IrBlock
                 }
                 Ok((None, Some(IrOp::CallBuiltinFun(ident.clone(), typ.clone(), new_values))))
             },
-            IrOp::CallFun(ident, values, pos, panic_poses, panic_value) => {
-                self.substitute_fun_op(ident, values.as_slice(), pos, panic_poses.as_slice(), substitutions, ret_var, poses, tree, is_orig_ret, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs, |ident, new_values, pos, new_panic_poses, new_var_tuples, new_var_tuple_idxs| {
-                        let new_panic_value = match panic_value {
-                            Some(panic_value) => Some(self.substitute_value(panic_value, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?),
-                            None => None,
-                        };
-                        Ok(IrOp::CallFun(ident, new_values, pos, new_panic_poses, new_panic_value.clone()))
+            IrOp::CallFun(ident, values, pos, panic_poses) => {
+                self.substitute_fun_op(ident, values.as_slice(), pos, panic_poses.as_slice(), substitutions, ret_var, poses, tree, is_orig_ret, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs, |ident, new_values, pos, new_panic_poses| {
+                        IrOp::CallFun(ident, new_values, pos, new_panic_poses)
                 })
             },
             IrOp::CallFunWithoutPanic(ident, values, pos) => {
-                self.substitute_fun_op(ident, values.as_slice(), pos, &[], substitutions, ret_var, poses, tree, is_orig_ret, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs, |ident, new_values, pos, _, _, _| {
-                        Ok(IrOp::CallFunWithoutPanic(ident, new_values, pos))
+                self.substitute_fun_op(ident, values.as_slice(), pos, &[], substitutions, ret_var, poses, tree, is_orig_ret, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs, |ident, new_values, pos, _| {
+                        IrOp::CallFunWithoutPanic(ident, new_values, pos)
                 })
             },
         }
@@ -2022,15 +2018,6 @@ impl IrBlock
                 IrInstr::Loop(block) => {
                     (None, Some(IrInstr::Loop(Box::new(block.substitute_from(substitutions, ret_var, poses, tree, is_caller_fun_arg_change, is_closure_var_change, old_var_idx2, new_var_idx2, block_idx, var_tuples, var_tuple_idxs)?))))
                 },
-                IrInstr::Panic(msg, pos, panic_poses, value) => {
-                    let new_value = match value {
-                        Some(value) => Some(self.substitute_value(value, substitutions, is_caller_fun_arg_change, is_closure_var_change, new_var_idx2, var_tuples.as_slice(), var_tuple_idxs, &mut new_var_tuples, &mut new_var_tuple_idxs)?),
-                        None => None,
-                    };
-                    let mut new_panic_poses = panic_poses.clone();
-                    new_panic_poses.extend_from_slice(poses);
-                    (None, Some(IrInstr::Panic(msg.clone(), pos.clone(), new_panic_poses, new_value)))
-                },
                 _ => (None, Some(instr.clone())),
             };
             if new_block2.is_some() || new_instr.is_some() {
@@ -2169,7 +2156,7 @@ pub enum IrInstr
     If(IrOp, Box<IrBlock>, Box<IrBlock>),
     Switch(IrOp, Vec<IrCase>),
     Loop(Box<IrBlock>),
-    Panic(String, Pos, Vec<Pos>, Option<IrValue<IrArgVar>>),
+    Panic(String, Pos, Vec<Pos>),
 }
 
 impl IrInstr
@@ -2216,7 +2203,7 @@ pub enum IrOp
     Xor(IrValue<IrArgVar>, IrValue<IrArgVar>),
     Or(IrValue<IrArgVar>, IrValue<IrArgVar>),
     CallBuiltinFun(String, Option<Box<IrType>>, Vec<IrValue<IrArgVar>>),
-    CallFun(String, Vec<IrValue<IrArgVar>>, Pos, Vec<Pos>, Option<IrValue<IrArgVar>>),
+    CallFun(String, Vec<IrValue<IrArgVar>>, Pos, Vec<Pos>),
     CallFunWithoutPanic(String, Vec<IrValue<IrArgVar>>, Pos),
 }
 
