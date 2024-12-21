@@ -1659,6 +1659,7 @@ impl IrBlock
                             IrFun::Caller(_, _, _, _, _, _, _, _) => {
                                 match values.first() {
                                     Some(value) => {
+                                        let mut new_ident = ident.clone();
                                         let mut new_values: Vec<IrValue<IrArgVar>> = Vec::new();
                                         match self.arg_substitution(value, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)? {
                                             ArgSubstitution::Value(new_value) => new_values.push(new_value),
@@ -1672,7 +1673,7 @@ impl IrBlock
                                                                     IrFun::Fun(IrFunModifier::Inline, fun_arg_types, fun_ret_type, fun_block, _, _, _, _) => {
                                                                         return self.fun_block_and_fun_op(0, fun_arg_types, fun_ret_type, fun_block, &values[1..], pos, panic_poses, substitutions, ret_var, poses, tree, is_orig_ret, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs);
                                                                     },
-                                                                    _ => (),
+                                                                    _ => new_ident = ident2.clone(),
                                                                 }
                                                             },
                                                             _ => return Err(IrBlockError::ConstOrVar),
@@ -1680,7 +1681,6 @@ impl IrBlock
                                                     },
                                                     None => return Err(IrBlockError::NoFun),
                                                 }
-                                                new_values.push(self.substitute_value(value, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?);
                                             },
                                             ArgSubstitution::Lambda(fun_old_start_var_idx, fun_arg_types, fun_ret_type, fun_block) => {
                                                 return self.fun_block_and_fun_op(fun_old_start_var_idx, fun_arg_types.as_slice(), &fun_ret_type, &fun_block, &values[1..], pos, panic_poses, substitutions, ret_var, poses, tree, is_orig_ret, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs);
@@ -1691,7 +1691,7 @@ impl IrBlock
                                         }
                                         let mut new_panic_poses = panic_poses.to_vec();
                                         new_panic_poses.extend_from_slice(poses);
-                                        Ok((None, Some(f(ident.clone(), new_values, pos.clone(), new_panic_poses))))
+                                        Ok((None, Some(f(new_ident, new_values, pos.clone(), new_panic_poses))))
                                     },
                                     None => Err(IrBlockError::NoFirstValue),
                                 }
