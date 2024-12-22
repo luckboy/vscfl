@@ -139,6 +139,7 @@ pub enum IrType
     Ushort,
     Uint,
     Ulong,
+    Half,
     Float,
     Double,
     SizeT,
