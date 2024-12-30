@@ -1439,63 +1439,22 @@ impl IrBlock
             IrValue::Object(object) => {
                 match &**object {
                     IrObject::Var(var, None) => {
-                        match var {
-                            IrArgVar::Local(var_idx, ops) => {
-                                if ops.is_empty() {
-                                    match self.var_arg_substitution_tuple(*var_idx, substitutions, var_tuples, var_tuple_idxs)? {
-                                        (Some(ArgSubstitution::Value(value2)), _, _) => self.arg_substitution(&value2, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs),
-                                        (Some(substitution), _, _) => Ok(substitution),
-                                        (None, _, _) => Ok(ArgSubstitution::Value(self.substitute_value(value, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?)),
-                                    }
-                                } else {
-                                    Ok(ArgSubstitution::Value(self.substitute_value(value, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?))
-                                }
-                            },
-                            IrArgVar::CallerFunArg(var_idx, ops) => {
-                                if ops.is_empty() {
-                                    match self.var_arg_substitution_tuple(*var_idx, substitutions, var_tuples, var_tuple_idxs)? {
-                                        (Some(ArgSubstitution::Value(value2)), _, _) => self.arg_substitution(&value2, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs),
-                                        (Some(substitution), _, _) => Ok(substitution),
-                                        (None, _, _) => Ok(ArgSubstitution::Value(self.substitute_value(value, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?)),
-                                    }
-                                } else {
-                                    Ok(ArgSubstitution::Value(self.substitute_value(value, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?))
-                                }
-                            },
-                            IrArgVar::PrivateClosure(var_idx, ops) => {
-                                if ops.is_empty() {
-                                    match self.var_arg_substitution_tuple(*var_idx, substitutions, var_tuples, var_tuple_idxs)? {
-                                        (Some(ArgSubstitution::Value(value2)), _, _) => self.arg_substitution(&value2, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs),
-                                        (Some(substitution), _, _) => Ok(substitution),
-                                        (None, _, _) => Ok(ArgSubstitution::Value(self.substitute_value(value, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?)),
-                                    }
-                                } else {
-                                    Ok(ArgSubstitution::Value(self.substitute_value(value, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?))
-                                }
-                            },
-                            IrArgVar::LocalClosure(var_idx, ops) => {
-                                if ops.is_empty() {
-                                    match self.var_arg_substitution_tuple(*var_idx, substitutions, var_tuples, var_tuple_idxs)? {
-                                        (Some(ArgSubstitution::Value(value2)), _, _) => self.arg_substitution(&value2, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs),
-                                        (Some(substitution), _, _) => Ok(substitution),
-                                        (None, _, _) => Ok(ArgSubstitution::Value(self.substitute_value(value, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?)),
-                                    }
-                                } else {
-                                    Ok(ArgSubstitution::Value(self.substitute_value(value, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?))
-                                }
-                            },
-                            IrArgVar::GlobalClosure(var_idx, ops) => {
-                                if ops.is_empty() {
-                                    match self.var_arg_substitution_tuple(*var_idx, substitutions, var_tuples, var_tuple_idxs)? {
-                                        (Some(ArgSubstitution::Value(value2)), _, _) => self.arg_substitution(&value2, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs),
-                                        (Some(substitution), _, _) => Ok(substitution),
-                                        (None, _, _) => Ok(ArgSubstitution::Value(self.substitute_value(value, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?)),
-                                    }
-                                } else {
-                                    Ok(ArgSubstitution::Value(self.substitute_value(value, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?))
-                                }
-                            },
-                            _ => Ok(ArgSubstitution::Value(self.substitute_value(value, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?)),
+                        let (var_idx, ops) = match var {
+                            IrArgVar::Local(tmp_var_idx, tmp_ops) => (*tmp_var_idx, tmp_ops),
+                            IrArgVar::CallerFunArg(tmp_var_idx, tmp_ops) => (*tmp_var_idx, tmp_ops),
+                            IrArgVar::PrivateClosure(tmp_var_idx, tmp_ops) => (*tmp_var_idx, tmp_ops),
+                            IrArgVar::LocalClosure(tmp_var_idx, tmp_ops) => (*tmp_var_idx, tmp_ops),
+                            IrArgVar::GlobalClosure(tmp_var_idx, tmp_ops) => (*tmp_var_idx, tmp_ops),
+                            _ => return Ok(ArgSubstitution::Value(self.substitute_value(value, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?)),
+                        };
+                        if ops.is_empty() {
+                            match self.var_arg_substitution_tuple(var_idx, substitutions, var_tuples, var_tuple_idxs)? {
+                                (Some(ArgSubstitution::Value(value2)), _, _) => self.arg_substitution(&value2, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs),
+                                (Some(substitution), _, _) => Ok(substitution),
+                                (None, _, _) => Ok(ArgSubstitution::Value(self.substitute_value(value, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?)),
+                            }
+                        } else {
+                            Ok(ArgSubstitution::Value(self.substitute_value(value, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?))
                         }
                     },
                     _ => Ok(ArgSubstitution::Value(self.substitute_value(value, substitutions, is_caller_fun_arg_change, is_closure_var_change, current_new_var_idx, var_tuples, var_tuple_idxs, new_var_tuples, new_var_tuple_idxs)?)),
