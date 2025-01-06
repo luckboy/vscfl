@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2024 Łukasz Szpakowski
+// Copyright (c) 2024-2025 Łukasz Szpakowski
 //
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,3 +7,4 @@
 //
 pub mod error;
 pub mod ir;
+pub mod mangling;
