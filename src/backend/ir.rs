@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2024 Łukasz Szpakowski
+// Copyright (c) 2024-2025 Łukasz Szpakowski
 //
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -2117,10 +2117,10 @@ impl IrBlock
             ArgSubstitution::Value(fun_value) => {
                 match &**fun_type {
                     IrType::Struct(type_ident) => {
-                        if type_ident.starts_with("_S") {
+                        if type_ident.starts_with("_VS") {
                             let mut new_caller_arg_values = vec![fun_value.clone()];
                             new_caller_arg_values.extend(self.arg_substitutions_to_arg_values(arg_substitutions)?);
-                            Some(IrOp::CallFun(String::from("_C") + &type_ident[2..], new_caller_arg_values, pos.clone(), panic_poses.to_vec()))
+                            Some(IrOp::CallFun(String::from("_VC") + &type_ident[3..], new_caller_arg_values, pos.clone(), panic_poses.to_vec()))
                         } else {
                             return Err(IrBlockError::InvalidType);
                         }

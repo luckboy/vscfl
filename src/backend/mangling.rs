@@ -149,14 +149,14 @@ fn add_mangled_type_params_to_string(s: &mut String, type_values: &[Rc<TypeValue
 
 pub fn mangle_struct_name(type_value: &TypeValue) -> BackendResult<String>
 {
-    let mut s = String::from("_S");
+    let mut s = String::from("_VS");
     add_mangled_type_value_to_string(&mut s, type_value)?;
     Ok(s)
 }
 
 pub fn mangle_private_closure_name(type_value: &TypeValue, idx: usize) -> BackendResult<String>
 {
-    let mut s = String::from("_DO");
+    let mut s = String::from("_VDO");
     add_mangled_type_value_to_string(&mut s, type_value)?;
     add_mangled_usize_to_string(&mut s, idx);
     Ok(s)
@@ -164,7 +164,7 @@ pub fn mangle_private_closure_name(type_value: &TypeValue, idx: usize) -> Backen
 
 pub fn mangle_local_closure_name(type_value: &TypeValue, idx: usize) -> BackendResult<String>
 {
-    let mut s = String::from("_DK");
+    let mut s = String::from("_VDK");
     add_mangled_type_value_to_string(&mut s, type_value)?;
     add_mangled_usize_to_string(&mut s, idx);
     Ok(s)
@@ -172,7 +172,7 @@ pub fn mangle_local_closure_name(type_value: &TypeValue, idx: usize) -> BackendR
 
 pub fn mangle_global_closure_name(type_value: &TypeValue, idx: usize) -> BackendResult<String>
 {
-    let mut s = String::from("_DG");
+    let mut s = String::from("_VDG");
     add_mangled_type_value_to_string(&mut s, type_value)?;
     add_mangled_usize_to_string(&mut s, idx);
     Ok(s)
@@ -180,14 +180,14 @@ pub fn mangle_global_closure_name(type_value: &TypeValue, idx: usize) -> Backend
 
 pub fn mangle_union_name(type_value: &TypeValue) -> BackendResult<String>
 {
-    let mut s = String::from("_U");
+    let mut s = String::from("_VU");
     add_mangled_type_value_to_string(&mut s, type_value)?;
     Ok(s)
 }
 
 pub fn mangle_var_name(ident: &str, type_values: &[Rc<TypeValue>], typ: &Type) -> BackendResult<String>
 {
-    let mut s = String::from("_V");
+    let mut s = String::from("_VV");
     add_mangled_ident_to_string(&mut s, ident);
     add_mangled_type_params_to_string(&mut s, type_values, typ)?;
     Ok(s)
@@ -195,14 +195,14 @@ pub fn mangle_var_name(ident: &str, type_values: &[Rc<TypeValue>], typ: &Type) -
 
 pub fn mangle_ref_value_name(idx: usize) -> String
 {
-    let mut s = String::from("_W");
+    let mut s = String::from("_VW");
     add_mangled_usize_to_string(&mut s, idx);
     s
 }
 
 pub fn mangle_lambda_name(ident: &str, type_values: &[Rc<TypeValue>], typ: &Type, local_fun: LocalFun) -> BackendResult<String>
 {
-    let mut s = String::from("_B");
+    let mut s = String::from("_VB");
     add_mangled_ident_to_string(&mut s, ident);
     add_mangled_type_params_to_string(&mut s, type_values, typ)?;
     add_mangled_usize_to_string(&mut s, local_fun.index());
@@ -211,24 +211,24 @@ pub fn mangle_lambda_name(ident: &str, type_values: &[Rc<TypeValue>], typ: &Type
 
 pub fn mangle_fun_name(ident: &str, type_values: &[Rc<TypeValue>], typ: &Type) -> BackendResult<String>
 {
-    let mut s = String::from("_F");
+    let mut s = String::from("_VF");
     add_mangled_ident_to_string(&mut s, ident);
     add_mangled_type_params_to_string(&mut s, type_values, typ)?;
     Ok(s)
 }
 
 pub fn mangle_private_alloc_fun_name() -> String
-{ String::from("_HO") }
+{ String::from("_VHO") }
 
 pub fn mangle_local_alloc_fun_name() -> String
-{ String::from("_HK") }
+{ String::from("_VHK") }
 
 pub fn mangle_global_alloc_fun_name() -> String
-{ String::from("_HG") }
+{ String::from("_VHG") }
 
 pub fn mangle_caller_name(type_value: &TypeValue) -> BackendResult<String>
 {
-    let mut s = String::from("_C");
+    let mut s = String::from("_VC");
     add_mangled_type_value_to_string(&mut s, type_value)?;
     Ok(s)
 }
