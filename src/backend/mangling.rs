@@ -21,7 +21,7 @@ fn add_mangled_type_value_to_string(s: &mut String, type_value: &TypeValue) -> B
         TypeValue::Param(_, _) => return Err(BackendError::Internal(String::from("add_mangled_type_value_to_string: type value is type parameter"))),
         TypeValue::Type(uniq_flag, type_value_name, args) => {
             if *uniq_flag == UniqFlag::Uniq {
-                s.push('X');
+                s.push_str("KU");
                 match type_value_name {
                     TypeValueName::Tuple => {
                         s.push('L');
@@ -156,7 +156,7 @@ pub fn mangle_struct_name(type_value: &TypeValue) -> BackendResult<String>
 
 pub fn mangle_private_closure_name(type_value: &TypeValue, idx: usize) -> BackendResult<String>
 {
-    let mut s = String::from("_VDO");
+    let mut s = String::from("_VDKP");
     add_mangled_type_value_to_string(&mut s, type_value)?;
     add_mangled_usize_to_string(&mut s, idx);
     Ok(s)
@@ -164,7 +164,7 @@ pub fn mangle_private_closure_name(type_value: &TypeValue, idx: usize) -> Backen
 
 pub fn mangle_local_closure_name(type_value: &TypeValue, idx: usize) -> BackendResult<String>
 {
-    let mut s = String::from("_VDK");
+    let mut s = String::from("_VDKL");
     add_mangled_type_value_to_string(&mut s, type_value)?;
     add_mangled_usize_to_string(&mut s, idx);
     Ok(s)
@@ -172,7 +172,7 @@ pub fn mangle_local_closure_name(type_value: &TypeValue, idx: usize) -> BackendR
 
 pub fn mangle_global_closure_name(type_value: &TypeValue, idx: usize) -> BackendResult<String>
 {
-    let mut s = String::from("_VDG");
+    let mut s = String::from("_VDKG");
     add_mangled_type_value_to_string(&mut s, type_value)?;
     add_mangled_usize_to_string(&mut s, idx);
     Ok(s)
@@ -218,13 +218,13 @@ pub fn mangle_fun_name(ident: &str, type_values: &[Rc<TypeValue>], typ: &Type) -
 }
 
 pub fn mangle_private_alloc_fun_name() -> String
-{ String::from("_VHO") }
+{ String::from("_VHKP") }
 
 pub fn mangle_local_alloc_fun_name() -> String
-{ String::from("_VHK") }
+{ String::from("_VHKL") }
 
 pub fn mangle_global_alloc_fun_name() -> String
-{ String::from("_VHG") }
+{ String::from("_VHKG") }
 
 pub fn mangle_caller_name(type_value: &TypeValue) -> BackendResult<String>
 {
