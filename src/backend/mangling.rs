@@ -154,6 +154,15 @@ pub fn mangle_struct_name(type_value: &TypeValue) -> BackendResult<String>
     Ok(s)
 }
 
+pub fn mangle_union_field_struct_name(ident: &str, type_value: &TypeValue) -> BackendResult<String>
+{
+    let mut s = String::from("_VG");
+    add_mangled_ident_to_string(&mut s, ident);
+    s.push('J');
+    add_mangled_type_value_to_string(&mut s, type_value)?;
+    Ok(s)
+}
+
 pub fn mangle_private_closure_name(type_value: &TypeValue, idx: usize) -> BackendResult<String>
 {
     let mut s = String::from("_VDKP");
