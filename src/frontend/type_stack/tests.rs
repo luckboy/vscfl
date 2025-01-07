@@ -1218,7 +1218,7 @@ data U<t1> = C(t1);
                                     let mut parser9 = Parser::new(Lexer::new(String::from("test9.vscfl"), &mut cursor9));
                                     match parser9.parse_where() {
                                         Ok(where_tuples2) => {
-                                            match namer.check_idents_for_type_with_where(&type_expr, where_tuples2.as_slice(), &tree) {
+                                            match namer.check_idents_for_type_with_where(&type_expr2, where_tuples2.as_slice(), &tree) {
                                                 Ok(()) => assert!(true),
                                                 Err(_) => assert!(false),
                                             }
