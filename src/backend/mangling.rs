@@ -22,57 +22,57 @@ fn add_mangled_type_value_to_string(s: &mut String, type_value: &TypeValue) -> B
         TypeValue::Type(uniq_flag, type_value_name, args) => {
             if *uniq_flag == UniqFlag::Uniq {
                 s.push_str("KU");
-                match type_value_name {
-                    TypeValueName::Tuple => {
-                        s.push('L');
-                        let mut is_first = true;
-                        for arg in args {
-                            if !is_first {
-                                s.push('E');
-                            }
-                            add_mangled_type_value_to_string(s, arg)?;
-                            is_first = false;
+            }
+            match type_value_name {
+                TypeValueName::Tuple => {
+                    s.push('L');
+                    let mut is_first = true;
+                    for arg in args {
+                        if !is_first {
+                            s.push('E');
                         }
-                        s.push('R');
-                    },
-                    TypeValueName::Array(len) => {
-                        s.push('M');
-                        add_mangled_type_value_to_string(s, &args[0])?;
-                        s.push('T');
-                        match len {
-                            Some(len) => add_mangled_usize_to_string(s, *len),
-                            None => s.push('_'),
+                        add_mangled_type_value_to_string(s, arg)?;
+                        is_first = false;
+                    }
+                    s.push('R');
+                },
+                TypeValueName::Array(len) => {
+                    s.push('M');
+                    add_mangled_type_value_to_string(s, &args[0])?;
+                    s.push('T');
+                    match len {
+                        Some(len) => add_mangled_usize_to_string(s, *len),
+                        None => s.push('_'),
+                    }
+                    s.push('Q');
+                },
+                TypeValueName::Fun => {
+                    s.push('L');
+                    let mut is_first = true;
+                    for arg in &args[0..(args.len() - 1)] {
+                        if !is_first {
+                            s.push('E');
                         }
-                        s.push('Q');
-                    },
-                    TypeValueName::Fun => {
-                        s.push('L');
-                        let mut is_first = true;
-                        for arg in &args[0..(args.len() - 1)] {
-                            if !is_first {
-                                s.push('E');
-                            }
-                            add_mangled_type_value_to_string(s, arg)?;
-                            is_first = false;
+                        add_mangled_type_value_to_string(s, arg)?;
+                        is_first = false;
+                    }
+                    s.push('R');
+                    s.push('A');
+                    add_mangled_type_value_to_string(s, &args[args.len() - 1])?;
+                },
+                TypeValueName::Name(ident) => {
+                    add_mangled_ident_to_string(s, ident.as_str());
+                    s.push('N');
+                    let mut is_first = true;
+                    for arg in args {
+                        if !is_first {
+                            s.push('E');
                         }
-                        s.push('R');
-                        s.push('A');
-                        add_mangled_type_value_to_string(s, &args[args.len() - 1])?;
-                    },
-                    TypeValueName::Name(ident) => {
-                        add_mangled_ident_to_string(s, ident.as_str());
-                        s.push('N');
-                        let mut is_first = true;
-                        for arg in args {
-                            if !is_first {
-                                s.push('E');
-                            }
-                            add_mangled_type_value_to_string(s, arg)?;
-                            is_first = false;
-                        }
-                        s.push('P');
-                    },
-                }
+                        add_mangled_type_value_to_string(s, arg)?;
+                        is_first = false;
+                    }
+                    s.push('P');
+                },
             }
         },        
     }
@@ -133,6 +133,9 @@ fn add_mangled_type_params_to_string(s: &mut String, type_values: &[Rc<TypeValue
             }
             let type_param_entry_r = type_param_entry.borrow();
             if (type_param_entry_r.trait_names.is_empty() || (type_param_entry_r.trait_names.len() == 1 && type_param_entry_r.trait_names.contains(&TraitName::Shared))) && type_param_entry_r.type_values.is_empty() {
+                if type_value.uniq_flag() == UniqFlag::Uniq {
+                    s.push_str("KU");
+                }
                 add_mangled_type_value_to_string(s, &**type_value)?;
             } else {
                 match type_value.type_name() {
