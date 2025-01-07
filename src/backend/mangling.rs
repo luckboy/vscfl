@@ -15,9 +15,9 @@ fn add_mangled_ident_to_string(s: &mut String, ident: &str)
 fn add_mangled_usize_to_string(s: &mut String, n: usize)
 { s.push_str(format!("I{}I", n).as_str()); }
 
-fn add_mangled_type_value_to_string(s: &mut String, type_value: &TypeValue) -> BackendResult<()>
+fn add_mangled_type_value_to_string(s: &mut String, type_value: &Rc<TypeValue>) -> BackendResult<()>
 {
-    match type_value {
+    match &**type_value {
         TypeValue::Param(_, _) => return Err(BackendError::Internal(String::from("add_mangled_type_value_to_string: type value is type parameter"))),
         TypeValue::Type(uniq_flag, type_value_name, args) => {
             if *uniq_flag == UniqFlag::Uniq {
@@ -136,7 +136,7 @@ fn add_mangled_type_params_to_string(s: &mut String, type_values: &[Rc<TypeValue
                 if type_value.uniq_flag() == UniqFlag::Uniq {
                     s.push_str("KU");
                 }
-                add_mangled_type_value_to_string(s, &**type_value)?;
+                add_mangled_type_value_to_string(s, type_value)?;
             } else {
                 match type_value.type_name() {
                     Some(type_name) => add_mangled_type_name_to_string(s, &type_name),
@@ -150,14 +150,14 @@ fn add_mangled_type_params_to_string(s: &mut String, type_values: &[Rc<TypeValue
     Ok(())
 }
 
-pub fn mangle_struct_name(type_value: &TypeValue) -> BackendResult<String>
+pub fn mangle_struct_name(type_value: &Rc<TypeValue>) -> BackendResult<String>
 {
     let mut s = String::from("_VS");
     add_mangled_type_value_to_string(&mut s, type_value)?;
     Ok(s)
 }
 
-pub fn mangle_union_field_struct_name(ident: &str, type_value: &TypeValue) -> BackendResult<String>
+pub fn mangle_union_field_struct_name(ident: &str, type_value: &Rc<TypeValue>) -> BackendResult<String>
 {
     let mut s = String::from("_VG");
     add_mangled_ident_to_string(&mut s, ident);
@@ -166,7 +166,7 @@ pub fn mangle_union_field_struct_name(ident: &str, type_value: &TypeValue) -> Ba
     Ok(s)
 }
 
-pub fn mangle_private_closure_name(type_value: &TypeValue, idx: usize) -> BackendResult<String>
+pub fn mangle_private_closure_name(type_value: &Rc<TypeValue>, idx: usize) -> BackendResult<String>
 {
     let mut s = String::from("_VDKP");
     add_mangled_type_value_to_string(&mut s, type_value)?;
@@ -174,7 +174,7 @@ pub fn mangle_private_closure_name(type_value: &TypeValue, idx: usize) -> Backen
     Ok(s)
 }
 
-pub fn mangle_local_closure_name(type_value: &TypeValue, idx: usize) -> BackendResult<String>
+pub fn mangle_local_closure_name(type_value: &Rc<TypeValue>, idx: usize) -> BackendResult<String>
 {
     let mut s = String::from("_VDKL");
     add_mangled_type_value_to_string(&mut s, type_value)?;
@@ -182,7 +182,7 @@ pub fn mangle_local_closure_name(type_value: &TypeValue, idx: usize) -> BackendR
     Ok(s)
 }
 
-pub fn mangle_global_closure_name(type_value: &TypeValue, idx: usize) -> BackendResult<String>
+pub fn mangle_global_closure_name(type_value: &Rc<TypeValue>, idx: usize) -> BackendResult<String>
 {
     let mut s = String::from("_VDKG");
     add_mangled_type_value_to_string(&mut s, type_value)?;
@@ -190,7 +190,7 @@ pub fn mangle_global_closure_name(type_value: &TypeValue, idx: usize) -> Backend
     Ok(s)
 }
 
-pub fn mangle_union_name(type_value: &TypeValue) -> BackendResult<String>
+pub fn mangle_union_name(type_value: &Rc<TypeValue>) -> BackendResult<String>
 {
     let mut s = String::from("_VU");
     add_mangled_type_value_to_string(&mut s, type_value)?;
@@ -238,7 +238,7 @@ pub fn mangle_local_alloc_fun_name() -> String
 pub fn mangle_global_alloc_fun_name() -> String
 { String::from("_VHKG") }
 
-pub fn mangle_caller_name(type_value: &TypeValue) -> BackendResult<String>
+pub fn mangle_caller_name(type_value: &Rc<TypeValue>) -> BackendResult<String>
 {
     let mut s = String::from("_VC");
     add_mangled_type_value_to_string(&mut s, type_value)?;
