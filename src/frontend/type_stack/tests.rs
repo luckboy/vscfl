@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2024 Łukasz Szpakowski
+// Copyright (c) 2024-2025 Łukasz Szpakowski
 //
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -708,7 +708,7 @@ data T<t1> = C(t1);
                     let pos = Pos::new(String::from("test6.vscfl"), 1, 1);
                     match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
-                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(2), &typ) {
+                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(2), &typ, None) {
                                 Ok(()) => assert!(true),
                                 Err(_) => assert!(false),
                             }
@@ -900,7 +900,7 @@ data U<t2> = D(t2);
                     match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
                             assert_eq!(LocalType::new(3), local_types2.set_defined_type(&typ));
-                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(2), &typ) {
+                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(2), &typ, None) {
                                 Ok(()) => assert!(true),
                                 Err(_) => assert!(false),
                             }
@@ -1009,7 +1009,7 @@ data U<t2> = D(t2);
                     let pos = Pos::new(String::from("test10.vscfl"), 1, 1);
                     match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
-                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(3), &typ) {
+                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(3), &typ, None) {
                                 Ok(()) => assert!(true),
                                 Err(_) => assert!(false),
                             }
@@ -1056,9 +1056,11 @@ data U<t2> = D(t2);
 fn test_type_stack_push_type_values_for_local_type_and_type_pushes_type_values_with_unique_unsetting()
 {
     let s = "
+trait T {};
 builtin type Int;
 builtin type Float;
-data T<t1> = C(t1);
+impl T for Float {};
+data U<t1> = C(t1);
 ";
     let s2 = &s[1..];
     let mut cursor = Cursor::new(s2.as_bytes());
@@ -1139,7 +1141,7 @@ data T<t1> = C(t1);
     }
     let type_matcher = TypeMatcher::new();
     assert_eq!(LocalType::new(3), local_types.add_type_param(Rc::new(RefCell::new(TypeParamEntry::new()))));
-    let s5 = "(T<t>, uniq Float, T<u>) -> Float";
+    let s5 = "(U<t>, uniq Float, U<u>) -> Float";
     let mut cursor4 = Cursor::new(s5.as_bytes());
     let mut parser4 = Parser::new(Lexer::new(String::from("test4.vscfl"), &mut cursor4));
     match parser4.parse_type() {
@@ -1185,16 +1187,16 @@ data T<t1> = C(t1);
     assert_eq!(3, type_stack.type_entries().len());
     match type_stack.type_entry(LocalType::new(2)) {
         Some(TypeStackEntry::Type(type_value)) => {
-            assert_eq!(String::from("(T<t1>, uniq Float, T<t2>) -> Float"), type_value.to_string_without_fun());
+            assert_eq!(String::from("(U<t1>, uniq Float, U<t2>) -> Float"), type_value.to_string_without_fun());
         },
         _ => assert!(false),
     }
-    let s7 = "(t, Float, u) -> Float";
+    let s7 = "(t, u, v) -> Float";
     let mut cursor6 = Cursor::new(s7.as_bytes());
     let mut parser6 = Parser::new(Lexer::new(String::from("test6.vscfl"), &mut cursor6));
     match parser6.parse_type() {
         Ok(type_expr) => {
-            let s8 = "t: shared, u: shared";
+            let s8 = "t: shared, u: T, v: shared";
             let mut cursor7 = Cursor::new(s8.as_bytes());
             let mut parser7 = Parser::new(Lexer::new(String::from("test7.vscfl"), &mut cursor7));
             match parser7.parse_where() {
@@ -1206,8 +1208,34 @@ data T<t1> = C(t1);
                     let pos = Pos::new(String::from("test6.vscfl"), 1, 1);
                     match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
-                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(2), &typ) {
-                                Ok(()) => assert!(true),
+                            let s9 = "(t, Float, u) -> Float";
+                            let mut cursor8 = Cursor::new(s9.as_bytes());
+                            let mut parser8 = Parser::new(Lexer::new(String::from("test8.vscfl"), &mut cursor8));
+                            match parser8.parse_type() {
+                                Ok(type_expr2) => {
+                                    let s10 = "t: shared, u: shared";
+                                    let mut cursor9 = Cursor::new(s10.as_bytes());
+                                    let mut parser9 = Parser::new(Lexer::new(String::from("test9.vscfl"), &mut cursor9));
+                                    match parser9.parse_where() {
+                                        Ok(where_tuples2) => {
+                                            match namer.check_idents_for_type_with_where(&type_expr, where_tuples2.as_slice(), &tree) {
+                                                Ok(()) => assert!(true),
+                                                Err(_) => assert!(false),
+                                            }
+                                            let pos2 = Pos::new(String::from("test8.vscfl"), 1, 1);
+                                            match typer.evaluate_type_with_where("test", &type_expr2, where_tuples2.as_slice(), &None, &pos2, &tree) {
+                                                Ok(impl_type) => {
+                                                    match type_stack.push_type_values_for_local_type_and_type(LocalType::new(2), &typ, Some(&impl_type)) {
+                                                        Ok(()) => assert!(true),
+                                                        Err(_) => assert!(false),
+                                                    }
+                                                },
+                                                Err(_) => assert!(false),
+                                            }
+                                        },
+                                        Err(_) => assert!(false),
+                                    }
+                                },
                                 Err(_) => assert!(false),
                             }
                         },
@@ -1223,16 +1251,17 @@ data T<t1> = C(t1);
     match type_stack.type_values_and_type_entry_index() {
         Some((type_values, idx)) => {
             assert_eq!(3, idx);
-            assert_eq!(2, type_values.len());
-            assert_eq!(String::from("T<t1>"), type_values[0].to_string_without_fun());
-            assert_eq!(String::from("T<t2>"), type_values[1].to_string_without_fun());
+            assert_eq!(3, type_values.len());
+            assert_eq!(String::from("U<t1>"), type_values[0].to_string_without_fun());
+            assert_eq!(String::from("Float"), type_values[1].to_string_without_fun());
+            assert_eq!(String::from("U<t2>"), type_values[2].to_string_without_fun());
         },
         None => assert!(false),
     }
     assert_eq!(3, type_stack.type_entries().len());
     match type_stack.type_entry(LocalType::new(2)) {
         Some(TypeStackEntry::Type(type_value)) => {
-            assert_eq!(String::from("(T<t1>, Float, T<t2>) -> Float"), type_value.to_string_without_fun());
+            assert_eq!(String::from("(U<t1>, Float, U<t2>) -> Float"), type_value.to_string_without_fun());
         },
         _ => assert!(false),
     }
@@ -1395,7 +1424,7 @@ trait T<t1> {};
                     let pos = Pos::new(String::from("test6.vscfl"), 1, 1);
                     match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
-                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(2), &typ) {
+                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(2), &typ, None) {
                                 Ok(()) => assert!(true),
                                 Err(_) => assert!(false),
                             }
@@ -1584,7 +1613,7 @@ trait T<t1> {};
                     let pos = Pos::new(String::from("test6.vscfl"), 1, 1);
                     match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
-                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(2), &typ) {
+                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(2), &typ, None) {
                                 Ok(()) => assert!(true),
                                 Err(_) => assert!(false),
                             }
@@ -1769,7 +1798,7 @@ impl T for U {};
                     let pos = Pos::new(String::from("test6.vscfl"), 1, 1);
                     match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
-                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(2), &typ) {
+                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(2), &typ, None) {
                                 Ok(()) => assert!(true),
                                 Err(_) => assert!(false),
                             }
@@ -1952,7 +1981,7 @@ data T<t1> = C(t1);
                     let pos = Pos::new(String::from("test6.vscfl"), 1, 1);
                     match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
-                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(2), &typ) {
+                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(2), &typ, None) {
                                 Ok(()) => assert!(true),
                                 Err(_) => assert!(false),
                             }
@@ -2181,7 +2210,7 @@ data T<t1> = C(t1);
                     let pos = Pos::new(String::from("test6.vscfl"), 1, 1);
                     match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
-                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(2), &typ) {
+                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(2), &typ, None) {
                                 Ok(()) => assert!(true),
                                 Err(_) => assert!(false),
                             }
@@ -2348,7 +2377,7 @@ data U<t2> = D(t2);
                     match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
                             assert_eq!(LocalType::new(3), local_types2.set_defined_type(&typ));
-                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(2), &typ) {
+                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(2), &typ, None) {
                                 Ok(()) => assert!(true),
                                 Err(_) => assert!(false),
                             }
@@ -2421,7 +2450,7 @@ data U<t2> = D(t2);
                     let pos = Pos::new(String::from("test10.vscfl"), 1, 1);
                     match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
-                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(3), &typ) {
+                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(3), &typ, None) {
                                 Ok(()) => assert!(true),
                                 Err(_) => assert!(false),
                             }
@@ -3765,7 +3794,7 @@ builtin type Float;
                     let pos = Pos::new(String::from("test6.vscfl"), 1, 1);
                     match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
-                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(0), &typ) {
+                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(0), &typ, None) {
                                 Ok(()) => assert!(true),
                                 Err(_) => assert!(false),
                             }
@@ -3907,7 +3936,7 @@ data T<t1> = C(t1);
                     match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
                             assert_eq!(LocalType::new(3), local_types2.set_defined_type(&typ));
-                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(0), &typ) {
+                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(0), &typ, None) {
                                 Ok(()) => assert!(true),
                                 Err(_) => assert!(false),
                             }
@@ -3981,7 +4010,7 @@ data T<t1> = C(t1);
                     let pos = Pos::new(String::from("test10.vscfl"), 1, 1);
                     match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
-                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(3), &typ) {
+                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(3), &typ, None) {
                                 Ok(()) => assert!(true),
                                 Err(_) => assert!(false),
                             }
@@ -4135,7 +4164,7 @@ builtin type Float;
                     match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
                             assert_eq!(LocalType::new(3), local_types2.set_defined_type(&typ));
-                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(0), &typ) {
+                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(0), &typ, None) {
                                 Ok(()) => assert!(true),
                                 Err(_) => assert!(false),
                             }
@@ -4333,7 +4362,7 @@ builtin type Float;
                     let pos = Pos::new(String::from("test6.vscfl"), 1, 1);
                     match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
-                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(0), &typ) {
+                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(0), &typ, None) {
                                 Ok(()) => assert!(true),
                                 Err(_) => assert!(false),
                             }
@@ -4482,7 +4511,7 @@ builtin type Float;
                     let pos = Pos::new(String::from("test6.vscfl"), 1, 1);
                     match typer.evaluate_type_with_where("test", &type_expr, where_tuples.as_slice(), &None, &pos, &tree) {
                         Ok(typ) => {
-                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(0), &typ) {
+                            match type_stack.push_type_values_for_local_type_and_type(LocalType::new(0), &typ, None) {
                                 Ok(()) => assert!(true),
                                 Err(_) => assert!(false),
                             }

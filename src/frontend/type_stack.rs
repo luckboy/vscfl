@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2024 Łukasz Szpakowski
+// Copyright (c) 2024-2025 Łukasz Szpakowski
 //
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -287,7 +287,7 @@ impl TypeStack
     pub fn type_name_for_local_type_and_type(&self, local_type: LocalType, typ: &Type, trait_ident: &str) -> FrontendInternalResult<Option<TypeName>>
     { self.type_name_for_type_values(&Rc::new(TypeValue::Param(UniqFlag::None, local_type)), typ.type_value(), trait_ident, typ) }
 
-    fn set_type_values_for_type_value(&self, type_value1: &Rc<TypeValue>, type_value2: &Rc<TypeValue>, typ: &Type, type_values: &mut [Rc<TypeValue>]) -> FrontendInternalResult<Rc<TypeValue>>
+    fn change_uniq_flags_for_type_value(&self, type_value1: &Rc<TypeValue>, type_value2: &Rc<TypeValue>, typ: &Type) -> FrontendInternalResult<Rc<TypeValue>>
     {
         match (&**type_value1, &**type_value2) {
             (TypeValue::Param(_, local_type1), TypeValue::Param(uniq_flag2, local_type2)) => {
@@ -298,18 +298,70 @@ impl TypeStack
                         let mut new_type_values: Vec<Rc<TypeValue>> = Vec::new();
                         if !type_param_entry2_r.type_values.is_empty() {
                             for (type_value3, type_value4) in type_param_entry1_r.type_values.iter().zip(type_param_entry2_r.type_values.iter()) {
-                                new_type_values.push(self.set_type_values_for_type_value(type_value3, type_value4, typ, type_values)?);
+                                new_type_values.push(self.change_uniq_flags_for_type_value(type_value3, type_value4, typ)?);
                             }
                         } else {
                             new_type_values.extend_from_slice(type_param_entry1_r.type_values.as_slice());
                         }
                         type_param_entry1_r.type_values = new_type_values;
-                        let new_type_value = Rc::new(TypeValue::Param(*uniq_flag2, *local_type1));
+                        Ok(Rc::new(TypeValue::Param(*uniq_flag2, *local_type1)))
+                    },
+                    (Some(TypeStackEntry::Type(type_value3)), Some(_)) => self.change_uniq_flags_for_type_value(type_value3, type_value2, typ),
+                    _ => Err(FrontendInternalError(String::from("change_uniq_flags_for_type_value: no type stack entry or type parameter entry"))),
+                }
+            },
+            (TypeValue::Param(_, local_type1), TypeValue::Type(_, _, _)) => {
+                match self.type_entries.get(local_type1.index()) {
+                    Some(TypeStackEntry::Type(type_value3)) => self.change_uniq_flags_for_type_value(type_value3, type_value2, typ),
+                    Some(TypeStackEntry::Param(_)) => Err(FrontendInternalError(String::from("set_type_values_for_type_value: can't match type parameter with type"))),
+                    None => Err(FrontendInternalError(String::from("change_uniq_flags_for_type_value: no type stack entry"))),
+                }
+            },
+            (TypeValue::Type(_, type_value_name1, type_values1), TypeValue::Param(uniq_flag2, local_type2)) => {
+                match typ.type_param_entry(*local_type2) {
+                    Some(type_param_entry2) => {
+                        let type_param_entry2_r = type_param_entry2.borrow();
+                        let mut new_type_values: Vec<Rc<TypeValue>> = Vec::new();
+                        if !type_param_entry2_r.type_values.is_empty() {
+                            for (type_value3, type_value4) in type_values1.iter().zip(type_param_entry2_r.type_values.iter()) {
+                                new_type_values.push(self.change_uniq_flags_for_type_value(type_value3, type_value4, typ)?);
+                            }
+                        } else {
+                            new_type_values.extend_from_slice(type_values1.as_slice());
+                        }
+                        Ok(Rc::new(TypeValue::Type(*uniq_flag2, type_value_name1.clone(), new_type_values)))
+                    },
+                    None => Err(FrontendInternalError(String::from("change_uniq_flags_for_type_value: no type parameter entry"))),
+                }
+            },
+            (TypeValue::Type(_, type_value_name1, type_values1), TypeValue::Type(uniq_flag2, _, type_values2)) => {
+                let mut new_type_values: Vec<Rc<TypeValue>> = Vec::new();
+                for (type_value3, type_value4) in type_values1.iter().zip(type_values2.iter()) {
+                    new_type_values.push(self.change_uniq_flags_for_type_value(type_value3, type_value4, typ)?);
+                }
+                Ok(Rc::new(TypeValue::Type(*uniq_flag2, type_value_name1.clone(), new_type_values)))
+            },
+        }
+    }
+
+    fn set_type_values_for_type_value(&self, type_value1: &Rc<TypeValue>, type_value2: &Rc<TypeValue>, typ: &Type, type_values: &mut [Rc<TypeValue>]) -> FrontendInternalResult<()>
+    {
+        match (&**type_value1, &**type_value2) {
+            (TypeValue::Param(_, local_type1), TypeValue::Param(_, local_type2)) => {
+                match (self.type_entries.get(local_type1.index()), typ.type_param_entry(*local_type2)) {
+                    (Some(TypeStackEntry::Param(type_param_entry1)), Some(type_param_entry2)) => {
+                        let type_param_entry1_r = type_param_entry1.borrow_mut();
+                        let type_param_entry2_r = type_param_entry2.borrow();
+                        if !type_param_entry2_r.type_values.is_empty() {
+                            for (type_value3, type_value4) in type_param_entry1_r.type_values.iter().zip(type_param_entry2_r.type_values.iter()) {
+                                self.set_type_values_for_type_value(type_value3, type_value4, typ, type_values)?;
+                            }
+                        }
                         match type_values.get_mut(local_type2.index()) {
-                            Some(type_value) => *type_value = new_type_value.clone(),
+                            Some(type_value) => *type_value = type_value1.clone(),
                             None => return Err(FrontendInternalError(String::from("set_type_values_for_type_value: no type value"))),
                         }
-                        Ok(new_type_value)
+                        Ok(())
                     },
                     (Some(TypeStackEntry::Type(type_value3)), Some(_)) => self.set_type_values_for_type_value(type_value3, type_value2, typ, type_values),
                     _ => Err(FrontendInternalError(String::from("set_type_values_for_type_value: no type stack entry or type parameter entry"))),
@@ -322,46 +374,47 @@ impl TypeStack
                     None => Err(FrontendInternalError(String::from("set_type_values_for_type_value: no type stack entry"))),
                 }
             },
-            (TypeValue::Type(_, type_value_name1, type_values1), TypeValue::Param(uniq_flag2, local_type2)) => {
+            (TypeValue::Type(_, _, type_values1), TypeValue::Param(_, local_type2)) => {
                 match typ.type_param_entry(*local_type2) {
                     Some(type_param_entry2) => {
                         let type_param_entry2_r = type_param_entry2.borrow();
-                        let mut new_type_values: Vec<Rc<TypeValue>> = Vec::new();
                         if !type_param_entry2_r.type_values.is_empty() {
                             for (type_value3, type_value4) in type_values1.iter().zip(type_param_entry2_r.type_values.iter()) {
-                                new_type_values.push(self.set_type_values_for_type_value(type_value3, type_value4, typ, type_values)?);
+                                self.set_type_values_for_type_value(type_value3, type_value4, typ, type_values)?;
                             }
-                        } else {
-                            new_type_values.extend_from_slice(type_values1.as_slice());
                         }
-                        let new_type_value = Rc::new(TypeValue::Type(*uniq_flag2, type_value_name1.clone(), new_type_values));
                         match type_values.get_mut(local_type2.index()) {
-                            Some(type_value) => *type_value = new_type_value.clone(),
+                            Some(type_value) => *type_value = type_value1.clone(),
                             None => return Err(FrontendInternalError(String::from("set_type_values_for_type_value: no type value"))),
                         }
-                        Ok(new_type_value)
+                        Ok(())
                     },
                     None => Err(FrontendInternalError(String::from("set_type_values_for_type_value: no type parameter entry"))),
                 }
             },
-            (TypeValue::Type(_, type_value_name1, type_values1), TypeValue::Type(uniq_flag2, _, type_values2)) => {
-                let mut new_type_values: Vec<Rc<TypeValue>> = Vec::new();
+            (TypeValue::Type(_, _, type_values1), TypeValue::Type(_, _, type_values2)) => {
                 for (type_value3, type_value4) in type_values1.iter().zip(type_values2.iter()) {
-                    new_type_values.push(self.set_type_values_for_type_value(type_value3, type_value4, typ, type_values)?);
+                    self.set_type_values_for_type_value(type_value3, type_value4, typ, type_values)?;
                 }
-                Ok(Rc::new(TypeValue::Type(*uniq_flag2, type_value_name1.clone(), new_type_values)))
+                Ok(())
             },
         }
-    }
+    }    
     
-    pub fn push_type_values_for_local_type_and_type(&mut self, local_type: LocalType, typ: &Type) -> FrontendInternalResult<()>
+    pub fn push_type_values_for_local_type_and_type(&mut self, local_type: LocalType, typ: &Type, impl_type: Option<&Type>) -> FrontendInternalResult<()>
     {
         let mut type_values = vec![Rc::new(TypeValue::Type(UniqFlag::None, TypeValueName::Tuple, Vec::new())); typ.type_param_entries().len()];
-        let new_type_value = self.set_type_values_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type)), typ.type_value(), typ, type_values.as_mut_slice())?;
-        match &self.type_entries[local_type.index()] {
-            TypeStackEntry::Type(_) => self.type_entries[local_type.index()] = TypeStackEntry::Type(new_type_value),
-            _ => (),
+        match impl_type {
+            Some(impl_type) => {
+                let new_type_value = self.change_uniq_flags_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type)), impl_type.type_value(), impl_type)?;
+                match &self.type_entries[local_type.index()] {
+                    TypeStackEntry::Type(_) => self.type_entries[local_type.index()] = TypeStackEntry::Type(new_type_value),
+                    _ => (),
+                }
+            },
+            None => (),
         }
+        self.set_type_values_for_type_value(&Rc::new(TypeValue::Param(UniqFlag::None, local_type)), typ.type_value(), typ, type_values.as_mut_slice())?;
         self.type_values.push((type_values, self.type_entries.len()));
         Ok(())
     }
