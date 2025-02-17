@@ -2085,7 +2085,7 @@ impl IrBlock
             for arg_substitution in arg_substitutions {
                 match arg_substitution {
                     ArgSubstitution::Value(arg_value) => {
-                        new_fun_block2.add_instr(IrInstr::Assign(Box::new(IrInstrVar::Local(new_start_var_idx + i, Vec::new())), IrOp::Load(arg_value.clone())));                        
+                        new_fun_block2.add_instr(IrInstr::Assign(Box::new(IrInstrVar::Local(new_start_var_idx + i, Vec::new())), IrOp::Load(arg_value.clone())));
                         i += 1;
                     },
                     _ => (),
