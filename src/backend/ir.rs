@@ -517,7 +517,7 @@ impl IrBlock
         if !ops.is_empty() {
             match new_var_tuple_idxs.get(&var_idx) {
                 Some(new_var_tuple_idx) => {
-                    match var_tuples.get(*new_var_tuple_idx - var_tuples.len()) {
+                    match new_var_tuples.get(*new_var_tuple_idx - var_tuples.len()) {
                         Some(new_var_tuple) => {
                             match new_var_tuple.new_var_index {
                                 Some(new_var_idx) => {
@@ -529,7 +529,7 @@ impl IrBlock
                                 None => Err(IrBlockError::NoNewVarIndex), 
                             }         
                         },
-                        None => Err(IrBlockError::NoVarTuple),
+                        None => Err(IrBlockError::NoNewVarTuple),
                     }
                 },
                 None => {
@@ -1002,14 +1002,14 @@ impl IrBlock
     {
         match new_var_tuple_idxs.get(&var_idx) {
             Some(new_var_tuple_idx) => {
-                match var_tuples.get(*new_var_tuple_idx - var_tuples.len()) {
+                match new_var_tuples.get(*new_var_tuple_idx - var_tuples.len()) {
                     Some(new_var_tuple) => {
                         match new_var_tuple.new_var_index {
                             Some(new_var_idx) => Ok((Some(IrArgOp::LocalIndex(typ.clone(), new_var_idx)), Some(new_var_idx), false, false)),
                             None => Err(IrBlockError::NoNewVarIndex),
                         }
                     },
-                    None => Err(IrBlockError::NoVarTuple),
+                    None => Err(IrBlockError::NoNewVarTuple),
                 }
             },
             None => {
@@ -1980,7 +1980,7 @@ impl IrBlock
                 _ => (None, Some(instr.clone())),
             };
             if new_block2.is_some() || new_instr.is_some() {
-                if new_var_tuples.is_empty() {
+                if !new_var_tuples.is_empty() {
                     let mut new_block3 = IrBlock::new();
                     for new_var_tuple in &new_var_tuples {
                         new_block3.add_local_var_pair(IrLocalVarPair(IrLocalVarModifier::None, new_var_tuple.typ.clone()));
@@ -2035,7 +2035,7 @@ impl IrBlock
         let mut old_var_idx = old_start_var_idx;
         let mut new_var_idx = new_start_var_idx;
         for var_type in var_types {
-            let is_var = match  substitutions.get(&(old_var_idx, 0)) {
+            let is_var = match substitutions.get(&(old_var_idx, 0)) {
                 Some(substitution) => substitution.has_var(),
                 None => true,
             };
@@ -2176,6 +2176,7 @@ pub enum IrBlockError
     InvalidObject,
     InvalidType,
     NoVarTuple,
+    NoNewVarTuple,
     NoOldBlockIndex,
     NoNewVarIndex,
     NoType,
@@ -2200,6 +2201,7 @@ impl fmt::Display for IrBlockError
           IrBlockError::InvalidObject => write!(f, "invalid object"),
           IrBlockError::InvalidType => write!(f, "invalid type"),
           IrBlockError::NoVarTuple => write!(f, "no variable tuple"),
+          IrBlockError::NoNewVarTuple => write!(f, "no new variable tuple"),
           IrBlockError::NoOldBlockIndex => write!(f, "no old block index"),
           IrBlockError::NoNewVarIndex => write!(f, "no new variable index"),
           IrBlockError::NoType => write!(f, "no type"),
