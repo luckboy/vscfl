@@ -1885,8 +1885,8 @@ impl IrBlock
                         _ => true,
                     };
                     if is_assign {
-                        let (tmp_new_block, new_op) = self.substitute_op(op, substitutions, Some(None), poses, tree, false, is_caller_fun_arg_change, is_closure_var_change, new_var_idx2, var_tuples.as_slice(), var_tuple_idxs, &mut new_var_tuples, &mut new_var_tuple_idxs)?;
                         let new_var = self.substitute_instr_var(var, substitutions, is_caller_fun_arg_change, is_closure_var_change, new_var_idx2, var_tuples.as_slice(), var_tuple_idxs, &mut new_var_tuples, &mut new_var_tuple_idxs)?;
+                        let (tmp_new_block, new_op) = self.substitute_op(op, substitutions, Some(Some(&Box::new(new_var.clone()))), poses, tree, false, is_caller_fun_arg_change, is_closure_var_change, new_var_idx2, var_tuples.as_slice(), var_tuple_idxs, &mut new_var_tuples, &mut new_var_tuple_idxs)?;
                         match new_op {
                             Some(new_op) => (tmp_new_block, Some(IrInstr::Assign(Box::new(new_var), new_op))),
                             None => (tmp_new_block, None),
