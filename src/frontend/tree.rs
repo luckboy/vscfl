@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2024 Łukasz Szpakowski
+// Copyright (c) 2024-2025 Łukasz Szpakowski
 //
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -1362,7 +1362,12 @@ impl LocalTypes
             }
             eq_local_types.remove(&LocalType::new(root_idx1));
             eq_local_types.remove(&LocalType::new(root_idx2));
-            eq_local_types.insert(LocalType::new(root_idx));
+            match &self.type_entries[root_idx] {
+                LocalTypeEntry::Param(_, _, _, _) => {
+                    eq_local_types.insert(LocalType::new(root_idx));
+                },
+                _ => (),
+            }
             eq_local_types.remove(&LocalType::new(self.type_entries.root_of(eq_root_idx)));
             self.eq_type_param_entries[eq_root_idx].local_types = eq_local_types;
             Some((LocalType::new(root_idx), LocalType::new(eq_root_idx)))
